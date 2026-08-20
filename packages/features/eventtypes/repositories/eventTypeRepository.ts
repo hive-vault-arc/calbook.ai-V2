@@ -740,6 +740,7 @@ export class EventTypeRepository implements IEventTypesRepository {
         },
       },
       enablePerHostLocations: true,
+      tierSchedules: true,
       userId: true,
       price: true,
       children: {
@@ -1020,6 +1021,7 @@ export class EventTypeRepository implements IEventTypesRepository {
         },
       },
       enablePerHostLocations: true,
+      tierSchedules: true,
       userId: true,
       price: true,
       children: {

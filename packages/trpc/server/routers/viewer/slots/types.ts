@@ -82,6 +82,8 @@ export const removeSelectedSlotSchema = z.object({
 export const joinWaitlistSchema = z.object({
   eventTypeId: z.number().int(),
   slotUtcStartDate: z.string(),
+  slotUtcEndDate: z.string().optional(),
+  tier: z.string().optional(),
   email: z.string().email(),
   name: z.string().optional(),
   phoneNumber: z.string().optional(),

@@ -186,6 +186,7 @@ export type FormValues = {
   maxActiveBookingPerBookerOfferReschedule: boolean;
   enablePerHostLocations: boolean;
   requiresCancellationReason?: CancellationReasonRequirement | null;
+  tierSchedules: Record<string, number> | null;
 };
 
 export type LocationFormValues = Pick<FormValues, "id" | "locations" | "bookingFields" | "seatsPerTimeSlot">;

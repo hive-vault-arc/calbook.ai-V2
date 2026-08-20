@@ -8,7 +8,7 @@ import type {
   GetAvailabilityUser,
   UserAvailabilityService,
 } from "@calcom/features/availability/lib/getUserAvailability";
-import { resolveTierScheduleId } from "@calcom/features/availability/lib/tierSchedules";
+import { parseTierSchedules, resolveTierScheduleId } from "@calcom/features/availability/lib/tierSchedules";
 import type { IGetAvailableSlots } from "@calcom/features/bookings/Booker/hooks/useAvailableTimeSlots";
 import type { CheckBookingLimitsService } from "@calcom/features/bookings/lib/checkBookingLimits";
 import { checkForConflicts } from "@calcom/features/bookings/lib/conflictChecker/checkForConflicts";
@@ -926,6 +926,11 @@ export class AvailableSlotsService {
     if (input.tier && eventType.id) {
       const rawEventType = await this.dependencies.eventTypeRepo.findTierSchedules({ id: eventType.id });
       if (rawEventType?.tierSchedules) {
+        const parsedTiers = parseTierSchedules(rawEventType.tierSchedules);
+        if (parsedTiers && !(input.tier in parsedTiers)) {
+          // R2.5: Reject invalid tiers server-side; do not silently fall back
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid tier" });
+        }
         const tierScheduleId = resolveTierScheduleId(rawEventType, input.tier);
         const currentScheduleId = fetchedEventType.schedule?.id;
         if (tierScheduleId && tierScheduleId !== currentScheduleId) {

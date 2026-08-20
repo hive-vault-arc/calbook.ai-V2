@@ -205,6 +205,7 @@ const BaseEventTypeUpdateInput: z.ZodType<TUpdateInputSchema> = z
     multiplePrivateLinks: z.array(z.union([z.string(), hashedLinkInputSchema])).optional(),
     hostGroups: z.array(hostGroupSchema).optional(),
     enablePerHostLocations: z.boolean().optional(),
+    tierSchedules: z.record(z.string(), z.number().int().positive()).nullable().optional(),
   })
   .strict();
 

@@ -10,9 +10,11 @@ import { useState } from "react";
 type JoinWaitlistProps = {
   eventTypeId: number;
   slotTime: string;
+  slotEndTime?: string;
+  tier?: string;
 };
 
-export function JoinWaitlist({ eventTypeId, slotTime }: JoinWaitlistProps) {
+export function JoinWaitlist({ eventTypeId, slotTime, slotEndTime, tier }: JoinWaitlistProps) {
   const { t } = useLocale();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -72,7 +74,16 @@ export function JoinWaitlist({ eventTypeId, slotTime }: JoinWaitlistProps) {
       />
       <Button
         color="primary"
-        onClick={() => joinMutation.mutate({ eventTypeId, slotUtcStartDate: slotTime, email, name })}
+        onClick={() =>
+          joinMutation.mutate({
+            eventTypeId,
+            slotUtcStartDate: slotTime,
+            slotUtcEndDate: slotEndTime,
+            tier,
+            email,
+            name,
+          })
+        }
         loading={joinMutation.isPending}
         disabled={!email}>
         {t("join_waitlist")}

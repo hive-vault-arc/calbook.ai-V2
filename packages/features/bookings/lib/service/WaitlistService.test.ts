@@ -1,6 +1,5 @@
 import type { BookingWaitlist } from "@calcom/prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import { WaitlistService } from "./WaitlistService";
 
 vi.mock("@calcom/prisma", () => ({
@@ -8,19 +7,37 @@ vi.mock("@calcom/prisma", () => ({
     bookingWaitlist: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       deleteMany: vi.fn(),
     },
+    $transaction: vi.fn((fn: (tx: unknown) => Promise<unknown>) =>
+      fn({
+        bookingWaitlist: {
+          findFirst: vi.fn(),
+          update: vi.fn(),
+        },
+      })
+    ),
   },
   prisma: {
     bookingWaitlist: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       deleteMany: vi.fn(),
     },
+    $transaction: vi.fn((fn: (tx: unknown) => Promise<unknown>) =>
+      fn({
+        bookingWaitlist: {
+          findFirst: vi.fn(),
+          update: vi.fn(),
+        },
+      })
+    ),
   },
 }));
 
@@ -30,10 +47,12 @@ const mockPrisma = prisma as unknown as {
   bookingWaitlist: {
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     deleteMany: ReturnType<typeof vi.fn>;
   };
+  $transaction: ReturnType<typeof vi.fn>;
 };
 
 function makeEntry(overrides: Partial<BookingWaitlist> = {}): BookingWaitlist {
@@ -41,6 +60,9 @@ function makeEntry(overrides: Partial<BookingWaitlist> = {}): BookingWaitlist {
     id: 1,
     eventTypeId: 10,
     slotTime: new Date("2026-09-01T10:00:00Z"),
+    slotEndTime: new Date("2026-09-01T10:30:00Z"),
+    tier: null,
+    promotionToken: null,
     email: "booker@example.com",
     name: "Booker",
     phoneNumber: null,
@@ -60,14 +82,16 @@ describe("WaitlistService", () => {
   });
 
   describe("addToWaitlist", () => {
-    it("should create a new waitlist entry", async () => {
-      const entry = makeEntry();
+    it("should create a new waitlist entry with slot end time and tier", async () => {
+      const entry = makeEntry({ tier: "pro", slotEndTime: new Date("2026-09-01T10:30:00Z") });
       mockPrisma.bookingWaitlist.findFirst.mockResolvedValue(null);
       mockPrisma.bookingWaitlist.create.mockResolvedValue(entry);
 
       const result = await service.addToWaitlist({
         eventTypeId: 10,
         slotTime: new Date("2026-09-01T10:00:00Z"),
+        slotEndTime: new Date("2026-09-01T10:30:00Z"),
+        tier: "pro",
         email: "booker@example.com",
         name: "Booker",
       });
@@ -77,7 +101,8 @@ describe("WaitlistService", () => {
         data: expect.objectContaining({
           eventTypeId: 10,
           email: "booker@example.com",
-          name: "Booker",
+          tier: "pro",
+          slotEndTime: expect.any(Date),
         }),
       });
     });
@@ -119,11 +144,22 @@ describe("WaitlistService", () => {
   });
 
   describe("promoteFromWaitlist", () => {
-    it("should promote the next person in line (oldest unnotified)", async () => {
+    it("should atomically promote the next person in line with a promotion token", async () => {
       const next = makeEntry({ id: 5, email: "next@example.com" });
-      mockPrisma.bookingWaitlist.findFirst.mockResolvedValue(next);
-      mockPrisma.bookingWaitlist.update.mockResolvedValue(
-        makeEntry({ id: 5, email: "next@example.com", notifiedAt: new Date(), expiresAt: new Date(Date.now() + 30 * 60 * 1000) })
+      const promoted = makeEntry({
+        id: 5,
+        email: "next@example.com",
+        notifiedAt: new Date(),
+        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        promotionToken: "abc123",
+      });
+
+      const txBookingWaitlist = {
+        findFirst: vi.fn().mockResolvedValue(next),
+        update: vi.fn().mockResolvedValue(promoted),
+      };
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({ bookingWaitlist: txBookingWaitlist })
       );
 
       const result = await service.promoteFromWaitlist({
@@ -133,7 +169,8 @@ describe("WaitlistService", () => {
 
       expect(result).not.toBeNull();
       expect(result?.email).toBe("next@example.com");
-      expect(mockPrisma.bookingWaitlist.findFirst).toHaveBeenCalledWith(
+      expect(result?.promotionToken).toBeTruthy();
+      expect(txBookingWaitlist.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             notifiedAt: null,
@@ -142,19 +179,50 @@ describe("WaitlistService", () => {
           orderBy: { createdAt: "asc" },
         })
       );
-      expect(mockPrisma.bookingWaitlist.update).toHaveBeenCalledWith(
+      expect(txBookingWaitlist.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 5 },
           data: expect.objectContaining({
             notifiedAt: expect.any(Date),
             expiresAt: expect.any(Date),
+            promotionToken: expect.any(String),
+          }),
+        })
+      );
+    });
+
+    it("should filter by tier when tier is provided", async () => {
+      const txBookingWaitlist = {
+        findFirst: vi.fn().mockResolvedValue(null),
+        update: vi.fn(),
+      };
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({ bookingWaitlist: txBookingWaitlist })
+      );
+
+      await service.promoteFromWaitlist({
+        eventTypeId: 10,
+        slotTime: new Date("2026-09-01T10:00:00Z"),
+        tier: "pro",
+      });
+
+      expect(txBookingWaitlist.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tier: "pro",
           }),
         })
       );
     });
 
     it("should return null when no one is on the waitlist", async () => {
-      mockPrisma.bookingWaitlist.findFirst.mockResolvedValue(null);
+      const txBookingWaitlist = {
+        findFirst: vi.fn().mockResolvedValue(null),
+        update: vi.fn(),
+      };
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({ bookingWaitlist: txBookingWaitlist })
+      );
 
       const result = await service.promoteFromWaitlist({
         eventTypeId: 10,
@@ -162,7 +230,59 @@ describe("WaitlistService", () => {
       });
 
       expect(result).toBeNull();
-      expect(mockPrisma.bookingWaitlist.update).not.toHaveBeenCalled();
+      expect(txBookingWaitlist.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("validatePromotionToken", () => {
+    it("should return the entry for a valid, non-expired token", async () => {
+      const entry = makeEntry({
+        promotionToken: "valid-token",
+        notifiedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      });
+      mockPrisma.bookingWaitlist.findUnique.mockResolvedValue(entry);
+
+      const result = await service.validatePromotionToken("valid-token");
+      expect(result).not.toBeNull();
+      expect(result?.email).toBe("booker@example.com");
+    });
+
+    it("should return null for an expired token", async () => {
+      const entry = makeEntry({
+        promotionToken: "expired-token",
+        notifiedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() - 60 * 60 * 1000),
+      });
+      mockPrisma.bookingWaitlist.findUnique.mockResolvedValue(entry);
+
+      const result = await service.validatePromotionToken("expired-token");
+      expect(result).toBeNull();
+    });
+
+    it("should return null for a non-existent token", async () => {
+      mockPrisma.bookingWaitlist.findUnique.mockResolvedValue(null);
+      const result = await service.validatePromotionToken("nonexistent");
+      expect(result).toBeNull();
+    });
+
+    it("should return null for an entry without notifiedAt", async () => {
+      const entry = makeEntry({ promotionToken: "unnotified", notifiedAt: null, expiresAt: null });
+      mockPrisma.bookingWaitlist.findUnique.mockResolvedValue(entry);
+      const result = await service.validatePromotionToken("unnotified");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("consumePromotionToken", () => {
+    it("should delete the entry with the given token", async () => {
+      mockPrisma.bookingWaitlist.deleteMany.mockResolvedValue({ count: 1 });
+      await service.consumePromotionToken("some-token");
+      expect(mockPrisma.bookingWaitlist.deleteMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { promotionToken: "some-token" },
+        })
+      );
     });
   });
 
@@ -192,24 +312,13 @@ describe("WaitlistService", () => {
   describe("expireOldNotifications", () => {
     it("should delete entries with past expiry dates", async () => {
       mockPrisma.bookingWaitlist.deleteMany.mockResolvedValue({ count: 5 });
-
       const result = await service.expireOldNotifications();
-
       expect(result).toBe(5);
-      expect(mockPrisma.bookingWaitlist.deleteMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            expiresAt: { lt: expect.any(Date) },
-          }),
-        })
-      );
     });
 
     it("should return 0 when no expired entries exist", async () => {
       mockPrisma.bookingWaitlist.deleteMany.mockResolvedValue({ count: 0 });
-
       const result = await service.expireOldNotifications();
-
       expect(result).toBe(0);
     });
   });

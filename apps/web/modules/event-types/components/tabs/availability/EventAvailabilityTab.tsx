@@ -31,6 +31,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import type { OptionProps, SingleValueProps } from "react-select";
 import { components } from "react-select";
 import type { GetAllSchedulesByUserIdQueryType } from "./EventAvailabilityTabWebWrapper";
+import { TierSchedulesConfig } from "./TierSchedulesConfig";
 
 export type ScheduleQueryData = RouterOutputs["viewer"]["availability"]["schedule"]["get"];
 
@@ -445,7 +446,11 @@ const EventTypeSchedule = ({
   const formMethods = useFormContext<FormValues>();
   const isManagedEventType = false;
   const isChildrenManagedEventType = false;
-  const shouldLockDisableProps = (_field: string) => ({ disabled: false, LockedIcon: false as const, isLocked: false });
+  const shouldLockDisableProps = (_field: string) => ({
+    disabled: false,
+    LockedIcon: false as const,
+    isLocked: false,
+  });
   const shouldLockIndicator = (_field: string) => false;
   const { watch, setValue } = formMethods;
 
@@ -888,13 +893,26 @@ const UseTeamEventScheduleSettingsToggle = ({
 };
 
 export const EventAvailabilityTab = ({ eventType, isTeamEvent, ...rest }: EventAvailabilityTabProps) => {
+  const scheduleOptions =
+    rest.schedulesQueryData?.map((schedule) => ({
+      value: schedule.id,
+      label: schedule.name,
+      isDefault: schedule.isDefault,
+    })) ?? [];
+
   return isTeamEvent && eventType.schedulingType !== SchedulingType.MANAGED ? (
-    <UseTeamEventScheduleSettingsToggle eventType={eventType} {...rest} />
+    <div className="stack-y-4">
+      <UseTeamEventScheduleSettingsToggle eventType={eventType} {...rest} />
+      <TierSchedulesConfig schedules={scheduleOptions} />
+    </div>
   ) : (
-    <EventTypeSchedule
-      eventType={eventType}
-      {...rest}
-      customClassNames={rest?.customClassNames?.userAvailability}
-    />
+    <div className="stack-y-4">
+      <EventTypeSchedule
+        eventType={eventType}
+        {...rest}
+        customClassNames={rest?.customClassNames?.userAvailability}
+      />
+      <TierSchedulesConfig schedules={scheduleOptions} />
+    </div>
   );
 };

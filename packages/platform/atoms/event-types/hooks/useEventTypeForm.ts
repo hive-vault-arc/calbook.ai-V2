@@ -135,6 +135,7 @@ export const useEventTypeForm = ({
       showOptimizedSlots: eventType.showOptimizedSlots ?? false,
       enablePerHostLocations: eventType.enablePerHostLocations ?? false,
       requiresCancellationReason: eventType.requiresCancellationReason || null,
+      tierSchedules: (eventType.tierSchedules as Record<string, number> | null) ?? null,
     };
   }, [eventType, periodDates]);
 

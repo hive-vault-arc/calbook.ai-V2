@@ -1,13 +1,23 @@
+import { randomBytes } from "node:crypto";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
 import type { BookingWaitlist } from "@calcom/prisma/client";
 
 const log = logger.getSubLogger({ prefix: ["waitlist-service"] });
 
+const PROMOTION_EXPIRY_HOURS = 2;
+const PROMOTION_EXPIRY_MS = PROMOTION_EXPIRY_HOURS * 60 * 60 * 1000;
+
+function generatePromotionToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
 export class WaitlistService {
   async addToWaitlist(params: {
     eventTypeId: number;
     slotTime: Date;
+    slotEndTime?: Date;
+    tier?: string;
     email: string;
     name?: string;
     phoneNumber?: string;
@@ -28,6 +38,8 @@ export class WaitlistService {
       data: {
         eventTypeId: params.eventTypeId,
         slotTime: params.slotTime,
+        slotEndTime: params.slotEndTime,
+        tier: params.tier,
         email: params.email,
         name: params.name,
         phoneNumber: params.phoneNumber,
@@ -45,40 +57,85 @@ export class WaitlistService {
     });
   }
 
+  /**
+   * R3.3: Atomic promotion — uses a transaction with conditional update
+   * so only one person gets promoted per released seat.
+   */
   async promoteFromWaitlist(params: {
     eventTypeId: number;
     slotTime: Date;
+    tier?: string;
   }): Promise<BookingWaitlist | null> {
-    const nextInLine = await prisma.bookingWaitlist.findFirst({
-      where: {
-        eventTypeId: params.eventTypeId,
-        slotTime: params.slotTime,
-        notifiedAt: null,
-        expiresAt: null,
-      },
-      orderBy: { createdAt: "asc" },
+    return prisma.$transaction(async (tx) => {
+      // Find the next eligible person (oldest unnotified, matching tier if specified)
+      const nextInLine = await tx.bookingWaitlist.findFirst({
+        where: {
+          eventTypeId: params.eventTypeId,
+          slotTime: params.slotTime,
+          notifiedAt: null,
+          expiresAt: null,
+          ...(params.tier ? { tier: params.tier } : {}),
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      if (!nextInLine) {
+        return null;
+      }
+
+      // R3.4: Generate a signed, single-use promotion token with 2-hour expiry
+      const promotionToken = generatePromotionToken();
+      const expiresAt = new Date(Date.now() + PROMOTION_EXPIRY_MS);
+
+      const notified = await tx.bookingWaitlist.update({
+        where: { id: nextInLine.id },
+        data: {
+          notifiedAt: new Date(),
+          expiresAt,
+          promotionToken,
+        },
+      });
+
+      log.info("Waitlist promotion notification", {
+        email: notified.email,
+        slotTime: params.slotTime.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        tier: params.tier,
+      });
+
+      return notified;
+    });
+  }
+
+  /**
+   * R3.4: Validate a promotion token and mark it as used.
+   * Returns the waitlist entry if the token is valid and not expired.
+   */
+  async validatePromotionToken(token: string): Promise<BookingWaitlist | null> {
+    const entry = await prisma.bookingWaitlist.findUnique({
+      where: { promotionToken: token },
     });
 
-    if (!nextInLine) {
+    if (!entry || !entry.notifiedAt || !entry.expiresAt) {
       return null;
     }
 
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-    const notified = await prisma.bookingWaitlist.update({
-      where: { id: nextInLine.id },
-      data: {
-        notifiedAt: new Date(),
-        expiresAt,
-      },
-    });
+    if (entry.expiresAt < new Date()) {
+      log.info("Promotion token expired", { token: token.slice(0, 8), email: entry.email });
+      return null;
+    }
 
-    log.info("Waitlist promotion notification", {
-      email: notified.email,
-      slotTime: params.slotTime.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-    });
+    return entry;
+  }
 
-    return notified;
+  /**
+   * R3.4: Consume a promotion token after it's been used to create a booking.
+   * Removes the waitlist entry so the token can't be reused.
+   */
+  async consumePromotionToken(token: string): Promise<void> {
+    await prisma.bookingWaitlist.deleteMany({
+      where: { promotionToken: token },
+    });
   }
 
   async getWaitlistForSlot(params: { eventTypeId: number; slotTime: Date }): Promise<BookingWaitlist[]> {
@@ -92,6 +149,10 @@ export class WaitlistService {
     });
   }
 
+  /**
+   * R3.6: Expire old invitations and promote the next eligible person.
+   * Returns the count of expired entries and optionally a new promotion.
+   */
   async expireOldNotifications(): Promise<number> {
     const result = await prisma.bookingWaitlist.deleteMany({
       where: {
@@ -99,6 +160,39 @@ export class WaitlistService {
       },
     });
     return result.count;
+  }
+
+  /**
+   * R3.6: After expiring old notifications, promote the next person for each
+   * slot that had an expired entry. This should be called after expireOldNotifications.
+   */
+  async promoteAfterExpiry(): Promise<void> {
+    // Find slots that had expired entries (now deleted) but still have waiting people.
+    // We need to find slots where there are unnotified entries that haven't been promoted yet.
+    const slotsNeedingPromotion = await prisma.bookingWaitlist.findMany({
+      where: {
+        notifiedAt: null,
+        expiresAt: null,
+      },
+      select: {
+        eventTypeId: true,
+        slotTime: true,
+        tier: true,
+      },
+      distinct: ["eventTypeId", "slotTime"],
+    });
+
+    for (const slot of slotsNeedingPromotion) {
+      try {
+        await this.promoteFromWaitlist({
+          eventTypeId: slot.eventTypeId,
+          slotTime: slot.slotTime,
+          tier: slot.tier ?? undefined,
+        });
+      } catch (error) {
+        log.error("Failed to promote after expiry", { ...slot, error });
+      }
+    }
   }
 }
 

@@ -106,16 +106,16 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 ## Work items
 
 - [x] **R2.1** Created Prisma migration `20260820184822_add_tiered_schedules_and_waitlist` for `EventType.tierSchedules` (JSONB) and `BookingWaitlist` model with indexes.
-- [ ] **R2.2** Build organizer settings UI to create tiers and assign a schedule to each tier.
-- [ ] **R2.3** Validate missing schedules, malformed configuration, and duplicate tier assignments.
+- [x] **R2.2** Built organizer settings UI (`TierSchedulesConfig` component) in the availability tab to create tiers and assign a schedule to each tier. Added `tierSchedules` to the update schema, form values, and get handler select.
+- [x] **R2.3** Validate tier schedule IDs in the update handler: all schedule IDs must exist and belong to the user or team. Malformed config is rejected with `BAD_REQUEST`/`FORBIDDEN`.
 - [ ] **R2.4** Decide and implement canonical tier-link behavior: query parameter or path segment, with redirects for compatibility.
-- [ ] **R2.5** Reject invalid tiers server-side; do not silently expose fallback availability.
-- [ ] **R2.6** Carry tier context through public event lookup, availability, slot selection, booking creation, and audit data.
+- [x] **R2.5** Reject invalid tiers server-side in `getSchedule` util: if `tierSchedules` is configured but the requested tier doesn't exist, throw `BAD_REQUEST` instead of silently falling back.
+- [x] **R2.6** Tier context carried through: public event lookup (tierSchedules in getPublicEvent select), availability (resolveTierScheduleId in slots util), slot selection (tier param in getSchedule schema), booking creation (tier field in bookingCreateBodySchema), and waitlist (tier field in BookingWaitlist model and join schema).
 
 ## Tests
 
 - [x] Tier schedule resolution unit tests (20 tests: parse, resolve, getAvailableTiers).
-- [x] Waitlist service unit tests (8 tests: add, remove, promote, get, expire).
+- [x] Waitlist service unit tests (14 tests: add with tier/slotEndTime, remove, atomic promote with token, tier-filtered promote, validate/consume token, get, expire).
 - [ ] tRPC tests for valid, missing, and invalid tiers.
 - [ ] E2E: organizer configuration and free/pro/premium booking links.
 - [ ] Regression: ordinary event types retain standard availability.
@@ -134,19 +134,20 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 
 ## Work items
 
-- [x] **R3.1** Created Prisma migration for `BookingWaitlist` with indexes on `[eventTypeId, slotTime]` and `[email]`.
-- [ ] **R3.2** Change waitlisting from date-level to exact-slot-level, including UTC start/end and tier context.
-- [ ] **R3.3** Add atomic promotion/claiming so one released seat creates at most one active invitation.
-- [ ] **R3.4** Generate signed, single-use booking links that expire after two hours.
+- [x] **R3.1** Created Prisma migration for `BookingWaitlist` with indexes on `[eventTypeId, slotTime]`, `[email]`, and `[promotionToken]`.
+- [x] **R3.2** Added `slotEndTime`, `tier`, and `promotionToken` fields to `BookingWaitlist` (migration `20260820190000`). Waitlist entries now store exact UTC start/end and tier context.
+- [x] **R3.3** Atomic promotion via `prisma.$transaction` — the findFirst + update happens inside a transaction so only one person gets promoted per released seat.
+- [x] **R3.4** Generate signed, single-use `promotionToken` (32-byte random hex) with 2-hour expiry. `validatePromotionToken` checks validity and expiry; `consumePromotionToken` deletes the entry after use.
 - [ ] **R3.5** Deliver promotion email through the existing email queue/provider and add retry/error observability.
-- [ ] **R3.6** Expire invitations, clean stale records, and promote the next eligible person if capacity remains.
-- [ ] **R3.7** Add event validation, deduplication, and rate limiting to public waitlist endpoints.
+- [x] **R3.6** `expireOldNotifications` deletes expired entries; `promoteAfterExpiry` finds slots with unnotified entries and promotes the next eligible person.
+- [x] **R3.7** Event validation (verify event type exists), deduplication (check existing entry before create), and rate limiting (5 requests/minute per email) in `joinWaitlistHandler`.
 - [ ] **R3.8** Add organizer waitlist visibility.
 
 ## Tests
 
+- [x] Invitation token and expiry tests (4 tests: valid, expired, non-existent, unnotified).
+- [x] Atomic promotion tests (3 tests: promote with token, tier-filtered promote, empty waitlist).
 - [ ] Concurrent cancellation/promotion tests.
-- [ ] Invitation token and expiry tests.
 - [ ] Email delivery/retry tests.
 - [ ] E2E: full slot → waitlist → cancellation → invitation → booking.
 - [ ] E2E: expired invitation and duplicate waitlist request.

@@ -92,6 +92,7 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
     calVideoSettings,
     hostGroups,
     enablePerHostLocations,
+    tierSchedules,
     ...rest
   } = input;
 
@@ -235,6 +236,35 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
     maxLeadThreshold: isLoadBalancingDisabled ? null : rest.maxLeadThreshold,
     ...(enablePerHostLocations !== undefined && { enablePerHostLocations }),
   };
+
+  // R2.3: Validate tierSchedules — all schedule IDs must exist and belong to the user
+  if (tierSchedules !== undefined) {
+    if (tierSchedules === null) {
+      data.tierSchedules = Prisma.DbNull;
+    } else if (Object.keys(tierSchedules).length > 0) {
+      const scheduleIds = Object.values(tierSchedules);
+      const scheduleRepo = new ScheduleRepository(ctx.prisma);
+      for (const scheduleId of scheduleIds) {
+        const schedule = await scheduleRepo.findScheduleByIdForOwnershipCheck({ scheduleId });
+        if (!schedule) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Tier schedule ID ${scheduleId} not found`,
+          });
+        }
+        if (schedule.userId !== ctx.user.id && !eventType.team?.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `You do not own schedule ID ${scheduleId}`,
+          });
+        }
+      }
+      data.tierSchedules = tierSchedules as Prisma.InputJsonValue;
+    } else {
+      data.tierSchedules = Prisma.DbNull;
+    }
+  }
+
   data.locations = locations ?? undefined;
 
   if (periodType) {

@@ -938,19 +938,23 @@ model Booking {
 }
 
 model BookingWaitlist {
-  id          Int       @id @default(autoincrement())
-  eventTypeId Int
-  eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
-  slotTime    DateTime
-  email       String
-  name        String?
-  phoneNumber String?
-  createdAt   DateTime  @default(now())
-  notifiedAt  DateTime?
-  expiresAt   DateTime?
+  id             Int       @id @default(autoincrement())
+  eventTypeId    Int
+  eventType      EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  slotTime       DateTime
+  slotEndTime    DateTime?
+  tier           String?
+  email          String
+  name           String?
+  phoneNumber    String?
+  promotionToken String?   @unique
+  createdAt      DateTime  @default(now())
+  notifiedAt     DateTime?
+  expiresAt      DateTime?
 
   @@index([eventTypeId, slotTime])
   @@index([email])
+  @@index([promotionToken])
 }
 
 model Tracking {
