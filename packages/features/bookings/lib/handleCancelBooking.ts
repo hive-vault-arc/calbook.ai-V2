@@ -1,3 +1,4 @@
+import process from "node:process";
 import { DailyLocationType } from "@calcom/app-store/constants";
 import { FAKE_DAILY_CREDENTIAL } from "@calcom/app-store/dailyvideo/lib/VideoApiAdapter";
 import { eventTypeMetaDataSchemaWithTypedApps } from "@calcom/app-store/zod-utils";
@@ -8,6 +9,7 @@ import EventManager from "@calcom/features/bookings/lib/EventManager";
 import { getCalEventResponses } from "@calcom/features/bookings/lib/getCalEventResponses";
 import { processNoShowFeeOnCancellation } from "@calcom/features/bookings/lib/payment/processNoShowFeeOnCancellation";
 import { processPaymentRefund } from "@calcom/features/bookings/lib/payment/processPaymentRefund";
+import { waitlistService } from "@calcom/features/bookings/lib/service/WaitlistService";
 import {
   type EventTypeBrandingData,
   getEventTypeService,
@@ -21,25 +23,25 @@ import {
 } from "@calcom/features/webhooks/lib/scheduleTrigger";
 import sendPayload from "@calcom/features/webhooks/lib/sendOrSchedulePayload";
 import type { EventTypeInfo } from "@calcom/features/webhooks/lib/sendPayload";
+import { getTranslation } from "@calcom/i18n/server";
 import { HttpError } from "@calcom/lib/http-error";
 import { isPrismaObjOrUndefined } from "@calcom/lib/isPrismaObj";
 import { parseRecurringEvent } from "@calcom/lib/isRecurringEvent";
 import logger from "@calcom/lib/logger";
 import { safeStringify } from "@calcom/lib/safeStringify";
-import { getTranslation } from "@calcom/i18n/server";
+import { isPrismaError } from "@calcom/lib/server/getServerErrorFromUnknown";
 import { getTimeFormatStringFromUserTimeFormat } from "@calcom/lib/timeFormat";
 // TODO: Prisma import would be used from DI in a followup PR when we remove `handler` export
 import prisma from "@calcom/prisma";
 import type { WebhookTriggerEvents } from "@calcom/prisma/enums";
 import { BookingStatus } from "@calcom/prisma/enums";
-
-import { isCancellationReasonRequired } from "./cancellationReason";
 import type { EventTypeMetadata } from "@calcom/prisma/zod-utils";
 import { bookingCancelInput } from "@calcom/prisma/zod-utils";
 import type { CalendarEvent } from "@calcom/types/Calendar";
 import type { z } from "zod";
 import { BookingRepository } from "../repositories/BookingRepository";
 import { PrismaBookingAttendeeRepository } from "../repositories/PrismaBookingAttendeeRepository";
+import { isCancellationReasonRequired } from "./cancellationReason";
 import type {
   CancelBookingMeta,
   CancelRegularBookingData,
@@ -49,7 +51,6 @@ import { getAllCredentialsIncludeServiceAccountKey } from "./getAllCredentialsFo
 import { getBookingToDelete } from "./getBookingToDelete";
 import cancelAttendeeSeat from "./handleSeats/cancel/cancelAttendeeSeat";
 import type { IBookingCancelService } from "./interfaces/IBookingCancelService";
-import { isPrismaError } from "@calcom/lib/server/getServerErrorFromUnknown";
 
 const log = logger.getSubLogger({ prefix: ["handleCancelBooking"] });
 
@@ -80,17 +81,13 @@ type Dependencies = {
 
 async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
   const prismaClient = prisma;
-  const {
-    userRepository,
-    bookingRepository,
-    bookingReferenceRepository,
-    attendeeRepository,
-  } = dependencies || {
-    userRepository: new UserRepository(prismaClient),
-    bookingRepository: new BookingRepository(prismaClient),
-    bookingReferenceRepository: new BookingReferenceRepository({ prismaClient }),
-    attendeeRepository: new PrismaBookingAttendeeRepository(prismaClient),
-  };
+  const { userRepository, bookingRepository, bookingReferenceRepository, attendeeRepository } =
+    dependencies || {
+      userRepository: new UserRepository(prismaClient),
+      bookingRepository: new BookingRepository(prismaClient),
+      bookingReferenceRepository: new BookingReferenceRepository({ prismaClient }),
+      attendeeRepository: new PrismaBookingAttendeeRepository(prismaClient),
+    };
   const body = input.bookingData;
   const {
     id,
@@ -103,12 +100,12 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
     skipCancellationReasonValidation = false,
     skipCalendarSyncTaskCancellation = false,
   } = bookingCancelInput.parse(body);
-  let bookingToDelete: BookingToDelete
+  let bookingToDelete: BookingToDelete;
   try {
     bookingToDelete = await getBookingToDelete(id, uid);
   } catch (error) {
-    if (isPrismaError(error) && error.code === "P2025") // Record not found
-    {
+    if (isPrismaError(error) && error.code === "P2025") {
+      // Record not found
       throw new HttpError({
         statusCode: 404,
         message: "Booking not found.",
@@ -124,7 +121,6 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
     platformRescheduleUrl,
     arePlatformEmailsEnabled,
   } = input;
-
 
   /**
    * Important: We prevent cancelling an already cancelled booking.
@@ -158,7 +154,12 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
     isCancellationUserHost
   );
 
-  if (!platformClientId && !cancellationReason?.trim() && isReasonRequired && !skipCancellationReasonValidation) {
+  if (
+    !platformClientId &&
+    !cancellationReason?.trim() &&
+    isReasonRequired &&
+    !skipCancellationReasonValidation
+  ) {
     throw new HttpError({
       statusCode: 400,
       message: "Cancellation reason is required",
@@ -514,6 +515,18 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
   } catch (error) {
     log.error("Error deleting event", error);
   }
+
+  if (bookingToDelete.eventTypeId && bookingToDelete.startTime) {
+    try {
+      await waitlistService.promoteFromWaitlist({
+        eventTypeId: bookingToDelete.eventTypeId,
+        slotTime: bookingToDelete.startTime,
+      });
+    } catch (error) {
+      log.error("Failed to promote from waitlist after cancellation", error);
+    }
+  }
+
   return {
     success: true,
     message: "Booking successfully cancelled.",

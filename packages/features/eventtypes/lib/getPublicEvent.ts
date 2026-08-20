@@ -100,6 +100,7 @@ export const getPublicEventSelect = (fetchAllUsers: boolean) => {
     price: true,
     currency: true,
     seatsPerTimeSlot: true,
+    tierSchedules: true,
     disableCancelling: true,
     disableRescheduling: true,
     minimumRescheduleNotice: true,
@@ -601,6 +602,7 @@ export const getPublicEvent = async (
     disableRescheduling: event.disableRescheduling,
     allowReschedulingCancelledBookings: event.allowReschedulingCancelledBookings,
     interfaceLanguage: event.interfaceLanguage,
+    tierSchedules: eventWithUserProfiles.tierSchedules,
   };
 };
 

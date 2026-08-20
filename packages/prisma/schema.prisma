@@ -231,6 +231,8 @@ model EventType {
   schedulingType                           SchedulingType?
   schedule                                 Schedule?              @relation(fields: [scheduleId], references: [id])
   scheduleId                               Int?
+  /// Maps tier names to schedule IDs for tiered availability (e.g. { "free": 1, "pro": 2, "premium": 3 })
+  tierSchedules                            Json?
   allowReschedulingCancelledBookings       Boolean?               @default(false)
   // price is deprecated. It has now moved to metadata.apps.stripe.price. Plan to drop this column.
   price                                    Int                    @default(0)
@@ -287,6 +289,7 @@ model EventType {
   requiresCancellationReason    CancellationReasonRequirement? @default(MANDATORY_HOST_ONLY)
   enablePerHostLocations        Boolean                        @default(false)
   bookingPackages               BookingPackage[]
+  waitlist                      BookingWaitlist[]
 
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
@@ -932,6 +935,22 @@ model Booking {
   @@index([eventTypeId, status])
   @@index([userId, createdAt])
   @@index([bookingPackageId])
+}
+
+model BookingWaitlist {
+  id          Int       @id @default(autoincrement())
+  eventTypeId Int
+  eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  slotTime    DateTime
+  email       String
+  name        String?
+  phoneNumber String?
+  createdAt   DateTime  @default(now())
+  notifiedAt  DateTime?
+  expiresAt   DateTime?
+
+  @@index([eventTypeId, slotTime])
+  @@index([email])
 }
 
 model Tracking {

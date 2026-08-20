@@ -38,6 +38,7 @@ export const getScheduleSchemaObject = z.object({
   _silentCalendarFailures: z.boolean().optional(),
   queuedFormResponseId: z.string().nullish(),
   email: z.string().nullish(),
+  tier: z.string().optional(),
 });
 
 export const getScheduleSchema = getScheduleSchemaObject
@@ -78,12 +79,32 @@ export const removeSelectedSlotSchema = z.object({
   uid: z.string().nullable(),
 });
 
+export const joinWaitlistSchema = z.object({
+  eventTypeId: z.number().int(),
+  slotUtcStartDate: z.string(),
+  email: z.string().email(),
+  name: z.string().optional(),
+  phoneNumber: z.string().optional(),
+});
+
+export const leaveWaitlistSchema = z.object({
+  eventTypeId: z.number().int(),
+  slotUtcStartDate: z.string(),
+  email: z.string().email(),
+});
+
 export interface ContextForGetSchedule extends Record<string, unknown> {
   req?: (IncomingMessage & { cookies: Partial<{ [key: string]: string }> }) | undefined;
 }
 
 export type TGetScheduleInputSchema = z.infer<typeof getScheduleSchemaObject>;
 export const ZGetScheduleInputSchema = getScheduleSchema;
+
+export type TJoinWaitlistInputSchema = z.infer<typeof joinWaitlistSchema>;
+export const ZJoinWaitlistInputSchema = joinWaitlistSchema;
+
+export type TLeaveWaitlistInputSchema = z.infer<typeof leaveWaitlistSchema>;
+export const ZLeaveWaitlistInputSchema = leaveWaitlistSchema;
 
 export type GetScheduleOptions = {
   ctx?: ContextForGetSchedule;

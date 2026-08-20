@@ -21,7 +21,7 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 | `feat/auth-pages` | Branded auth screens | Pending upstream integration audit |
 | `feat/billing-stripe` | CalBook platform Free/Pro/Enterprise billing | Pending upstream integration audit |
 | `feat/monetization-paid-bookings` | Deposits, packages, tips | Cherry-picked onto `release/saas-v1` with migration and tests |
-| `feat/monetization-tiered-availability` | Tiered schedules and initial waitlist | Requires completion fixes, migrations, tests, and upstream integration |
+| `feat/monetization-tiered-availability` | Tiered schedules and initial waitlist | Cherry-picked onto `release/saas-v1` with migration and tests |
 
 ## Current release blockers
 
@@ -105,7 +105,7 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 
 ## Work items
 
-- [ ] **R2.1** Create Prisma migrations for `EventType.tierSchedules`.
+- [x] **R2.1** Created Prisma migration `20260820184822_add_tiered_schedules_and_waitlist` for `EventType.tierSchedules` (JSONB) and `BookingWaitlist` model with indexes.
 - [ ] **R2.2** Build organizer settings UI to create tiers and assign a schedule to each tier.
 - [ ] **R2.3** Validate missing schedules, malformed configuration, and duplicate tier assignments.
 - [ ] **R2.4** Decide and implement canonical tier-link behavior: query parameter or path segment, with redirects for compatibility.
@@ -114,7 +114,8 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 
 ## Tests
 
-- [ ] Tier schedule resolution unit tests.
+- [x] Tier schedule resolution unit tests (20 tests: parse, resolve, getAvailableTiers).
+- [x] Waitlist service unit tests (8 tests: add, remove, promote, get, expire).
 - [ ] tRPC tests for valid, missing, and invalid tiers.
 - [ ] E2E: organizer configuration and free/pro/premium booking links.
 - [ ] Regression: ordinary event types retain standard availability.
@@ -133,7 +134,7 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 
 ## Work items
 
-- [ ] **R3.1** Create Prisma migration for `BookingWaitlist` and required indexes.
+- [x] **R3.1** Created Prisma migration for `BookingWaitlist` with indexes on `[eventTypeId, slotTime]` and `[email]`.
 - [ ] **R3.2** Change waitlisting from date-level to exact-slot-level, including UTC start/end and tier context.
 - [ ] **R3.3** Add atomic promotion/claiming so one released seat creates at most one active invitation.
 - [ ] **R3.4** Generate signed, single-use booking links that expire after two hours.

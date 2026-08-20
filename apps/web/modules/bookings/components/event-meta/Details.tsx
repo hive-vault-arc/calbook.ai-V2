@@ -11,6 +11,7 @@ import React, { Fragment } from "react";
 import { AvailableEventLocations } from "./AvailableEventLocations";
 import { EventDuration } from "./Duration";
 import { EventOccurences } from "./Occurences";
+import { TierSelector } from "./TierSelector";
 
 type EventDetailsPropsBase = {
   event: Pick<
@@ -24,6 +25,7 @@ type EventDetailsPropsBase = {
     | "length"
     | "metadata"
     | "isDynamic"
+    | "tierSchedules"
   >;
   className?: string;
 };
@@ -58,6 +60,7 @@ interface EventMetaProps extends React.HTMLAttributes<HTMLDivElement> {
 const defaultEventDetailsBlocks = [
   EventDetailBlocks.REQUIRES_CONFIRMATION,
   EventDetailBlocks.DURATION,
+  EventDetailBlocks.TIER,
   EventDetailBlocks.OCCURENCES,
   EventDetailBlocks.LOCATION,
   EventDetailBlocks.PRICE,
@@ -144,6 +147,18 @@ export const EventDetails = ({ event, blocks = defaultEventDetailsBlocks }: Even
             return (
               <EventMetaBlock key={block} icon="clock" className="items-center">
                 <EventDuration event={event} />
+              </EventMetaBlock>
+            );
+
+          case EventDetailBlocks.TIER:
+            if (
+              !event?.tierSchedules ||
+              Object.keys(event.tierSchedules as Record<string, number>).length === 0
+            )
+              return null;
+            return (
+              <EventMetaBlock key={block} icon="layers" className="items-center">
+                <TierSelector event={event} />
               </EventMetaBlock>
             );
 

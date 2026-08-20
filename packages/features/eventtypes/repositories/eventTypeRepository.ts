@@ -1140,6 +1140,16 @@ export class EventTypeRepository implements IEventTypesRepository {
     });
   }
 
+  async findTierSchedules({ id }: { id: number }) {
+    return this.prismaClient.eventType.findUnique({
+      where: { id },
+      select: {
+        scheduleId: true,
+        tierSchedules: true,
+      },
+    });
+  }
+
   async findByIdIncludeHostsAndTeam({ id }: { id: number }) {
     const eventType = await this.prismaClient.eventType.findUnique({
       where: {

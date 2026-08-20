@@ -1,11 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-
 import publicProcedure from "../../../procedures/publicProcedure";
 import { router } from "../../../trpc";
 import { ZIsAvailableInputSchema, ZIsAvailableOutputSchema } from "./isAvailable.schema";
 import { ZRemoveSelectedSlotInputSchema } from "./removeSelectedSlot.schema";
 import { ZReserveSlotInputSchema } from "./reserveSlot.schema";
-import { ZGetScheduleInputSchema } from "./types";
+import { ZGetScheduleInputSchema, ZJoinWaitlistInputSchema, ZLeaveWaitlistInputSchema } from "./types";
 
 type SlotsRouterHandlerCache = {
   getSchedule?: typeof import("./getSchedule.handler").getScheduleHandler;
@@ -53,4 +52,12 @@ export const slotsRouter = router({
       }
       return;
     }),
+  joinWaitlist: publicProcedure.input(ZJoinWaitlistInputSchema).mutation(async ({ input }) => {
+    const { joinWaitlistHandler } = await import("./waitlist.handler");
+    return joinWaitlistHandler({ input });
+  }),
+  leaveWaitlist: publicProcedure.input(ZLeaveWaitlistInputSchema).mutation(async ({ input }) => {
+    const { leaveWaitlistHandler } = await import("./waitlist.handler");
+    return leaveWaitlistHandler({ input });
+  }),
 });

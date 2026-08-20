@@ -1,24 +1,23 @@
-import { useCallback, useMemo, useRef } from "react";
-
 import dayjs from "@calcom/dayjs";
-import {
-  AvailableTimes,
-  AvailableTimesSkeleton,
-} from "@calcom/web/modules/bookings/components/AvailableTimes";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
-import type { IUseBookingLoadingStates } from "../hooks/useBookings";
+import { getQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
 import type { BookerEvent } from "@calcom/features/bookings/types";
-import type { Slot } from "~/schedules/lib/types";
-import { useNonEmptyScheduleDays } from "@calcom/web/modules/schedules/hooks/useNonEmptyScheduleDays";
-import { useSlotsForAvailableDates } from "@calcom/web/modules/schedules/hooks/useSlotsForDate";
 import { PUBLIC_INVALIDATE_AVAILABLE_SLOTS_ON_BOOKING_FORM } from "@calcom/lib/constants";
 import { localStorage } from "@calcom/lib/webstorage";
 import { BookerLayouts } from "@calcom/prisma/zod-utils";
 import classNames from "@calcom/ui/classNames";
-
+import {
+  AvailableTimes,
+  AvailableTimesSkeleton,
+} from "@calcom/web/modules/bookings/components/AvailableTimes";
 import { AvailableTimesHeader } from "@calcom/web/modules/bookings/components/AvailableTimesHeader";
+import { JoinWaitlist } from "@calcom/web/modules/bookings/components/JoinWaitlist";
 import type { useScheduleForEventReturnType } from "@calcom/web/modules/schedules/hooks/useEvent";
-import { getQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
+import { useNonEmptyScheduleDays } from "@calcom/web/modules/schedules/hooks/useNonEmptyScheduleDays";
+import { useSlotsForAvailableDates } from "@calcom/web/modules/schedules/hooks/useSlotsForDate";
+import { useCallback, useMemo, useRef } from "react";
+import type { Slot } from "~/schedules/lib/types";
+import type { IUseBookingLoadingStates } from "../hooks/useBookings";
 
 type AvailableTimeSlotsProps = {
   extraDays?: number;
@@ -28,7 +27,7 @@ type AvailableTimeSlotsProps = {
   seatsPerTimeSlot?: number | null;
   showAvailableSeatsCount?: boolean | null;
   event: {
-    data?: Pick<BookerEvent, "length" | "bookingFields" | "price" | "currency" | "metadata"> | null;
+    data?: Pick<BookerEvent, "id" | "length" | "bookingFields" | "price" | "currency" | "metadata"> | null;
   };
   customClassNames?: {
     availableTimeSlotsContainer?: string;
@@ -81,6 +80,7 @@ export const AvailableTimeSlots = ({
   hideAvailableTimesHeader = false,
   ...props
 }: AvailableTimeSlotsProps) => {
+  const { event } = props;
   const selectedDate = useBookerStoreContext((state) => state.selectedDate);
 
   const setSeatedEventData = useBookerStoreContext((state) => state.setSeatedEventData);
@@ -256,6 +256,9 @@ export const AvailableTimeSlots = ({
               />
             </div>
           ))}
+        {!isLoading && slotsPerDay.length === 0 && event?.data?.id && (
+          <JoinWaitlist eventTypeId={event.data.id} slotTime={date} />
+        )}
       </div>
     </>
   );

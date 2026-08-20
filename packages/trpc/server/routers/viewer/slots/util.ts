@@ -8,6 +8,7 @@ import type {
   GetAvailabilityUser,
   UserAvailabilityService,
 } from "@calcom/features/availability/lib/getUserAvailability";
+import { resolveTierScheduleId } from "@calcom/features/availability/lib/tierSchedules";
 import type { IGetAvailableSlots } from "@calcom/features/bookings/Booker/hooks/useAvailableTimeSlots";
 import type { CheckBookingLimitsService } from "@calcom/features/bookings/lib/checkBookingLimits";
 import { checkForConflicts } from "@calcom/features/bookings/lib/conflictChecker/checkForConflicts";
@@ -569,7 +570,10 @@ export class AvailableSlotsService {
 
             const selectedDuration = (duration || eventType.length) ?? 0;
 
-            const { title: durationTitle, source: durationSource } = LimitSources.eventDurationLimit({ limit, unit });
+            const { title: durationTitle, source: durationSource } = LimitSources.eventDurationLimit({
+              limit,
+              unit,
+            });
 
             if (selectedDuration > limit) {
               limitManager.addBusyTime({
@@ -912,10 +916,27 @@ export class AvailableSlotsService {
       logger.settings.minLevel = 2;
     }
 
-    const eventType = await this.getRegularOrDynamicEventType(input, orgDetails);
+    const fetchedEventType = await this.getRegularOrDynamicEventType(input, orgDetails);
 
-    if (!eventType) {
+    if (!fetchedEventType) {
       throw new TRPCError({ code: "NOT_FOUND" });
+    }
+
+    let eventType = fetchedEventType;
+    if (input.tier && eventType.id) {
+      const rawEventType = await this.dependencies.eventTypeRepo.findTierSchedules({ id: eventType.id });
+      if (rawEventType?.tierSchedules) {
+        const tierScheduleId = resolveTierScheduleId(rawEventType, input.tier);
+        const currentScheduleId = fetchedEventType.schedule?.id;
+        if (tierScheduleId && tierScheduleId !== currentScheduleId) {
+          const tierSchedule = await this.dependencies.scheduleRepo.findScheduleByIdForBuildDateRanges({
+            scheduleId: tierScheduleId,
+          });
+          if (tierSchedule) {
+            eventType = { ...fetchedEventType, schedule: tierSchedule } as typeof fetchedEventType;
+          }
+        }
+      }
     }
 
     // Use "slots" mode to enable cache when available for getting calendar availability

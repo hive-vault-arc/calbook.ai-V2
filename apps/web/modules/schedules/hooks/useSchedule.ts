@@ -81,6 +81,7 @@ export const useSchedule = ({
   const utils = trpc.useUtils();
   const queuedFormResponseId = searchParams?.get("cal.queuedFormResponseId");
   const email = searchParams?.get("email");
+  const tier = searchParams?.get("tier") ?? undefined;
   // We allow skipping the schedule fetch as a requirement for prerendering in iframe through embed as when the pre-rendered iframe is connected, then we would fetch the availability, which would be upto-date
   // Also, a reuse through Headless Router could completely change the availability as different team members are selected and thus it is unnecessary to fetch the schedule
   const skipGetSchedule = searchParams?.get("cal.skipSlotsFetch") === "true";
@@ -108,6 +109,7 @@ export const useSchedule = ({
     skipContactOwner,
     ...(queuedFormResponseId ? { queuedFormResponseId } : {}),
     email,
+    ...(tier ? { tier } : {}),
     // Ensures that connectVersion causes a refresh of the data
     ...(embedConnectVersion ? { embedConnectVersion } : {}),
     _isDryRun: searchParams ? isBookingDryRun(searchParams) : false,

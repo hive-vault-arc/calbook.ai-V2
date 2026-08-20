@@ -1,10 +1,10 @@
-import type { ErrorOption, FieldPath } from "react-hook-form";
-
 import type { RegularBookingCreateResult } from "@calcom/features/bookings/lib/dto/types";
 import type { Slots } from "@calcom/features/calendars/lib/types";
 import type { PublicEventType } from "@calcom/features/eventtypes/lib/getPublicEvent";
+import type { Prisma } from "@calcom/prisma/client";
 import type { SchedulingType } from "@calcom/prisma/enums";
 import type { AppsStatus } from "@calcom/types/Calendar";
+import type { ErrorOption, FieldPath } from "react-hook-form";
 import type { BookingCreateBody } from "./lib/bookingCreateBodySchema";
 
 export type PublicEvent = NonNullable<PublicEventType>;
@@ -69,6 +69,7 @@ export type BookerEvent = Pick<
 > & {
   subsetOfUsers: BookerEventUser[];
   showInstantEventConnectNowModal: boolean;
+  tierSchedules?: Prisma.JsonValue | null;
 } & { profile: BookerEventProfile };
 
 export type ValidationErrors<T extends object> = { key: FieldPath<T>; error: ErrorOption }[];
@@ -83,6 +84,8 @@ export enum EventDetailBlocks {
   // Includes input to select # of occurrences.
   OCCURENCES,
   PRICE,
+  // Includes tier selector for tiered availability.
+  TIER,
 }
 
 export type { BookingCreateBody };

@@ -361,6 +361,12 @@ export type BookerStore = {
   selectedDuration: number | null;
   setSelectedDuration: (duration: number | null) => void;
   /**
+   * Selected tier for tiered availability (e.g. "free", "pro", "premium").
+   * Maps to a schedule via EventType.tierSchedules.
+   */
+  selectedTier: string | null;
+  setSelectedTier: (tier: string | null) => void;
+  /**
    * Selected timeslot user has chosen. This is a date string
    * containing both the date + time.
    */
@@ -650,6 +656,13 @@ export const createBookerStore = () =>
       set({ selectedDuration });
       if (!get().isPlatform || get().allowUpdatingUrlParams) {
         updateQueryParam("duration", selectedDuration ?? "");
+      }
+    },
+    selectedTier: getQueryParam("tier") ?? null,
+    setSelectedTier: (selectedTier: string | null) => {
+      set({ selectedTier });
+      if (!get().isPlatform || get().allowUpdatingUrlParams) {
+        updateQueryParam("tier", selectedTier ?? "");
       }
     },
     setBookingData: (bookingData: GetBookingType | null | undefined) => {
