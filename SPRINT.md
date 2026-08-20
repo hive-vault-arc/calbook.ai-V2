@@ -1,0 +1,255 @@
+# SaaS v1 Release Sprint
+
+## Release objective
+
+Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboarding, organization setup, platform billing, paid bookings, tiered availability, reliable waitlists, and per-event-type subscriptions.
+
+## Release baseline
+
+- **Release branch:** `release/saas-v1`
+- **Base:** `origin/main` at `176037d`
+- **Integration strategy:** feature branches have unrelated Git history to `origin/main`; selectively cherry-pick focused commits onto this baseline. Do not use unrelated-history merges or rewrite existing feature branches.
+- **Source-of-truth rule:** update this file after every completed task, new blocker, merged PR, verification run, and release decision.
+- **Out of scope for SaaS v1:** Phase 2 AI scheduling intelligence.
+
+## Existing feature branches
+
+| Branch | Scope | Release state |
+| --- | --- | --- |
+| `feat/deploy-infra` | Landing page, health endpoint, CI, environment template | Pending upstream integration audit |
+| `feat/multi-tenancy-onboarding` | Organization onboarding, profiles, membership safeguards | Pending upstream integration audit |
+| `feat/auth-pages` | Branded auth screens | Pending upstream integration audit |
+| `feat/billing-stripe` | CalBook platform Free/Pro/Enterprise billing | Pending upstream integration audit |
+| `feat/monetization-paid-bookings` | Deposits, packages, tips | Cherry-picked onto `release/saas-v1` with migration and tests |
+| `feat/monetization-tiered-availability` | Tiered schedules and initial waitlist | Requires completion fixes, migrations, tests, and upstream integration |
+
+## Current release blockers
+
+- [ ] **B0.1** The feature branches have unrelated Git history to `origin/main`; integrate only focused, reviewed cherry-picks.
+- [x] **B0.2** Resolved stale generated Prisma client types that caused false failures in `RegularBookingService.ts` and `duplicate.handler.ts`. `yarn prisma generate`, web type-check, and tRPC declaration generation now pass on the release branch.
+- [x] **B0.3** Monetization schema migration `20260820170008_add_paid_booking_foundation` created and applied to local PostgreSQL. Adds `BookingPackage` model, `BookingPackageStatus` enum, `DEPOSIT`/`TIP` values to `PaymentOption`, and `bookingPackageId` FK on `Booking`.
+- [ ] **B0.4** Waitlist promotion is not release-ready: exact-slot matching, signed two-hour links, email delivery, atomic claiming, and abuse controls are missing.
+- [ ] **B0.5** `calbook` remote rejects `release/saas-v1` with `did not receive expected object f004349...` during unpacking, including a `--no-thin` retry. Repository administration must repair the remote object store or provide a healthy release remote before this branch can be published.
+- [ ] **B0.6** The legacy `feat/billing-stripe` branch is not safe to cherry-pick: it creates a parallel billing system in user metadata instead of using the current `PlatformBilling` model, and replaces the webhook stub with a broad independent Stripe lifecycle. Reimplement platform billing against the canonical schema and existing Stripe abstractions.
+- [x] **B0.7** Paid-booking schema, enum, and lifecycle changes cherry-picked from `feat/monetization-paid-bookings` onto `release/saas-v1` with a reviewed migration. Deposit (`createDeposit`/`chargeRemaining`), package (`BookingPackageService` with redemption flow), and tip (`createTip`) backends are integrated. 18 focused unit tests pass for `BookingPackageService`.
+- [x] **B0.8** Resolved: local PostgreSQL cluster provisioned on port 5433 for migration development. `DATABASE_DIRECT_URL` configured per-command for `prisma migrate dev` without touching remote Neon settings.
+
+## Non-negotiable release gates
+
+- [ ] Every Prisma schema change has a reviewed migration that applies to an empty and seeded database.
+- [ ] All payment, Stripe webhook, booking, and entitlement operations are idempotent.
+- [ ] Availability and booking authorization is enforced server-side.
+- [ ] No live Stripe, email, database, or authentication secrets are committed.
+- [ ] Staging completes end-to-end Stripe test-mode journeys.
+- [ ] Production environment, backups, alerts, rollback, and support ownership are documented.
+- [ ] All required CI checks pass on the release candidate.
+
+---
+
+# Sprint 0 — Release Foundation
+
+**Goal:** create a current, integrated, reproducible release baseline.
+
+## Work items
+
+- [x] **R0.1** Audit and integrate `feat/deploy-infra` against `origin/main`. **Finding:** feature histories are unrelated, so use focused cherry-picks rather than merge. Transplanted commits: `b1a8a8d`, `3a008ab`, `a0d4399`; landing-page lint was corrected after transplant. Targeted Biome check passes with warnings; web type-check remains blocked by B0.2.
+- [x] **R0.2** Audit and transplant `feat/multi-tenancy-onboarding` against `origin/main`. Transplanted commits: `4dd7d52`, `d36fea7`, `8096e95`, `5cf1a42`. Kept only the new `organizations` router registration because upstream has no `home` or `recruiting` routers. Prisma and tRPC generation now complete successfully.
+- [~] **R0.3** Audit `feat/auth-pages` against `origin/main`. Ported low-risk login branding and internal callback-preserving signup navigation. The branch's wholesale signup rewrite is deferred: it removes current upstream regional signup selection and routing, so it must be redesigned against the current signup flow rather than cherry-picked.
+- [x] **R0.4** Audit `feat/billing-stripe` against `origin/main`. Do not transplant it: it stores subscription state in user metadata instead of canonical `PlatformBilling`, introduces an independent webhook lifecycle, and exceeds the review-size limit. Rebuild its intended Free/Pro/Enterprise experience as a dedicated model-aligned billing workstream.
+- [x] **R0.5** Define integration order and split work into small PRs. Infrastructure and multi-tenancy were transplanted; auth was safely ported in part; platform billing, paid bookings, tiered availability, and waitlists require model-aligned reimplementation with migrations and focused tests.
+- [ ] **R0.6** Integrate infrastructure, multi-tenancy, auth, and platform billing into `release/saas-v1`.
+- [ ] **R0.7** Inventory staging and production environment variables, callback URLs, webhooks, email sender setup, Redis, and monitoring.
+- [ ] **R0.8** Confirm whether `ROADMAP.md` is product documentation to commit or a local-only planning artifact.
+
+## Acceptance criteria
+
+- [ ] `release/saas-v1` is based on current `origin/main`.
+- [ ] Integration conflicts are recorded and resolved through reviewable commits.
+- [ ] No existing feature branch is rebased or force-pushed.
+- [ ] Staging environment requirements are known before database or payment rollout.
+
+---
+
+# Sprint 1 — Monetization Database and Payment Reliability
+
+**Goal:** make deposits, package bookings, and tips safely deployable.
+
+## Work items
+
+- [x] **R1.1** Created Prisma migration `20260820170008_add_paid_booking_foundation` for `BookingPackage`, `BookingPackageStatus` enum, `DEPOSIT`/`TIP` payment options, and `bookingPackageId` FK on `Booking`.
+- [x] **R1.2** Added indexes (`organizerId`, `attendeeEmail`, `eventTypeId`, `status+expiresAt`, `bookingPackageId`), uniqueness constraints (`uid`, `stripePaymentId`), and transaction boundaries in `BookingPackageService.redeemSession`/`releaseSession`.
+- [ ] **R1.3** Verify deposit checkout, remaining balance charge, cancellation, refund, and duplicate webhook behavior.
+- [ ] **R1.4** Verify package purchase, redemption, expiration, exhaustion, and concurrent booking behavior.
+- [ ] **R1.5** Verify tip creation, payment linkage, correct currency handling, and webhook idempotency.
+- [ ] **R1.6** Add organizer-facing visibility for deposits, package balance, and tips where absent.
+
+## Tests
+
+- [x] Unit tests for `BookingPackageService` (18 tests: create, find, redeem, release, cancel, list).
+- [ ] Stripe webhook fixture/integration tests.
+- [ ] E2E: deposit booking, package redemption, and tip checkout.
+- [ ] Migration tests against empty and seeded databases.
+
+## Acceptance criteria
+
+- [ ] Duplicate Stripe events cannot duplicate payments or package redemption.
+- [ ] A confirmed booking cannot bypass required payment.
+- [ ] Package balances cannot fall below zero.
+- [ ] Schema migrations apply successfully in staging.
+
+---
+
+# Sprint 2 — Tiered Availability Completion
+
+**Goal:** make tiered booking links configurable, safe, and operable.
+
+## Work items
+
+- [ ] **R2.1** Create Prisma migrations for `EventType.tierSchedules`.
+- [ ] **R2.2** Build organizer settings UI to create tiers and assign a schedule to each tier.
+- [ ] **R2.3** Validate missing schedules, malformed configuration, and duplicate tier assignments.
+- [ ] **R2.4** Decide and implement canonical tier-link behavior: query parameter or path segment, with redirects for compatibility.
+- [ ] **R2.5** Reject invalid tiers server-side; do not silently expose fallback availability.
+- [ ] **R2.6** Carry tier context through public event lookup, availability, slot selection, booking creation, and audit data.
+
+## Tests
+
+- [ ] Tier schedule resolution unit tests.
+- [ ] tRPC tests for valid, missing, and invalid tiers.
+- [ ] E2E: organizer configuration and free/pro/premium booking links.
+- [ ] Regression: ordinary event types retain standard availability.
+
+## Acceptance criteria
+
+- [ ] Organizers can configure tiers without direct database changes.
+- [ ] A tier reveals only its assigned schedule.
+- [ ] Invalid tier links reveal no unintended slots.
+
+---
+
+# Sprint 3 — Waitlist Reliability and Recovery
+
+**Goal:** turn the initial waitlist into a correct, secure, automated booking recovery flow.
+
+## Work items
+
+- [ ] **R3.1** Create Prisma migration for `BookingWaitlist` and required indexes.
+- [ ] **R3.2** Change waitlisting from date-level to exact-slot-level, including UTC start/end and tier context.
+- [ ] **R3.3** Add atomic promotion/claiming so one released seat creates at most one active invitation.
+- [ ] **R3.4** Generate signed, single-use booking links that expire after two hours.
+- [ ] **R3.5** Deliver promotion email through the existing email queue/provider and add retry/error observability.
+- [ ] **R3.6** Expire invitations, clean stale records, and promote the next eligible person if capacity remains.
+- [ ] **R3.7** Add event validation, deduplication, and rate limiting to public waitlist endpoints.
+- [ ] **R3.8** Add organizer waitlist visibility.
+
+## Tests
+
+- [ ] Concurrent cancellation/promotion tests.
+- [ ] Invitation token and expiry tests.
+- [ ] Email delivery/retry tests.
+- [ ] E2E: full slot → waitlist → cancellation → invitation → booking.
+- [ ] E2E: expired invitation and duplicate waitlist request.
+
+## Acceptance criteria
+
+- [ ] Cancellation promotes only the next person for the exact event, tier, and slot.
+- [ ] An invitation cannot be reused or used after expiry.
+- [ ] Failed notification delivery is visible and recoverable.
+
+---
+
+# Sprint 4 — Per-Event-Type Subscription Calendars
+
+**Goal:** let signed-in bookers subscribe to individual event types for recurring access.
+
+## Product decisions already made
+
+- Bookers must be signed in.
+- Each subscription unlocks one event type.
+- Subscriber and non-subscriber booking windows are configured per event type.
+
+## Work items
+
+- [ ] **R4.1** Add Prisma models/fields for event subscription configuration and subscriber entitlement state.
+- [ ] **R4.2** Create the required migrations and data integrity constraints.
+- [ ] **R4.3** Create Stripe recurring product/price configuration per event type.
+- [ ] **R4.4** Add signed-in checkout flow scoped to the selected event type.
+- [ ] **R4.5** Add idempotent Stripe webhook synchronization for active, canceled, past-due, and expired subscriptions.
+- [ ] **R4.6** Add Stripe customer portal session flow for bookers.
+- [ ] **R4.7** Enforce subscription entitlement in both availability lookup and booking creation.
+- [ ] **R4.8** Implement configurable subscriber/non-subscriber booking windows.
+- [ ] **R4.9** Add booking-page states: sign in, subscribe, manage subscription, and subscriber availability.
+
+## Tests
+
+- [ ] Entitlement service tests for each Stripe status.
+- [ ] Checkout, portal, and webhook integration tests.
+- [ ] Booking-window boundary tests.
+- [ ] Authorization tests that direct API calls cannot bypass entitlement.
+- [ ] E2E: sign in → subscribe → webhook → book → portal → cancel → access revoked.
+
+## Acceptance criteria
+
+- [ ] Only active subscribers may book subscriber-only event types.
+- [ ] Server-side availability and booking checks cannot be bypassed by the browser.
+- [ ] Stripe replay events do not create duplicate entitlements.
+
+---
+
+# Sprint 5 — Production Operations and Compliance
+
+**Goal:** make the SaaS supportable after launch.
+
+## Work items
+
+- [ ] **R5.1** Validate production secrets, Stripe live mode, webhook endpoints, callback URLs, and email DNS.
+- [ ] **R5.2** Confirm database backups, restoration procedure, and migration rollback procedure.
+- [ ] **R5.3** Add dashboards and alerts for checkout failures, webhook failures, email failures, booking failures, queue backlog, and elevated 5xx responses.
+- [ ] **R5.4** Add feature-flag/controlled rollout strategy for monetization, tiers, waitlists, and subscriptions.
+- [ ] **R5.5** Publish Terms, Privacy Policy, cancellation/refund policy, and support workflow.
+- [ ] **R5.6** Create support and incident response runbooks.
+
+## Acceptance criteria
+
+- [ ] Staging runs full Stripe test-mode journeys.
+- [ ] Production monitoring identifies payment and booking failure quickly.
+- [ ] Backup restoration has been rehearsed.
+- [ ] Rollback owners and procedures are assigned.
+
+---
+
+# Sprint 6 — Release Candidate and Launch
+
+**Goal:** validate the integrated product and deploy safely.
+
+## Release candidate verification
+
+- [ ] `yarn prisma generate`
+- [ ] `yarn type-check:ci --force`
+- [ ] `yarn lint`
+- [ ] `TZ=UTC yarn test`
+- [ ] production build
+- [ ] Prisma migration check and staging migration apply
+- [ ] targeted Playwright E2E suite
+- [ ] security audit
+- [ ] manual desktop/mobile acceptance pass
+
+## Manual acceptance journeys
+
+- [ ] signup, login, password recovery, and organization onboarding
+- [ ] platform plan checkout and customer portal
+- [ ] one-time paid booking
+- [ ] deposit and remaining balance
+- [ ] package purchase/redemption
+- [ ] tip payment
+- [ ] tiered booking link
+- [ ] waitlist promotion and expiring booking link
+- [ ] event-type subscription checkout and access revocation
+- [ ] cancellation, refund, email notification, and webhook replay
+
+## Launch criteria
+
+- [ ] All release gates and Sprint acceptance criteria are complete.
+- [ ] Staging sign-off is recorded.
+- [ ] Production rollback plan is rehearsed.
+- [ ] Launch owner and support owner are assigned.
