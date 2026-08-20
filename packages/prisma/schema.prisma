@@ -291,6 +291,13 @@ model EventType {
   bookingPackages               BookingPackage[]
   waitlist                      BookingWaitlist[]
 
+  // Sprint 4: Per-event-type subscription configuration
+  requiresSubscription      Boolean             @default(false)
+  /// JSON: { subscriberBookingWindowDays: 14, nonSubscriberBookingWindowDays: 7 }
+  subscriptionConfig        Json?
+  stripeSubscriptionPriceId String?
+  eventSubscriptions        EventSubscription[]
+
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
 
@@ -425,6 +432,7 @@ model User {
   trialEndsAt         DateTime?
   lastActiveAt        DateTime?
   eventTypes          EventType[]          @relation("user_eventtype")
+  eventSubscriptions  EventSubscription[]  @relation("userEventSubscriptions")
   credentials         Credential[]
   teams               Membership[]
   bookings            Booking[]
@@ -955,6 +963,34 @@ model BookingWaitlist {
   @@index([eventTypeId, slotTime])
   @@index([email])
   @@index([promotionToken])
+}
+
+/// Sprint 4: Tracks a booker's subscription to a specific event type.
+/// Created via Stripe checkout, updated via webhook.
+model EventSubscription {
+  id                       Int       @id @default(autoincrement())
+  eventTypeId              Int
+  eventType                EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  /// The booker's user ID (if signed in)
+  userId                   Int?
+  user                     User?     @relation("userEventSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
+  /// Email used for checkout (for anonymous/guest bookers)
+  email                    String
+  stripeCustomerId         String?
+  stripeSubscriptionId     String?   @unique
+  stripeSubscriptionItemId String?
+  /// active, past_due, canceled, expired, trialing
+  status                   String    @default("active")
+  currentPeriodStart       DateTime?
+  currentPeriodEnd         DateTime?
+  cancelAt                 DateTime?
+  canceledAt               DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@index([eventTypeId, email])
+  @@index([eventTypeId, userId])
+  @@index([stripeCustomerId])
 }
 
 model Tracking {

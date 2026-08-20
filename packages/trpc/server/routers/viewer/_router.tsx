@@ -24,6 +24,7 @@ import { oAuthRouter } from "./oAuth/_router";
 import { oooRouter } from "./ooo/_router";
 import { organizationsRouter } from "./organizations/_router";
 import { slotsRouter } from "./slots/_router";
+import { subscriptionsRouter } from "./subscriptions/_router";
 import { travelSchedulesRouter } from "./travelSchedules/_router";
 import { userAdminRouter } from "./users/_router";
 import { webhookRouter } from "./webhook/_router";
@@ -45,6 +46,7 @@ export const viewerRouter = router({
   timezones: timezonesRouter,
   webhook: webhookRouter,
   slots: slotsRouter,
+  subscriptions: subscriptionsRouter,
   i18n: i18nRouter,
   features: featureFlagRouter,
   feedback: feedbackRouter,

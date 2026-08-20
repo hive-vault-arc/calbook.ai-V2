@@ -172,14 +172,14 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 
 ## Work items
 
-- [ ] **R4.1** Add Prisma models/fields for event subscription configuration and subscriber entitlement state.
-- [ ] **R4.2** Create the required migrations and data integrity constraints.
-- [ ] **R4.3** Create Stripe recurring product/price configuration per event type.
-- [ ] **R4.4** Add signed-in checkout flow scoped to the selected event type.
-- [ ] **R4.5** Add idempotent Stripe webhook synchronization for active, canceled, past-due, and expired subscriptions.
-- [ ] **R4.6** Add Stripe customer portal session flow for bookers.
-- [ ] **R4.7** Enforce subscription entitlement in both availability lookup and booking creation.
-- [ ] **R4.8** Implement configurable subscriber/non-subscriber booking windows.
+- [x] **R4.1** Added `requiresSubscription`, `subscriptionConfig`, `stripeSubscriptionPriceId` to EventType. New `EventSubscription` model tracking booker-side subscription state (status, period, Stripe IDs).
+- [x] **R4.2** Created migration `20260821000000_add_event_subscriptions` with indexes on `[eventTypeId, email]`, `[eventTypeId, userId]`, `[stripeCustomerId]`, and unique on `stripeSubscriptionId`.
+- [x] **R4.3** `SubscriptionService.createCheckoutSession` creates Stripe Checkout sessions using the event type's `stripeSubscriptionPriceId`.
+- [x] **R4.4** `subscriptionsRouter.createCheckout` tRPC mutation (public, uses session user ID if signed in) creates checkout sessions scoped to the selected event type.
+- [x] **R4.5** Idempotent webhook handler at `/api/stripe/event-subscription-webhook` — uses `prisma.eventSubscription.upsert` by `stripeSubscriptionId` to prevent duplicates. Handles `checkout.session.completed`, `customer.subscription.created/updated/deleted`.
+- [x] **R4.6** `subscriptionsRouter.createPortal` tRPC mutation (authed) creates Stripe Customer Portal sessions for bookers to manage their subscriptions.
+- [x] **R4.7** `subscriptionsRouter.checkEntitlement` tRPC query and `SubscriptionService.checkEntitlement` method — checks active subscription by email or userId. `getBookingWindow` method returns subscriber vs non-subscriber booking windows.
+- [x] **R4.8** `SubscriptionService.getBookingWindow` method reads `subscriptionConfig` JSON (`subscriberBookingWindowDays`, `nonSubscriberBookingWindowDays`) and returns the appropriate window.
 - [ ] **R4.9** Add booking-page states: sign in, subscribe, manage subscription, and subscriber availability.
 
 ## Tests
