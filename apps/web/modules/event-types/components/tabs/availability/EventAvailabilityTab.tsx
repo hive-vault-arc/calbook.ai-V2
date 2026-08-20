@@ -30,6 +30,7 @@ import { memo, useEffect, useState } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import type { OptionProps, SingleValueProps } from "react-select";
 import { components } from "react-select";
+import { OrganizerWaitlistPanel } from "../../OrganizerWaitlistPanel";
 import type { GetAllSchedulesByUserIdQueryType } from "./EventAvailabilityTabWebWrapper";
 import { TierSchedulesConfig } from "./TierSchedulesConfig";
 
@@ -904,6 +905,7 @@ export const EventAvailabilityTab = ({ eventType, isTeamEvent, ...rest }: EventA
     <div className="stack-y-4">
       <UseTeamEventScheduleSettingsToggle eventType={eventType} {...rest} />
       <TierSchedulesConfig schedules={scheduleOptions} />
+      <OrganizerWaitlistPanel eventTypeId={eventType.id} />
     </div>
   ) : (
     <div className="stack-y-4">
@@ -913,6 +915,7 @@ export const EventAvailabilityTab = ({ eventType, isTeamEvent, ...rest }: EventA
         customClassNames={rest?.customClassNames?.userAvailability}
       />
       <TierSchedulesConfig schedules={scheduleOptions} />
+      <OrganizerWaitlistPanel eventTypeId={eventType.id} />
     </div>
   );
 };

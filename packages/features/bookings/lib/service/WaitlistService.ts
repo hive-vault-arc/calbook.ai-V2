@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { sendWaitlistPromotionEmail } from "@calcom/emails/templates/waitlist-promotion-email";
+import { WEBSITE_URL } from "@calcom/lib/constants";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
 import type { BookingWaitlist } from "@calcom/prisma/client";
@@ -105,6 +107,32 @@ export class WaitlistService {
 
       return notified;
     });
+
+    // R3.5: Send promotion email outside the transaction (email failure shouldn't roll back the promotion)
+    if (promoted) {
+      const bookingLink = `${WEBSITE_URL}/booking/waitlist/${promoted.promotionToken}`;
+      const eventType = await prisma.eventType.findUnique({
+        where: { id: params.eventTypeId },
+        select: { title: true, slug: true, userId: true, users: { select: { username: true, name: true } } },
+      });
+      if (eventType) {
+        const organizer = eventType.users[0];
+        await sendWaitlistPromotionEmail({
+          to: promoted.email,
+          name: promoted.name,
+          eventTitle: eventType.title,
+          organizerName: organizer?.name || "Organizer",
+          slotTime: params.slotTime.toISOString(),
+          slotEndTime: promoted.slotEndTime?.toISOString(),
+          tier: promoted.tier ?? undefined,
+          bookingLink,
+          expiresAt:
+            promoted.expiresAt?.toISOString() ?? new Date(Date.now() + PROMOTION_EXPIRY_MS).toISOString(),
+        });
+      }
+    }
+
+    return promoted;
   }
 
   /**

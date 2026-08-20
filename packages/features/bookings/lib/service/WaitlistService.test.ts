@@ -2,6 +2,15 @@ import type { BookingWaitlist } from "@calcom/prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WaitlistService } from "./WaitlistService";
 
+vi.mock("@calcom/emails/templates/waitlist-promotion-email", () => ({
+  sendWaitlistPromotionEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@calcom/lib/constants", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@calcom/lib/constants")>();
+  return { ...actual, WEBSITE_URL: "https://calbook.ai" };
+});
+
 vi.mock("@calcom/prisma", () => ({
   default: {
     bookingWaitlist: {
@@ -11,6 +20,14 @@ vi.mock("@calcom/prisma", () => ({
       create: vi.fn(),
       update: vi.fn(),
       deleteMany: vi.fn(),
+    },
+    eventType: {
+      findUnique: vi.fn().mockResolvedValue({
+        title: "Test Event",
+        slug: "test-event",
+        userId: 1,
+        users: [{ username: "testuser", name: "Test User" }],
+      }),
     },
     $transaction: vi.fn((fn: (tx: unknown) => Promise<unknown>) =>
       fn({
@@ -29,6 +46,14 @@ vi.mock("@calcom/prisma", () => ({
       create: vi.fn(),
       update: vi.fn(),
       deleteMany: vi.fn(),
+    },
+    eventType: {
+      findUnique: vi.fn().mockResolvedValue({
+        title: "Test Event",
+        slug: "test-event",
+        userId: 1,
+        users: [{ username: "testuser", name: "Test User" }],
+      }),
     },
     $transaction: vi.fn((fn: (tx: unknown) => Promise<unknown>) =>
       fn({

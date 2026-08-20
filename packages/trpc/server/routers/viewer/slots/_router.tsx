@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { z } from "zod";
+import authedProcedure from "../../../procedures/authedProcedure";
 import publicProcedure from "../../../procedures/publicProcedure";
 import { router } from "../../../trpc";
 import { ZIsAvailableInputSchema, ZIsAvailableOutputSchema } from "./isAvailable.schema";
@@ -60,4 +62,37 @@ export const slotsRouter = router({
     const { leaveWaitlistHandler } = await import("./waitlist.handler");
     return leaveWaitlistHandler({ input });
   }),
+  // R3.8: Organizer waitlist visibility
+  getWaitlistForEventType: authedProcedure
+    .input(z.object({ eventTypeId: z.number().int() }))
+    .query(async ({ input, ctx }) => {
+      const { prisma } = ctx;
+      // Verify the user owns this event type
+      const eventType = await prisma.eventType.findFirst({
+        where: {
+          id: input.eventTypeId,
+          OR: [{ userId: ctx.user.id }, { hosts: { some: { userId: ctx.user.id } } }],
+        },
+        select: { id: true },
+      });
+      if (!eventType) {
+        return { entries: [] };
+      }
+      const entries = await prisma.bookingWaitlist.findMany({
+        where: { eventTypeId: input.eventTypeId },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          slotTime: true,
+          slotEndTime: true,
+          tier: true,
+          notifiedAt: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+      });
+      return { entries };
+    }),
 });

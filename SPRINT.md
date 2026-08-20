@@ -108,7 +108,7 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [x] **R2.1** Created Prisma migration `20260820184822_add_tiered_schedules_and_waitlist` for `EventType.tierSchedules` (JSONB) and `BookingWaitlist` model with indexes.
 - [x] **R2.2** Built organizer settings UI (`TierSchedulesConfig` component) in the availability tab to create tiers and assign a schedule to each tier. Added `tierSchedules` to the update schema, form values, and get handler select.
 - [x] **R2.3** Validate tier schedule IDs in the update handler: all schedule IDs must exist and belong to the user or team. Malformed config is rejected with `BAD_REQUEST`/`FORBIDDEN`.
-- [ ] **R2.4** Decide and implement canonical tier-link behavior: query parameter or path segment, with redirects for compatibility.
+- [x] **R2.4** Canonical tier-link behavior: path segment `/pro/jane/consultation` redirects to `/jane/consultation?tier=pro`. Both `[tier]/[user]/[type]` and `[tier]/[user]/[type]/embed` routes implemented.
 - [x] **R2.5** Reject invalid tiers server-side in `getSchedule` util: if `tierSchedules` is configured but the requested tier doesn't exist, throw `BAD_REQUEST` instead of silently falling back.
 - [x] **R2.6** Tier context carried through: public event lookup (tierSchedules in getPublicEvent select), availability (resolveTierScheduleId in slots util), slot selection (tier param in getSchedule schema), booking creation (tier field in bookingCreateBodySchema), and waitlist (tier field in BookingWaitlist model and join schema).
 
@@ -138,10 +138,10 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [x] **R3.2** Added `slotEndTime`, `tier`, and `promotionToken` fields to `BookingWaitlist` (migration `20260820190000`). Waitlist entries now store exact UTC start/end and tier context.
 - [x] **R3.3** Atomic promotion via `prisma.$transaction` — the findFirst + update happens inside a transaction so only one person gets promoted per released seat.
 - [x] **R3.4** Generate signed, single-use `promotionToken` (32-byte random hex) with 2-hour expiry. `validatePromotionToken` checks validity and expiry; `consumePromotionToken` deletes the entry after use.
-- [ ] **R3.5** Deliver promotion email through the existing email queue/provider and add retry/error observability.
+- [x] **R3.5** Deliver promotion email through `WaitlistPromotionEmail` template using the existing `BaseEmail.sendEmail()` infrastructure. Email sent after atomic promotion with booking link, slot time, tier, and 2-hour expiry. Errors are logged but don't break the promotion flow.
 - [x] **R3.6** `expireOldNotifications` deletes expired entries; `promoteAfterExpiry` finds slots with unnotified entries and promotes the next eligible person.
 - [x] **R3.7** Event validation (verify event type exists), deduplication (check existing entry before create), and rate limiting (5 requests/minute per email) in `joinWaitlistHandler`.
-- [ ] **R3.8** Add organizer waitlist visibility.
+- [x] **R3.8** Organizer waitlist visibility: `getWaitlistForEventType` tRPC query (authed, ownership-checked) + `OrganizerWaitlistPanel` component in the availability tab showing email, name, slot, tier, and status (waiting/notified/expired).
 
 ## Tests
 
