@@ -219,6 +219,22 @@ describe("SubscriptionService", () => {
 
       await expect(service.checkEntitlement({ eventTypeId: 10, userId: 20 })).resolves.toBe(false);
     });
+
+    it("binds entitlement to both the signed-in user and booking email", async () => {
+      mockPrisma.eventSubscription.findFirst.mockResolvedValue(null);
+
+      await service.checkEntitlement({ eventTypeId: 10, userId: 20, email: "booker@example.com" });
+
+      expect(mockPrisma.eventSubscription.findFirst).toHaveBeenCalledWith({
+        where: {
+          eventTypeId: 10,
+          status: "active",
+          userId: 20,
+          email: "booker@example.com",
+        },
+        select: { id: true, currentPeriodEnd: true },
+      });
+    });
   });
 
   describe("getBookingWindow", () => {

@@ -292,7 +292,7 @@ export class SubscriptionService {
       eventTypeId: params.eventTypeId,
       status: "active" as const,
       ...(params.userId ? { userId: params.userId } : {}),
-      ...(params.email && !params.userId ? { email: params.email } : {}),
+      ...(params.email ? { email: params.email } : {}),
     };
 
     const subscription = await prisma.eventSubscription.findFirst({
