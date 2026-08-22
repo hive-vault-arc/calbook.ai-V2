@@ -12,9 +12,13 @@ import { useFormContext } from "react-hook-form";
 type SubscriptionInterval = "month" | "year";
 
 export function SubscriptionConfig(): JSX.Element {
-  const { t } = useLocale();
   const flags = useFlags();
   if (flags["event-subscriptions"] === false) return <></>;
+  return <SubscriptionConfigInner />;
+}
+
+function SubscriptionConfigInner(): JSX.Element {
+  const { t } = useLocale();
   const intervalOptions = [
     { value: "month" as const, label: t("monthly") },
     { value: "year" as const, label: t("yearly") },

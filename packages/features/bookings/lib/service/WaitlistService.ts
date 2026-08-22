@@ -24,28 +24,32 @@ export class WaitlistService {
     name?: string;
     phoneNumber?: string;
   }): Promise<BookingWaitlist> {
-    const existing = await prisma.bookingWaitlist.findFirst({
-      where: {
-        eventTypeId: params.eventTypeId,
-        slotTime: params.slotTime,
-        email: params.email,
-        expiresAt: null,
-      },
-    });
-    if (existing) {
-      return existing;
-    }
+    // Use a transaction to avoid the TOCTOU race between findFirst and create.
+    // Two concurrent requests could both pass the check and create duplicate entries.
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.bookingWaitlist.findFirst({
+        where: {
+          eventTypeId: params.eventTypeId,
+          slotTime: params.slotTime,
+          email: params.email,
+          expiresAt: null,
+        },
+      });
+      if (existing) {
+        return existing;
+      }
 
-    return prisma.bookingWaitlist.create({
-      data: {
-        eventTypeId: params.eventTypeId,
-        slotTime: params.slotTime,
-        slotEndTime: params.slotEndTime,
-        tier: params.tier,
-        email: params.email,
-        name: params.name,
-        phoneNumber: params.phoneNumber,
-      },
+      return tx.bookingWaitlist.create({
+        data: {
+          eventTypeId: params.eventTypeId,
+          slotTime: params.slotTime,
+          slotEndTime: params.slotEndTime,
+          tier: params.tier,
+          email: params.email,
+          name: params.name,
+          phoneNumber: params.phoneNumber,
+        },
+      });
     });
   }
 
@@ -179,12 +183,14 @@ export class WaitlistService {
 
   /**
    * R3.6: Expire old invitations and promote the next eligible person.
-   * Returns the count of expired entries and optionally a new promotion.
+   * Only deletes entries that were actually notified (had a promotion sent).
+   * Returns the count of expired entries.
    */
   async expireOldNotifications(): Promise<number> {
     const result = await prisma.bookingWaitlist.deleteMany({
       where: {
         expiresAt: { lt: new Date() },
+        notifiedAt: { not: null },
       },
     });
     return result.count;

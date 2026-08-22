@@ -4,6 +4,7 @@ import { FAILURE_CATEGORIES, logFailure } from "@calcom/features/monitoring/lib/
 import { ErrorWithCode } from "@calcom/lib/errors";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
+import type { Prisma } from "@calcom/prisma/client";
 import Stripe from "stripe";
 import { subscriptionConfigSchema } from "./subscriptionConfig";
 
@@ -144,7 +145,10 @@ export class SubscriptionService {
       sessionId: session.id,
     });
 
-    return { url: session.url ?? "" };
+    if (!session.url) {
+      throw ErrorWithCode.Factory.InternalServerError("Stripe checkout session has no URL");
+    }
+    return { url: session.url };
   }
 
   async syncCheckoutSession(params: {
@@ -289,6 +293,8 @@ export class SubscriptionService {
         canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
       },
       update: {
+        email,
+        userId: subscription.metadata?.userId ? parseInt(subscription.metadata.userId, 10) : undefined,
         status,
         stripeSubscriptionItemId: subscription.items.data[0]?.id,
         currentPeriodStart: new Date(subscription.current_period_start * 1000),
@@ -337,13 +343,19 @@ export class SubscriptionService {
 
   /**
    * R4.7: Check if a user/email has an active subscription for an event type.
+   * At least one of userId or email must be provided. When both are provided,
+   * a subscription matching either identifier grants entitlement.
    */
   async checkEntitlement(params: { eventTypeId: number; email?: string; userId?: number }): Promise<boolean> {
-    const where = {
+    if (!params.userId && !params.email) return false;
+
+    const where: Prisma.EventSubscriptionWhereInput = {
       eventTypeId: params.eventTypeId,
       status: "active" as const,
-      ...(params.userId ? { userId: params.userId } : {}),
-      ...(params.email ? { email: params.email } : {}),
+      OR: [
+        ...(params.userId ? [{ userId: params.userId }] : []),
+        ...(params.email ? [{ email: params.email }] : []),
+      ],
     };
 
     const subscription = await prisma.eventSubscription.findFirst({
@@ -353,8 +365,8 @@ export class SubscriptionService {
 
     if (!subscription) return false;
 
-    // Check if the subscription period hasn't ended
-    if (subscription.currentPeriodEnd && subscription.currentPeriodEnd < new Date()) {
+    // Fail closed: if currentPeriodEnd is null we can't confirm the period is valid
+    if (!subscription.currentPeriodEnd || subscription.currentPeriodEnd < new Date()) {
       return false;
     }
 

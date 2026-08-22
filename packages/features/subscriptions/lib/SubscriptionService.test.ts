@@ -313,7 +313,7 @@ describe("SubscriptionService", () => {
 
       await expect(service.checkEntitlement({ eventTypeId: 10, userId: 20 })).resolves.toBe(true);
       expect(mockPrisma.eventSubscription.findFirst).toHaveBeenCalledWith({
-        where: { eventTypeId: 10, status: "active", userId: 20 },
+        where: { eventTypeId: 10, status: "active", OR: [{ userId: 20 }] },
         select: { id: true, currentPeriodEnd: true },
       });
     });
@@ -327,13 +327,27 @@ describe("SubscriptionService", () => {
       await expect(service.checkEntitlement({ eventTypeId: 10, userId: 20 })).resolves.toBe(false);
     });
 
+    it("returns false when currentPeriodEnd is null (fail closed)", async () => {
+      mockPrisma.eventSubscription.findFirst.mockResolvedValue({
+        id: 1,
+        currentPeriodEnd: null,
+      });
+
+      await expect(service.checkEntitlement({ eventTypeId: 10, userId: 20 })).resolves.toBe(false);
+    });
+
     it("returns false when no active subscription exists", async () => {
       mockPrisma.eventSubscription.findFirst.mockResolvedValue(null);
 
       await expect(service.checkEntitlement({ eventTypeId: 10, userId: 20 })).resolves.toBe(false);
     });
 
-    it("binds entitlement to both the signed-in user and booking email", async () => {
+    it("returns false when neither userId nor email is provided", async () => {
+      await expect(service.checkEntitlement({ eventTypeId: 10 })).resolves.toBe(false);
+      expect(mockPrisma.eventSubscription.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("uses OR logic when both userId and email are provided", async () => {
       mockPrisma.eventSubscription.findFirst.mockResolvedValue(null);
 
       await service.checkEntitlement({ eventTypeId: 10, userId: 20, email: "booker@example.com" });
@@ -342,8 +356,7 @@ describe("SubscriptionService", () => {
         where: {
           eventTypeId: 10,
           status: "active",
-          userId: 20,
-          email: "booker@example.com",
+          OR: [{ userId: 20 }, { email: "booker@example.com" }],
         },
         select: { id: true, currentPeriodEnd: true },
       });

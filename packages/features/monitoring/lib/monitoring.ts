@@ -1,5 +1,5 @@
 import logger from "@calcom/lib/logger";
-import { captureException } from "@sentry/nextjs";
+import { captureException, captureMessage } from "@sentry/nextjs";
 
 const log = logger.getSubLogger({ prefix: ["monitoring"] });
 
@@ -47,7 +47,8 @@ export function logFailure(params: LogFailureParams): void {
       extra: errorContext,
     });
   } else {
-    captureException(new Error(message), {
+    captureMessage(message, {
+      level: "warning",
       tags: { failureCategory: category },
       extra: errorContext,
     });

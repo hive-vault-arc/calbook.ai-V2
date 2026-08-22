@@ -26,9 +26,13 @@ type TierEntry = {
 };
 
 export function TierSchedulesConfig({ schedules }: TierSchedulesConfigProps) {
-  const { t } = useLocale();
   const flags = useFlags();
   if (flags["tiered-availability"] === false) return <></>;
+  return <TierSchedulesConfigInner schedules={schedules} />;
+}
+
+function TierSchedulesConfigInner({ schedules }: TierSchedulesConfigProps) {
+  const { t } = useLocale();
   const form = useFormContext<FormValues>();
   const { watch, setValue } = form;
   const [animationRef] = useAutoAnimate<HTMLDivElement>();

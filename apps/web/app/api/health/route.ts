@@ -32,8 +32,7 @@ async function checkDatabase(): Promise<SubsystemCheck> {
 function checkStripe(): SubsystemCheck {
   const key = process.env.STRIPE_PRIVATE_KEY;
   if (!key) return { status: "degraded", detail: "STRIPE_PRIVATE_KEY not configured" };
-  if (key.startsWith("sk_live_")) return { status: "ok", detail: "live mode" };
-  if (key.startsWith("sk_test_")) return { status: "ok", detail: "test mode" };
+  if (key.startsWith("sk_live_") || key.startsWith("sk_test_")) return { status: "ok" };
   return { status: "degraded", detail: "Unrecognized Stripe key format" };
 }
 

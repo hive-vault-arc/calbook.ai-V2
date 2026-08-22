@@ -520,6 +520,9 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
   if (bookingToDelete.eventTypeId && bookingToDelete.startTime) {
     try {
       if (await isSaaSFeatureEnabled(SAAS_FLAGS.waitlist)) {
+        // Note: tier is not stored on the Booking model, so we promote the
+        // next person in line regardless of tier. A future schema change
+        // could add tier to Booking for tier-specific promotion.
         await waitlistService.promoteFromWaitlist({
           eventTypeId: bookingToDelete.eventTypeId,
           slotTime: bookingToDelete.startTime,
