@@ -136,6 +136,12 @@ export const useEventTypeForm = ({
       enablePerHostLocations: eventType.enablePerHostLocations ?? false,
       requiresCancellationReason: eventType.requiresCancellationReason || null,
       tierSchedules: (eventType.tierSchedules as Record<string, number> | null) ?? null,
+      requiresSubscription: eventType.requiresSubscription ?? false,
+      subscriptionConfig: (eventType.subscriptionConfig as FormValues["subscriptionConfig"]) ?? {
+        subscriberBookingWindowDays: 14,
+        nonSubscriberBookingWindowDays: 7,
+      },
+      stripeSubscriptionPriceId: eventType.stripeSubscriptionPriceId ?? null,
     };
   }, [eventType, periodDates]);
 

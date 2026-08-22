@@ -12,6 +12,7 @@ import { parseTierSchedules, resolveTierScheduleId } from "@calcom/features/avai
 import type { IGetAvailableSlots } from "@calcom/features/bookings/Booker/hooks/useAvailableTimeSlots";
 import type { CheckBookingLimitsService } from "@calcom/features/bookings/lib/checkBookingLimits";
 import { checkForConflicts } from "@calcom/features/bookings/lib/conflictChecker/checkForConflicts";
+import { subscriptionService } from "@calcom/features/subscriptions/lib/SubscriptionService";
 
 type QualifiedHostsService = {
   findQualifiedHostsWithDelegationCredentials: (...args: unknown[]) => Promise<{
@@ -107,7 +108,7 @@ function withSlotsCache(
   func: (args: GetScheduleOptions) => Promise<IGetAvailableSlots>
 ) {
   return async (args: GetScheduleOptions): Promise<IGetAvailableSlots> => {
-    const cacheKey = `${JSON.stringify(args.input)}`;
+    const cacheKey = `${JSON.stringify({ input: args.input, userId: args.ctx?.session?.user?.id ?? null })}`;
     let success = false;
     let cachedResult: IGetAvailableSlots | null = null;
     const startTime = process.hrtime();
@@ -920,6 +921,32 @@ export class AvailableSlotsService {
 
     if (!fetchedEventType) {
       throw new TRPCError({ code: "NOT_FOUND" });
+    }
+
+    if (fetchedEventType.id && !input.rescheduleUid && "requiresSubscription" in fetchedEventType) {
+      const userId = ctx?.session?.user?.id;
+      const hasActiveSubscription = userId
+        ? await subscriptionService.checkEntitlement({ eventTypeId: fetchedEventType.id, userId })
+        : false;
+
+      if (fetchedEventType.requiresSubscription && !hasActiveSubscription) {
+        throw new TRPCError({
+          code: userId ? "FORBIDDEN" : "UNAUTHORIZED",
+          message: "active_subscription_required",
+        });
+      }
+
+      if (fetchedEventType.subscriptionConfig) {
+        const { bookingWindowDays } = subscriptionService.getBookingWindow({
+          subscriptionConfig: fetchedEventType.subscriptionConfig,
+          hasActiveSubscription,
+        });
+        const bookingWindowEnd = new Date();
+        bookingWindowEnd.setUTCDate(bookingWindowEnd.getUTCDate() + bookingWindowDays);
+        if (new Date(input.endTime) > bookingWindowEnd) {
+          input = { ...input, endTime: bookingWindowEnd.toISOString() };
+        }
+      }
     }
 
     let eventType = fetchedEventType;

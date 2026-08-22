@@ -32,6 +32,7 @@ import type { OptionProps, SingleValueProps } from "react-select";
 import { components } from "react-select";
 import { OrganizerWaitlistPanel } from "../../OrganizerWaitlistPanel";
 import type { GetAllSchedulesByUserIdQueryType } from "./EventAvailabilityTabWebWrapper";
+import { SubscriptionConfig } from "./SubscriptionConfig";
 import { TierSchedulesConfig } from "./TierSchedulesConfig";
 
 export type ScheduleQueryData = RouterOutputs["viewer"]["availability"]["schedule"]["get"];
@@ -905,6 +906,7 @@ export const EventAvailabilityTab = ({ eventType, isTeamEvent, ...rest }: EventA
     <div className="stack-y-4">
       <UseTeamEventScheduleSettingsToggle eventType={eventType} {...rest} />
       <TierSchedulesConfig schedules={scheduleOptions} />
+      <SubscriptionConfig />
       <OrganizerWaitlistPanel eventTypeId={eventType.id} />
     </div>
   ) : (
@@ -915,6 +917,7 @@ export const EventAvailabilityTab = ({ eventType, isTeamEvent, ...rest }: EventA
         customClassNames={rest?.customClassNames?.userAvailability}
       />
       <TierSchedulesConfig schedules={scheduleOptions} />
+      <SubscriptionConfig />
       <OrganizerWaitlistPanel eventTypeId={eventType.id} />
     </div>
   );

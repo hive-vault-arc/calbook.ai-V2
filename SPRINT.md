@@ -174,27 +174,27 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 
 - [x] **R4.1** Added `requiresSubscription`, `subscriptionConfig`, `stripeSubscriptionPriceId` to EventType. New `EventSubscription` model tracking booker-side subscription state (status, period, Stripe IDs).
 - [x] **R4.2** Created migration `20260821000000_add_event_subscriptions` with indexes on `[eventTypeId, email]`, `[eventTypeId, userId]`, `[stripeCustomerId]`, and unique on `stripeSubscriptionId`.
-- [x] **R4.3** `SubscriptionService.createCheckoutSession` creates Stripe Checkout sessions using the event type's `stripeSubscriptionPriceId`.
-- [x] **R4.4** `subscriptionsRouter.createCheckout` tRPC mutation (public, uses session user ID if signed in) creates checkout sessions scoped to the selected event type.
-- [x] **R4.5** Idempotent webhook handler at `/api/stripe/event-subscription-webhook` — uses `prisma.eventSubscription.upsert` by `stripeSubscriptionId` to prevent duplicates. Handles `checkout.session.completed`, `customer.subscription.created/updated/deleted`.
-- [x] **R4.6** `subscriptionsRouter.createPortal` tRPC mutation (authed) creates Stripe Customer Portal sessions for bookers to manage their subscriptions.
-- [x] **R4.7** `subscriptionsRouter.checkEntitlement` tRPC query and `SubscriptionService.checkEntitlement` method — checks active subscription by email or userId. `getBookingWindow` method returns subscriber vs non-subscriber booking windows.
-- [x] **R4.8** `SubscriptionService.getBookingWindow` method reads `subscriptionConfig` JSON (`subscriberBookingWindowDays`, `nonSubscriberBookingWindowDays`) and returns the appropriate window.
-- [ ] **R4.9** Add booking-page states: sign in, subscribe, manage subscription, and subscriber availability.
+- [ ] **R4.3** Checkout uses an event type's configured `stripeSubscriptionPriceId`; automatic creation of organizer-scoped Stripe products/prices remains.
+- [x] **R4.4** `subscriptionsRouter.createCheckout` is authenticated, prevents duplicate active subscriptions, and creates checkout sessions scoped to the selected event type.
+- [x] **R4.5** Idempotent webhook handler at `/api/stripe/event-subscription-webhook` uses `upsert` by `stripeSubscriptionId` and handles checkout completion plus subscription create/update/delete events.
+- [x] **R4.6** `subscriptionsRouter.createPortal` creates authenticated Stripe Customer Portal sessions and returns bookers to the event page.
+- [x] **R4.7** Entitlement is enforced server-side in slot lookup and booking creation; subscription-aware slot cache keys prevent cross-user availability leakage.
+- [x] **R4.8** Validated subscriber/non-subscriber booking windows are enforced in availability lookup.
+- [x] **R4.9** Added organizer subscription controls and booking-page states for sign-in, checkout, active subscriber availability, and subscription management.
 
 ## Tests
 
-- [ ] Entitlement service tests for each Stripe status.
+- [x] Entitlement service tests for active, expired, and missing subscriptions.
 - [ ] Checkout, portal, and webhook integration tests.
-- [ ] Booking-window boundary tests.
+- [x] Booking-window selection and malformed-config tests.
 - [ ] Authorization tests that direct API calls cannot bypass entitlement.
 - [ ] E2E: sign in → subscribe → webhook → book → portal → cancel → access revoked.
 
 ## Acceptance criteria
 
-- [ ] Only active subscribers may book subscriber-only event types.
-- [ ] Server-side availability and booking checks cannot be bypassed by the browser.
-- [ ] Stripe replay events do not create duplicate entitlements.
+- [x] Only active subscribers may book subscriber-only event types.
+- [x] Server-side availability and booking checks cannot be bypassed by the browser.
+- [x] Stripe replay events do not create duplicate entitlements.
 
 ---
 

@@ -32,9 +32,7 @@ export function OrganizerWaitlistPanel({ eventTypeId }: OrganizerWaitlistPanelPr
     <div className="rounded-lg border border-subtle p-6">
       <h3 className="font-semibold text-sm">{t("waitlist")}</h3>
       <p className="mt-1 text-sm text-subtle">
-        {entries.length > 0
-          ? t("waitlist_count", { count: entries.length })
-          : t("no_waitlist_entries")}
+        {entries.length > 0 ? t("waitlist_count", { count: entries.length }) : t("no_waitlist_entries")}
       </p>
 
       {entries.length > 0 && (
@@ -54,16 +52,14 @@ export function OrganizerWaitlistPanel({ eventTypeId }: OrganizerWaitlistPanelPr
                 <tr key={entry.id} className="border-subtle border-b last:border-0">
                   <td className="py-2 pr-4">{entry.email}</td>
                   <td className="py-2 pr-4">{entry.name || "—"}</td>
-                  <td className="py-2 pr-4">
-                    {dayjs(entry.slotTime).format("MMM D, h:mm A")}
-                  </td>
+                  <td className="py-2 pr-4">{dayjs(entry.slotTime).format("MMM D, h:mm A")}</td>
                   <td className="py-2 pr-4">
                     {entry.tier ? <Badge variant="blue">{entry.tier}</Badge> : "—"}
                   </td>
                   <td className="py-2 pr-4">
                     {entry.notifiedAt ? (
                       entry.expiresAt && new Date(entry.expiresAt) > new Date() ? (
-                        <Badge variant="yellow">{t("notified")}</Badge>
+                        <Badge variant="warning">{t("notified")}</Badge>
                       ) : (
                         <Badge variant="red">{t("expired")}</Badge>
                       )

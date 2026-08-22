@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { timeZoneSchema } from "@calcom/lib/dayjs/timeZone.schema";
+import type { Session } from "next-auth";
 import { z } from "zod";
 
 const isValidDateString = (val: string) => !isNaN(Date.parse(val));
@@ -97,6 +98,7 @@ export const leaveWaitlistSchema = z.object({
 
 export interface ContextForGetSchedule extends Record<string, unknown> {
   req?: (IncomingMessage & { cookies: Partial<{ [key: string]: string }> }) | undefined;
+  session?: Session | null;
 }
 
 export type TGetScheduleInputSchema = z.infer<typeof getScheduleSchemaObject>;

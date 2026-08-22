@@ -68,7 +68,7 @@ export class WaitlistService {
     slotTime: Date;
     tier?: string;
   }): Promise<BookingWaitlist | null> {
-    return prisma.$transaction(async (tx) => {
+    const promoted = await prisma.$transaction(async (tx) => {
       // Find the next eligible person (oldest unnotified, matching tier if specified)
       const nextInLine = await tx.bookingWaitlist.findFirst({
         where: {
@@ -89,14 +89,14 @@ export class WaitlistService {
       const promotionToken = generatePromotionToken();
       const expiresAt = new Date(Date.now() + PROMOTION_EXPIRY_MS);
 
-      const notified = await tx.bookingWaitlist.update({
-        where: { id: nextInLine.id },
-        data: {
-          notifiedAt: new Date(),
-          expiresAt,
-          promotionToken,
-        },
+      const claim = await tx.bookingWaitlist.updateMany({
+        where: { id: nextInLine.id, notifiedAt: null, expiresAt: null },
+        data: { notifiedAt: new Date(), expiresAt, promotionToken },
       });
+      if (claim.count !== 1) return null;
+
+      const notified = await tx.bookingWaitlist.findUnique({ where: { id: nextInLine.id } });
+      if (!notified) return null;
 
       log.info("Waitlist promotion notification", {
         email: notified.email,

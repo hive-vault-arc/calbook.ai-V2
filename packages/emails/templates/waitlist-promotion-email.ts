@@ -1,9 +1,18 @@
 import dayjs from "@calcom/dayjs";
-import { getReplyToHeader } from "@calcom/lib/getReplyToHeader";
 import logger from "@calcom/lib/logger";
-import { serverConfig } from "@calcom/lib/serverConfig";
-
 import BaseEmail from "./_base-email";
+
+const escapeHtml = (value: string): string =>
+  value.replace(/[&<>'"]/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "'": "&#39;",
+      '"': "&quot;",
+    };
+    return entities[character] ?? character;
+  });
 
 type WaitlistPromotionEmailProps = {
   to: string;
@@ -37,16 +46,21 @@ export default class WaitlistPromotionEmail extends BaseEmail {
 
     const subject = `A spot opened up: ${this.props.eventTitle} on ${slotDate}`;
     const recipientName = this.props.name || this.props.to.split("@")[0];
+    const safeRecipientName = escapeHtml(recipientName);
+    const safeEventTitle = escapeHtml(this.props.eventTitle);
+    const safeOrganizerName = escapeHtml(this.props.organizerName);
+    const safeTier = this.props.tier ? escapeHtml(this.props.tier) : null;
+    const safeBookingLink = escapeHtml(this.props.bookingLink);
 
     const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Good news, ${recipientName}!</h2>
-        <p>A spot just opened up for <strong>${this.props.eventTitle}</strong> with ${this.props.organizerName}.</p>
+        <h2>Good news, ${safeRecipientName}!</h2>
+        <p>A spot just opened up for <strong>${safeEventTitle}</strong> with ${safeOrganizerName}.</p>
         <p><strong>When:</strong> ${slotDate} at ${slotTimeStr}</p>
-        ${this.props.tier ? `<p><strong>Tier:</strong> ${this.props.tier}</p>` : ""}
+        ${safeTier ? `<p><strong>Tier:</strong> ${safeTier}</p>` : ""}
         <p>You have until <strong>${expiryTime}</strong> to claim this spot.</p>
         <div style="margin: 24px 0;">
-          <a href="${this.props.bookingLink}"
+          <a href="${safeBookingLink}"
              style="background-color: #FBBF24; color: #1C1C1C; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
             Book this slot now
           </a>
@@ -60,7 +74,6 @@ export default class WaitlistPromotionEmail extends BaseEmail {
     return {
       to: `${recipientName} <${this.props.to}>`,
       from: `${this.props.organizerName} <${this.getMailerOptions().from}>`,
-      ...getReplyToHeader({ organizer: { email: serverConfig.fromEmail, name: this.props.organizerName } } as never),
       subject,
       html,
       text: `A spot opened up for ${this.props.eventTitle} with ${this.props.organizerName} on ${slotDate} at ${slotTimeStr}. Book now: ${this.props.bookingLink}. This link expires in 2 hours.`,

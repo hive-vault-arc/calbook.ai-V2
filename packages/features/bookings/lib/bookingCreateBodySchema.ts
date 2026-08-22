@@ -47,6 +47,7 @@ export const bookingCreateBodySchema = z.object({
   creationSource: z.nativeEnum(CreationSource).optional(),
   verificationCode: z.string().optional(),
   tier: z.string().optional(),
+  promotionToken: z.string().min(1).optional(),
 });
 
 export type BookingCreateBody = z.input<typeof bookingCreateBodySchema>;

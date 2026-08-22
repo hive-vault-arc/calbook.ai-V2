@@ -1,15 +1,13 @@
 "use client";
 
+import type { FormValues } from "@calcom/features/eventtypes/lib/types";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { Button } from "@calcom/ui/components/button";
-import { Label, Select } from "@calcom/ui/components/form";
-import { TextField } from "@calcom/ui/components/form";
+import { Label, Select, TextField } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { useEffect } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
-
-import type { FormValues } from "@calcom/features/eventtypes/lib/types";
 
 type ScheduleOption = {
   value: number;
@@ -128,7 +126,7 @@ export function TierSchedulesConfig({ schedules }: TierSchedulesConfigProps) {
               <Button
                 type="button"
                 color="minimal"
-                size="icon"
+                size="base"
                 onClick={() => removeTier(index)}
                 StartIcon="trash">
                 <span className="sr-only">{t("remove")}</span>
@@ -143,9 +141,7 @@ export function TierSchedulesConfig({ schedules }: TierSchedulesConfigProps) {
           </Button>
         )}
 
-        {schedules.length === 0 && (
-          <p className="mt-3 text-sm text-subtle">{t("create_schedule_first")}</p>
-        )}
+        {schedules.length === 0 && <p className="mt-3 text-sm text-subtle">{t("create_schedule_first")}</p>}
       </div>
     </div>
   );

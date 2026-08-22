@@ -2,6 +2,7 @@ import process from "node:process";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
 import Stripe from "stripe";
+import { subscriptionConfigSchema } from "./subscriptionConfig";
 
 const log = logger.getSubLogger({ prefix: ["subscription-service"] });
 
@@ -35,7 +36,6 @@ export class SubscriptionService {
         title: true,
         requiresSubscription: true,
         stripeSubscriptionPriceId: true,
-        users: { select: { id: true, stripeCustomerId: true } },
       },
     });
 
@@ -112,6 +112,10 @@ export class SubscriptionService {
     const subscriptionId = session.subscription as string;
     if (!subscriptionId) {
       log.error("No subscription in checkout session", { sessionId: session.id });
+      return;
+    }
+    if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
+      log.info("Checkout completed without confirmed payment", { sessionId: session.id });
       return;
     }
 
@@ -199,6 +203,16 @@ export class SubscriptionService {
     }
   }
 
+  async getEventTypeSubscriptionConfig(eventTypeId: number): Promise<{
+    requiresSubscription: boolean;
+    subscriptionConfig: unknown;
+  } | null> {
+    return prisma.eventType.findUnique({
+      where: { id: eventTypeId },
+      select: { requiresSubscription: true, subscriptionConfig: true },
+    });
+  }
+
   /**
    * R4.7: Check if a user/email has an active subscription for an event type.
    */
@@ -255,18 +269,14 @@ export class SubscriptionService {
   getBookingWindow(params: { subscriptionConfig: unknown; hasActiveSubscription: boolean }): {
     bookingWindowDays: number;
   } {
-    const config = params.subscriptionConfig as
-      | { subscriberBookingWindowDays?: number; nonSubscriberBookingWindowDays?: number }
-      | null
-      | undefined;
+    const parsedConfig = subscriptionConfigSchema.safeParse(params.subscriptionConfig);
+    if (!parsedConfig.success) return { bookingWindowDays: 30 };
 
-    const defaultWindow = 30;
-    if (!config) return { bookingWindowDays: defaultWindow };
-
-    if (params.hasActiveSubscription) {
-      return { bookingWindowDays: config.subscriberBookingWindowDays ?? defaultWindow };
-    }
-    return { bookingWindowDays: config.nonSubscriberBookingWindowDays ?? defaultWindow };
+    return {
+      bookingWindowDays: params.hasActiveSubscription
+        ? parsedConfig.data.subscriberBookingWindowDays
+        : parsedConfig.data.nonSubscriberBookingWindowDays,
+    };
   }
 }
 

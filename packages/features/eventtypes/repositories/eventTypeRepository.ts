@@ -741,6 +741,9 @@ export class EventTypeRepository implements IEventTypesRepository {
       },
       enablePerHostLocations: true,
       tierSchedules: true,
+      requiresSubscription: true,
+      subscriptionConfig: true,
+      stripeSubscriptionPriceId: true,
       userId: true,
       price: true,
       children: {
@@ -1022,6 +1025,9 @@ export class EventTypeRepository implements IEventTypesRepository {
       },
       enablePerHostLocations: true,
       tierSchedules: true,
+      requiresSubscription: true,
+      subscriptionConfig: true,
+      stripeSubscriptionPriceId: true,
       userId: true,
       price: true,
       children: {
@@ -1293,6 +1299,8 @@ export class EventTypeRepository implements IEventTypesRepository {
         restrictionScheduleId: true,
         useBookerTimezone: true,
         rrHostSubsetEnabled: true,
+        requiresSubscription: true,
+        subscriptionConfig: true,
         hostGroups: {
           select: {
             id: true,

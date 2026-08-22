@@ -14,8 +14,11 @@ import { useInitializeBookerStore } from "@calcom/features/bookings/Booker/store
 import { useBrandColors } from "@calcom/features/bookings/Booker/utils/use-brand-colors";
 import type { getPublicEvent } from "@calcom/features/eventtypes/lib/getPublicEvent";
 import { DEFAULT_DARK_BRAND_COLOR, DEFAULT_LIGHT_BRAND_COLOR, WEBAPP_URL } from "@calcom/lib/constants";
+import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useRouterQuery } from "@calcom/lib/hooks/useRouterQuery";
 import { localStorage } from "@calcom/lib/webstorage";
+import { trpc } from "@calcom/trpc/react";
+import { Button } from "@calcom/ui/components/button";
 import { useEvent, useScheduleForEvent } from "@calcom/web/modules/schedules/hooks/useEvent";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -32,7 +35,58 @@ export type BookerWebWrapperAtomProps = BookerProps & {
   eventData?: NonNullable<Awaited<ReturnType<typeof getPublicEvent>>>;
 };
 
+type SubscriptionGateProps = {
+  hasSession: boolean;
+  isPending: boolean;
+  hasActiveSubscription: boolean;
+  onSignIn: () => void;
+  onSubscribe: () => void;
+  onManage: () => void;
+  isCheckoutPending: boolean;
+  isPortalPending: boolean;
+};
+
+function SubscriptionGate(props: SubscriptionGateProps) {
+  const { t } = useLocale();
+
+  return (
+    <div className="flex min-h-full w-full items-center justify-center p-6">
+      <div className="w-full max-w-lg rounded-lg border border-subtle bg-default p-8 text-center shadow-sm">
+        <h1 className="font-semibold text-2xl">{t("subscription_required")}</h1>
+        <p className="mt-2 text-subtle">{t("subscription_required_description")}</p>
+        {props.isPending ? (
+          <p className="mt-6 text-sm text-subtle">{t("checking_subscription")}</p>
+        ) : props.hasActiveSubscription ? (
+          <>
+            <p className="mt-6 text-sm text-subtle">{t("subscription_active")}</p>
+            <Button
+              className="mt-4"
+              color="secondary"
+              onClick={props.onManage}
+              loading={props.isPortalPending}>
+              {t("manage_subscription")}
+            </Button>
+          </>
+        ) : props.hasSession ? (
+          <Button
+            className="mt-6"
+            color="primary"
+            onClick={props.onSubscribe}
+            loading={props.isCheckoutPending}>
+            {t("subscribe_to_book")}
+          </Button>
+        ) : (
+          <Button className="mt-6" color="primary" onClick={props.onSignIn}>
+            {t("sign_in_to_subscribe")}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Element => {
+  const { t } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -88,9 +142,27 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
 
   const [dayCount] = useBookerStoreContext((state) => [state.dayCount, state.setDayCount], shallow);
 
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const routerQuery = useRouterQuery();
-  const hasSession = !!session;
+  const hasSession = sessionStatus === "authenticated";
+  const requiresSubscription =
+    event.data && "requiresSubscription" in event.data ? Boolean(event.data.requiresSubscription) : false;
+  const entitlement = trpc.viewer.subscriptions.checkEntitlement.useQuery(
+    { eventTypeId: event.data?.id ?? 0 },
+    { enabled: requiresSubscription && hasSession && Boolean(event.data?.id) }
+  );
+  const checkout = trpc.viewer.subscriptions.createCheckout.useMutation({
+    onSuccess: ({ url }) => {
+      if (url) window.location.assign(url);
+    },
+  });
+  const portal = trpc.viewer.subscriptions.createPortal.useMutation({
+    onSuccess: ({ url }) => {
+      if (url) window.location.assign(url);
+    },
+  });
+  const hasActiveSubscription = entitlement.data?.hasActiveSubscription ?? false;
+  const canViewSchedule = !requiresSubscription || (hasSession && hasActiveSubscription);
   const firstNameQueryParam = searchParams?.get("firstName");
   const lastNameQueryParam = searchParams?.get("lastName");
   const metadata = Object.keys(routerQuery)
@@ -147,7 +219,8 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
     teamMemberEmail: props.teamMemberEmail,
     fromRedirectOfNonOrgLink: props.entity.fromRedirectOfNonOrgLink,
     isTeamEvent: props.isTeamEvent ?? !!event.data?.team,
-    useApiV2: props.useApiV2,
+    useApiV2: requiresSubscription ? false : props.useApiV2,
+    enabled: canViewSchedule,
     bookerLayout,
     ...(props.entity.orgSlug ? { orgSlug: props.entity.orgSlug } : {}),
   });
@@ -200,41 +273,78 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
     if (hasSession) onOverlaySwitchStateChange(true);
   }, [hasSession]);
 
+  const eventTypeId = event.data?.id;
+  const openLogin = () => {
+    const loginUrl = new URL(`${WEBAPP_URL}/login`);
+    loginUrl.searchParams.set(
+      "callbackUrl",
+      `${pathname}${searchParams ? `?${searchParams.toString()}` : ""}`
+    );
+    router.push(loginUrl.toString());
+  };
+
+  if (requiresSubscription && !canViewSchedule) {
+    return (
+      <SubscriptionGate
+        hasSession={hasSession}
+        isPending={sessionStatus === "loading" || (hasSession && entitlement.isPending)}
+        hasActiveSubscription={hasActiveSubscription}
+        onSignIn={openLogin}
+        onSubscribe={() => eventTypeId && checkout.mutate({ eventTypeId })}
+        onManage={() => eventTypeId && portal.mutate({ eventTypeId })}
+        isCheckoutPending={checkout.isPending}
+        isPortalPending={portal.isPending}
+      />
+    );
+  }
+
   return (
-    <BookerComponent
-      {...props}
-      onOverlayClickNoCalendar={() => {
-        router.push("/apps/categories/calendar");
-      }}
-      onClickOverlayContinue={() => {
-        const newUrl = new URL(`${WEBAPP_URL}/login`);
-        newUrl.searchParams.set("callbackUrl", window.location.pathname);
-        newUrl.searchParams.set("overlayCalendar", "true");
-        router.push(newUrl.toString());
-      }}
-      onOverlaySwitchStateChange={onOverlaySwitchStateChange}
-      sessionUsername={session?.user.username}
-      isRedirect={isRedirect}
-      fromUserNameRedirected={fromUserNameRedirected}
-      rescheduleUid={rescheduleUid}
-      rescheduledBy={rescheduledBy}
-      bookingUid={bookingUid}
-      hasSession={hasSession}
-      hasValidLicense={session?.hasValidLicense ?? false}
-      extraOptions={routerQuery}
-      bookings={bookings}
-      calendars={calendars}
-      slots={slots}
-      verifyEmail={verifyEmail}
-      bookerForm={bookerForm}
-      event={event}
-      bookerLayout={bookerLayout}
-      schedule={schedule}
-      verifyCode={verifyCode}
-      isPlatform={false}
-      userLocale={session?.user.locale}
-      renderCaptcha
-    />
+    <>
+      <BookerComponent
+        {...props}
+        onOverlayClickNoCalendar={() => {
+          router.push("/apps/categories/calendar");
+        }}
+        onClickOverlayContinue={() => {
+          const newUrl = new URL(`${WEBAPP_URL}/login`);
+          newUrl.searchParams.set("callbackUrl", window.location.pathname);
+          newUrl.searchParams.set("overlayCalendar", "true");
+          router.push(newUrl.toString());
+        }}
+        onOverlaySwitchStateChange={onOverlaySwitchStateChange}
+        sessionUsername={session?.user.username}
+        isRedirect={isRedirect}
+        fromUserNameRedirected={fromUserNameRedirected}
+        rescheduleUid={rescheduleUid}
+        rescheduledBy={rescheduledBy}
+        bookingUid={bookingUid}
+        hasSession={hasSession}
+        hasValidLicense={session?.hasValidLicense ?? false}
+        extraOptions={routerQuery}
+        bookings={bookings}
+        calendars={calendars}
+        slots={slots}
+        verifyEmail={verifyEmail}
+        bookerForm={bookerForm}
+        event={event}
+        bookerLayout={bookerLayout}
+        schedule={schedule}
+        verifyCode={verifyCode}
+        isPlatform={false}
+        userLocale={session?.user.locale}
+        renderCaptcha
+      />
+      {requiresSubscription && eventTypeId && (
+        <Button
+          className="fixed right-4 bottom-4 z-20"
+          color="secondary"
+          size="sm"
+          onClick={() => portal.mutate({ eventTypeId })}
+          loading={portal.isPending}>
+          {t("manage_subscription")}
+        </Button>
+      )}
+    </>
   );
 };
 

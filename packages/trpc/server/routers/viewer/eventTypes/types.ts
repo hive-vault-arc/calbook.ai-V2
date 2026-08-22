@@ -7,6 +7,7 @@ import type {
   HostGroupInput,
   HostInput,
 } from "@calcom/features/eventtypes/lib/types";
+import { subscriptionConfigSchema } from "@calcom/features/subscriptions/lib/subscriptionConfig";
 import { MAX_SEATS_PER_TIME_SLOT } from "@calcom/lib/constants";
 import {
   customInputSchema,
@@ -206,6 +207,9 @@ const BaseEventTypeUpdateInput: z.ZodType<TUpdateInputSchema> = z
     hostGroups: z.array(hostGroupSchema).optional(),
     enablePerHostLocations: z.boolean().optional(),
     tierSchedules: z.record(z.string(), z.number().int().positive()).nullable().optional(),
+    requiresSubscription: z.boolean().optional(),
+    subscriptionConfig: subscriptionConfigSchema.nullable().optional(),
+    stripeSubscriptionPriceId: z.string().trim().min(1).nullable().optional(),
   })
   .strict();
 

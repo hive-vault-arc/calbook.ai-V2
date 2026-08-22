@@ -181,7 +181,8 @@ describe("WaitlistService", () => {
 
       const txBookingWaitlist = {
         findFirst: vi.fn().mockResolvedValue(next),
-        update: vi.fn().mockResolvedValue(promoted),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue(promoted),
       };
       mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn({ bookingWaitlist: txBookingWaitlist })
@@ -204,9 +205,9 @@ describe("WaitlistService", () => {
           orderBy: { createdAt: "asc" },
         })
       );
-      expect(txBookingWaitlist.update).toHaveBeenCalledWith(
+      expect(txBookingWaitlist.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 5 },
+          where: { id: 5, notifiedAt: null, expiresAt: null },
           data: expect.objectContaining({
             notifiedAt: expect.any(Date),
             expiresAt: expect.any(Date),
@@ -219,7 +220,8 @@ describe("WaitlistService", () => {
     it("should filter by tier when tier is provided", async () => {
       const txBookingWaitlist = {
         findFirst: vi.fn().mockResolvedValue(null),
-        update: vi.fn(),
+        updateMany: vi.fn(),
+        findUnique: vi.fn(),
       };
       mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn({ bookingWaitlist: txBookingWaitlist })
@@ -240,10 +242,12 @@ describe("WaitlistService", () => {
       );
     });
 
-    it("should return null when no one is on the waitlist", async () => {
+    it("should return null when another promotion claims the same entry", async () => {
+      const next = makeEntry({ id: 5 });
       const txBookingWaitlist = {
-        findFirst: vi.fn().mockResolvedValue(null),
-        update: vi.fn(),
+        findFirst: vi.fn().mockResolvedValue(next),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        findUnique: vi.fn(),
       };
       mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn({ bookingWaitlist: txBookingWaitlist })
@@ -255,7 +259,26 @@ describe("WaitlistService", () => {
       });
 
       expect(result).toBeNull();
-      expect(txBookingWaitlist.update).not.toHaveBeenCalled();
+      expect(txBookingWaitlist.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("should return null when no one is on the waitlist", async () => {
+      const txBookingWaitlist = {
+        findFirst: vi.fn().mockResolvedValue(null),
+        updateMany: vi.fn(),
+        findUnique: vi.fn(),
+      };
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({ bookingWaitlist: txBookingWaitlist })
+      );
+
+      const result = await service.promoteFromWaitlist({
+        eventTypeId: 10,
+        slotTime: new Date("2026-09-01T10:00:00Z"),
+      });
+
+      expect(result).toBeNull();
+      expect(txBookingWaitlist.updateMany).not.toHaveBeenCalled();
     });
   });
 

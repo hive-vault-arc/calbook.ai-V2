@@ -2,6 +2,7 @@ import type { ConnectedApps } from "@calcom/app-store/_utils/getConnectedApps";
 import type { EventLocationType } from "@calcom/app-store/locations";
 import type { eventTypeMetaDataSchemaWithTypedApps } from "@calcom/app-store/zod-utils";
 import type { ChildrenEventType } from "@calcom/features/eventtypes/lib/childrenEventType";
+import type { SubscriptionConfig } from "@calcom/features/subscriptions/lib/subscriptionConfig";
 import type { IntervalLimit } from "@calcom/lib/intervalLimits/intervalLimitSchema";
 import type { EventTypeTranslation } from "@calcom/prisma/client";
 import type {
@@ -187,6 +188,9 @@ export type FormValues = {
   enablePerHostLocations: boolean;
   requiresCancellationReason?: CancellationReasonRequirement | null;
   tierSchedules: Record<string, number> | null;
+  requiresSubscription: boolean;
+  subscriptionConfig: SubscriptionConfig | null;
+  stripeSubscriptionPriceId: string | null;
 };
 
 export type LocationFormValues = Pick<FormValues, "id" | "locations" | "bookingFields" | "seatsPerTimeSlot">;
@@ -420,6 +424,10 @@ export type EventTypeUpdateInput = {
   multiplePrivateLinks?: (string | HashedLinkInput)[];
   hostGroups?: HostGroupInput[];
   enablePerHostLocations?: boolean;
+  tierSchedules?: Record<string, number> | null;
+  requiresSubscription?: boolean;
+  subscriptionConfig?: SubscriptionConfig | null;
+  stripeSubscriptionPriceId?: string | null;
 };
 
 export type TabMap = {

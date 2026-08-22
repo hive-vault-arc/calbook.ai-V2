@@ -93,6 +93,7 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
     hostGroups,
     enablePerHostLocations,
     tierSchedules,
+    subscriptionConfig,
     ...rest
   } = input;
 
@@ -105,6 +106,8 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
       seatsPerTimeSlot: true,
       recurringEvent: true,
       maxActiveBookingsPerBooker: true,
+      requiresSubscription: true,
+      stripeSubscriptionPriceId: true,
       fieldTranslations: {
         select: {
           field: true,
@@ -181,6 +184,15 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
 
+  const finalRequiresSubscription = rest.requiresSubscription ?? eventType.requiresSubscription;
+  const finalSubscriptionPriceId =
+    rest.stripeSubscriptionPriceId === undefined
+      ? eventType.stripeSubscriptionPriceId
+      : rest.stripeSubscriptionPriceId;
+  if (finalRequiresSubscription && !finalSubscriptionPriceId) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "A Stripe price ID is required" });
+  }
+
   const finalSeatsPerTimeSlot =
     seatsPerTimeSlot === undefined ? eventType.seatsPerTimeSlot : seatsPerTimeSlot;
   const finalRecurringEvent = recurringEvent === undefined ? eventType.recurringEvent : recurringEvent;
@@ -235,6 +247,10 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
     seatsPerTimeSlot,
     maxLeadThreshold: isLoadBalancingDisabled ? null : rest.maxLeadThreshold,
     ...(enablePerHostLocations !== undefined && { enablePerHostLocations }),
+    ...(subscriptionConfig !== undefined && {
+      subscriptionConfig:
+        subscriptionConfig === null ? Prisma.DbNull : (subscriptionConfig as Prisma.InputJsonValue),
+    }),
   };
 
   // R2.3: Validate tierSchedules — all schedule IDs must exist and belong to the user

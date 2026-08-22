@@ -28,6 +28,7 @@ import { handlePayment } from "@calcom/features/bookings/lib/handlePayment";
 import { handleWebhookTrigger } from "@calcom/features/bookings/lib/handleWebhookTrigger";
 import { isEventTypeLoggingEnabled } from "@calcom/features/bookings/lib/isEventTypeLoggingEnabled";
 import { bookingPackageService } from "@calcom/features/bookings/lib/service/BookingPackageService";
+import { waitlistService } from "@calcom/features/bookings/lib/service/WaitlistService";
 import type { BookingEmailAndSmsTasker } from "@calcom/features/bookings/lib/tasker/BookingEmailAndSmsTasker";
 import type { BuiltCalendarEvent } from "@calcom/features/CalendarEventBuilder";
 import { CalendarEventBuilder } from "@calcom/features/CalendarEventBuilder";
@@ -41,6 +42,7 @@ import { getEventName, updateHostInEventName } from "@calcom/features/eventtypes
 import { getFullName } from "@calcom/features/form-builder/utils";
 import type { HashedLinkService } from "@calcom/features/hashedLink/lib/service/HashedLinkService";
 import { ProfileRepository } from "@calcom/features/profile/repositories/ProfileRepository";
+import { subscriptionService } from "@calcom/features/subscriptions/lib/SubscriptionService";
 import { handleAnalyticsEvents } from "@calcom/features/tasker/tasks/analytics/handleAnalyticsEvents";
 import type { UserRepository } from "@calcom/features/users/repositories/UserRepository";
 import { UsersRepository } from "@calcom/features/users/users.repository";
@@ -603,6 +605,24 @@ async function handler(
   spamCheckService.startCheck({ email: bookerEmail, organizationId: eventTypeOrganizationId });
 
   if (!rawBookingData.rescheduleUid) {
+    const subscriptionConfig = await subscriptionService.getEventTypeSubscriptionConfig(eventTypeId);
+    if (subscriptionConfig?.requiresSubscription) {
+      if (!userId || userId < 1) {
+        throw new HttpError({ statusCode: 401, message: "subscription_sign_in_required" });
+      }
+
+      const hasActiveSubscription = await subscriptionService.checkEntitlement({
+        eventTypeId,
+        userId,
+        email: bookerEmail,
+      });
+      if (!hasActiveSubscription) {
+        throw new HttpError({ statusCode: 403, message: "active_subscription_required" });
+      }
+    }
+  }
+
+  if (!rawBookingData.rescheduleUid) {
     await checkActiveBookingsLimitForBooker({
       eventTypeId,
       maxActiveBookingsPerBooker: eventType.maxActiveBookingsPerBooker,
@@ -644,6 +664,18 @@ async function handler(
       statusCode: 404,
       message: "event_type_not_found",
     });
+
+  if (reqBody.promotionToken) {
+    const promotion = await waitlistService.validatePromotionToken(reqBody.promotionToken);
+    const promotionMatchesBooking =
+      promotion?.eventTypeId === eventTypeId &&
+      promotion.email.toLowerCase() === bookerEmail.toLowerCase() &&
+      promotion.slotTime.getTime() === new Date(reqBody.start).getTime() &&
+      (promotion.tier ?? undefined) === reqBody.tier;
+    if (!promotionMatchesBooking) {
+      throw new HttpError({ statusCode: 403, message: "invalid_waitlist_promotion" });
+    }
+  }
 
   if (eventType.seatsPerTimeSlot && eventType.recurringEvent) {
     throw new HttpError({
@@ -2567,6 +2599,10 @@ async function handler(
         tracingLogger.error("bookingEmailAndSmsTasker error:", err);
       }
     }
+  }
+
+  if (reqBody.promotionToken && !isDryRun) {
+    await waitlistService.consumePromotionToken(reqBody.promotionToken);
   }
 
   // TODO: Refactor better so this booking object is not passed

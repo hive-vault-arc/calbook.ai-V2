@@ -101,6 +101,8 @@ export const getPublicEventSelect = (fetchAllUsers: boolean) => {
     currency: true,
     seatsPerTimeSlot: true,
     tierSchedules: true,
+    requiresSubscription: true,
+    subscriptionConfig: true,
     disableCancelling: true,
     disableRescheduling: true,
     minimumRescheduleNotice: true,
@@ -396,6 +398,8 @@ export const getPublicEvent = async (
       showInstantEventConnectNowModal: false,
       autoTranslateDescriptionEnabled: false,
       fieldTranslations: [],
+      requiresSubscription: false,
+      subscriptionConfig: null,
     };
   }
 

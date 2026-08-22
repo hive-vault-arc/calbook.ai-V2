@@ -112,6 +112,9 @@ export const duplicateHandler = async ({ ctx, input }: DuplicateOptions) => {
       restrictionScheduleId: _restrictionScheduleId,
       calVideoSettings,
       tierSchedules: _tierSchedules,
+      requiresSubscription: _requiresSubscription,
+      subscriptionConfig: _subscriptionConfig,
+      stripeSubscriptionPriceId: _stripeSubscriptionPriceId,
       ...rest
     } = eventType;
 

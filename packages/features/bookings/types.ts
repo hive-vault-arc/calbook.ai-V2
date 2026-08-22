@@ -70,6 +70,8 @@ export type BookerEvent = Pick<
   subsetOfUsers: BookerEventUser[];
   showInstantEventConnectNowModal: boolean;
   tierSchedules?: Prisma.JsonValue | null;
+  requiresSubscription?: boolean;
+  subscriptionConfig?: Prisma.JsonValue | null;
 } & { profile: BookerEventProfile };
 
 export type ValidationErrors<T extends object> = { key: FieldPath<T>; error: ErrorOption }[];
