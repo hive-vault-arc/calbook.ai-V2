@@ -1,4 +1,6 @@
 import process from "node:process";
+import { stripeOAuthTokenSchema } from "@calcom/app-store/stripepayment/lib/server";
+import { ErrorWithCode } from "@calcom/lib/errors";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
 import Stripe from "stripe";
@@ -11,12 +13,85 @@ export type SubscriptionStatus = "active" | "past_due" | "canceled" | "expired" 
 function getStripeClient(): Stripe {
   const key = process.env.STRIPE_PRIVATE_KEY;
   if (!key) {
-    throw new Error("STRIPE_PRIVATE_KEY is not configured");
+    throw ErrorWithCode.Factory.InternalServerError("STRIPE_PRIVATE_KEY is not configured");
   }
   return new Stripe(key, { apiVersion: "2020-08-27" });
 }
 
 export class SubscriptionService {
+  private async getStripeAccountForEventType(eventTypeId: number): Promise<{
+    eventType: {
+      id: number;
+      title: string;
+      userId: number | null;
+      teamId: number | null;
+      requiresSubscription: boolean;
+      stripeSubscriptionPriceId: string | null;
+    };
+    stripeAccount: string;
+  }> {
+    const eventType = await prisma.eventType.findUnique({
+      where: { id: eventTypeId },
+      select: {
+        id: true,
+        title: true,
+        userId: true,
+        teamId: true,
+        requiresSubscription: true,
+        stripeSubscriptionPriceId: true,
+      },
+    });
+    if (!eventType) throw ErrorWithCode.Factory.EventTypeNotFound();
+
+    const credential = await prisma.credential.findFirst({
+      where: {
+        appId: "stripe",
+        OR: [
+          ...(eventType.userId ? [{ userId: eventType.userId }] : []),
+          ...(eventType.teamId ? [{ teamId: eventType.teamId }] : []),
+        ],
+      },
+      select: { key: true },
+    });
+    const parsedCredential = stripeOAuthTokenSchema.safeParse(credential?.key);
+    const stripeAccount = parsedCredential.success ? parsedCredential.data.stripe_user_id : null;
+    if (!stripeAccount) throw ErrorWithCode.Factory.MissingPaymentCredential();
+
+    return { eventType, stripeAccount };
+  }
+
+  async createEventTypePrice(params: {
+    eventTypeId: number;
+    amount: number;
+    currency: string;
+    interval: "month" | "year";
+  }): Promise<{ priceId: string }> {
+    const stripe = getStripeClient();
+    const { eventType, stripeAccount } = await this.getStripeAccountForEventType(params.eventTypeId);
+    const product = await stripe.products.create(
+      { name: eventType.title, metadata: { eventTypeId: String(eventType.id) } },
+      { stripeAccount }
+    );
+    const price = await stripe.prices.create(
+      {
+        product: product.id,
+        unit_amount: params.amount,
+        currency: params.currency,
+        recurring: { interval: params.interval },
+        metadata: { eventTypeId: String(eventType.id) },
+      },
+      { stripeAccount }
+    );
+
+    await prisma.eventType.update({
+      where: { id: eventType.id },
+      data: { stripeSubscriptionPriceId: price.id },
+      select: { id: true },
+    });
+
+    return { priceId: price.id };
+  }
+
   /**
    * R4.3-R4.4: Create a Stripe Checkout session for subscribing to an event type.
    */
@@ -28,44 +103,40 @@ export class SubscriptionService {
     cancelUrl: string;
   }): Promise<{ url: string }> {
     const stripe = getStripeClient();
+    const { eventType, stripeAccount } = await this.getStripeAccountForEventType(params.eventTypeId);
 
-    const eventType = await prisma.eventType.findUnique({
-      where: { id: params.eventTypeId },
-      select: {
-        id: true,
-        title: true,
-        requiresSubscription: true,
-        stripeSubscriptionPriceId: true,
-      },
-    });
-
-    if (!eventType || !eventType.requiresSubscription) {
-      throw new Error("Event type does not require subscription");
+    if (!eventType.requiresSubscription) {
+      throw ErrorWithCode.Factory.EventTypeNotFound("Event type does not require subscription");
     }
 
     if (!eventType.stripeSubscriptionPriceId) {
-      throw new Error("Event type has no Stripe subscription price configured");
+      throw ErrorWithCode.Factory.MissingPaymentCredential(
+        "Event type has no Stripe subscription price configured"
+      );
     }
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer_email: params.email,
-      line_items: [{ price: eventType.stripeSubscriptionPriceId, quantity: 1 }],
-      success_url: params.successUrl,
-      cancel_url: params.cancelUrl,
-      metadata: {
-        eventTypeId: String(params.eventTypeId),
-        email: params.email,
-        userId: params.userId ? String(params.userId) : "",
-      },
-      subscription_data: {
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "subscription",
+        customer_email: params.email,
+        line_items: [{ price: eventType.stripeSubscriptionPriceId, quantity: 1 }],
+        success_url: params.successUrl,
+        cancel_url: params.cancelUrl,
         metadata: {
           eventTypeId: String(params.eventTypeId),
           email: params.email,
           userId: params.userId ? String(params.userId) : "",
         },
+        subscription_data: {
+          metadata: {
+            eventTypeId: String(params.eventTypeId),
+            email: params.email,
+            userId: params.userId ? String(params.userId) : "",
+          },
+        },
       },
-    });
+      { stripeAccount }
+    );
 
     log.info("Created subscription checkout session", {
       eventTypeId: params.eventTypeId,
@@ -242,23 +313,31 @@ export class SubscriptionService {
   /**
    * R4.6: Create a Stripe Customer Portal session for managing subscriptions.
    */
-  async createPortalSession(params: { email: string; returnUrl: string }): Promise<{ url: string }> {
+  async createPortalSession(params: {
+    eventTypeId: number;
+    email: string;
+    returnUrl: string;
+  }): Promise<{ url: string }> {
     const stripe = getStripeClient();
+    const { stripeAccount } = await this.getStripeAccountForEventType(params.eventTypeId);
 
     // Find the Stripe customer ID from existing subscriptions
     const subscription = await prisma.eventSubscription.findFirst({
-      where: { email: params.email, stripeCustomerId: { not: null } },
+      where: { eventTypeId: params.eventTypeId, email: params.email, stripeCustomerId: { not: null } },
       select: { stripeCustomerId: true },
     });
 
     if (!subscription?.stripeCustomerId) {
-      throw new Error("No Stripe customer found for this email");
+      throw ErrorWithCode.Factory.NotFound("No Stripe customer found for this email");
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripeCustomerId,
-      return_url: params.returnUrl,
-    });
+    const session = await stripe.billingPortal.sessions.create(
+      {
+        customer: subscription.stripeCustomerId,
+        return_url: params.returnUrl,
+      },
+      { stripeAccount }
+    );
 
     return { url: session.url };
   }

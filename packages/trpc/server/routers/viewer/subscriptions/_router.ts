@@ -1,12 +1,53 @@
 import { subscriptionService } from "@calcom/features/subscriptions/lib/SubscriptionService";
 import { WEBAPP_URL } from "@calcom/lib/constants";
 import prisma from "@calcom/prisma";
+import { MembershipRole } from "@calcom/prisma/enums";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import authedProcedure from "../../../procedures/authedProcedure";
 import { router } from "../../../trpc";
 
 export const subscriptionsRouter = router({
+  configurePrice: authedProcedure
+    .input(
+      z.object({
+        eventTypeId: z.number().int(),
+        amount: z.number().int().min(50).max(100_000_000),
+        currency: z.string().regex(/^[a-zA-Z]{3}$/),
+        interval: z.enum(["month", "year"]),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const eventType = await prisma.eventType.findFirst({
+        where: {
+          id: input.eventTypeId,
+          OR: [
+            { userId: ctx.user.id },
+            {
+              team: {
+                members: {
+                  some: {
+                    userId: ctx.user.id,
+                    accepted: true,
+                    role: { in: [MembershipRole.OWNER, MembershipRole.ADMIN] },
+                  },
+                },
+              },
+            },
+          ],
+        },
+        select: { id: true },
+      });
+      if (!eventType) throw new TRPCError({ code: "FORBIDDEN" });
+
+      return subscriptionService.createEventTypePrice({
+        eventTypeId: input.eventTypeId,
+        amount: input.amount,
+        currency: input.currency.toLowerCase(),
+        interval: input.interval,
+      });
+    }),
+
   /**
    * R4.4: Create a checkout session for subscribing to an event type.
    */
@@ -67,7 +108,7 @@ export const subscriptionsRouter = router({
   createPortal: authedProcedure
     .input(
       z.object({
-        eventTypeId: z.number().int().optional(),
+        eventTypeId: z.number().int(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -84,6 +125,7 @@ export const subscriptionsRouter = router({
       }
 
       const result = await subscriptionService.createPortalSession({
+        eventTypeId: input.eventTypeId,
         email: ctx.user.email,
         returnUrl,
       });

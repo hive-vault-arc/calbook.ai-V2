@@ -174,7 +174,7 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 
 - [x] **R4.1** Added `requiresSubscription`, `subscriptionConfig`, `stripeSubscriptionPriceId` to EventType. New `EventSubscription` model tracking booker-side subscription state (status, period, Stripe IDs).
 - [x] **R4.2** Created migration `20260821000000_add_event_subscriptions` with indexes on `[eventTypeId, email]`, `[eventTypeId, userId]`, `[stripeCustomerId]`, and unique on `stripeSubscriptionId`.
-- [ ] **R4.3** Checkout uses an event type's configured `stripeSubscriptionPriceId`; automatic creation of organizer-scoped Stripe products/prices remains.
+- [x] **R4.3** Organizers can create monthly/yearly Stripe products and prices on their connected Stripe account; checkout and customer portal sessions use that same connected account.
 - [x] **R4.4** `subscriptionsRouter.createCheckout` is authenticated, prevents duplicate active subscriptions, and creates checkout sessions scoped to the selected event type.
 - [x] **R4.5** Idempotent webhook handler at `/api/stripe/event-subscription-webhook` uses `upsert` by `stripeSubscriptionId` and handles checkout completion plus subscription create/update/delete events.
 - [x] **R4.6** `subscriptionsRouter.createPortal` creates authenticated Stripe Customer Portal sessions and returns bookers to the event page.

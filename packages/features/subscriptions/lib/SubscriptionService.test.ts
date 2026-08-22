@@ -1,18 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@calcom/prisma", () => ({
-  default: {
-    eventSubscription: { findFirst: vi.fn() },
-    eventType: { findUnique: vi.fn() },
+const stripeMocks = vi.hoisted(() => ({
+  productsCreate: vi.fn(),
+  pricesCreate: vi.fn(),
+}));
+
+vi.mock("stripe", () => ({
+  default: class StripeMock {
+    products = { create: stripeMocks.productsCreate };
+    prices = { create: stripeMocks.pricesCreate };
   },
 }));
 
+vi.mock("@calcom/prisma", () => ({
+  default: {
+    eventSubscription: { findFirst: vi.fn() },
+    eventType: { findUnique: vi.fn(), update: vi.fn() },
+    credential: { findFirst: vi.fn() },
+  },
+}));
+
+import process from "node:process";
 import prisma from "@calcom/prisma";
 import { SubscriptionService } from "./SubscriptionService";
 
 const mockPrisma = prisma as unknown as {
   eventSubscription: { findFirst: ReturnType<typeof vi.fn> };
-  eventType: { findUnique: ReturnType<typeof vi.fn> };
+  eventType: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  credential: { findFirst: ReturnType<typeof vi.fn> };
 };
 
 describe("SubscriptionService", () => {
@@ -20,6 +35,42 @@ describe("SubscriptionService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.STRIPE_PRIVATE_KEY = "sk_test_example";
+  });
+
+  describe("createEventTypePrice", () => {
+    it("creates the product and price on the organizer Stripe account", async () => {
+      mockPrisma.eventType.findUnique.mockResolvedValue({
+        id: 10,
+        title: "Subscriber Session",
+        userId: 20,
+        teamId: null,
+        requiresSubscription: false,
+        stripeSubscriptionPriceId: null,
+      });
+      mockPrisma.credential.findFirst.mockResolvedValue({ key: { stripe_user_id: "acct_123" } });
+      stripeMocks.productsCreate.mockResolvedValue({ id: "prod_123" });
+      stripeMocks.pricesCreate.mockResolvedValue({ id: "price_123" });
+      mockPrisma.eventType.update.mockResolvedValue({ id: 10 });
+
+      await expect(
+        service.createEventTypePrice({ eventTypeId: 10, amount: 2500, currency: "usd", interval: "month" })
+      ).resolves.toEqual({ priceId: "price_123" });
+
+      expect(stripeMocks.productsCreate).toHaveBeenCalledWith(
+        { name: "Subscriber Session", metadata: { eventTypeId: "10" } },
+        { stripeAccount: "acct_123" }
+      );
+      expect(stripeMocks.pricesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ product: "prod_123", unit_amount: 2500, currency: "usd" }),
+        { stripeAccount: "acct_123" }
+      );
+      expect(mockPrisma.eventType.update).toHaveBeenCalledWith({
+        where: { id: 10 },
+        data: { stripeSubscriptionPriceId: "price_123" },
+        select: { id: true },
+      });
+    });
   });
 
   describe("checkEntitlement", () => {
