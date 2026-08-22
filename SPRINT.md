@@ -187,7 +187,7 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [x] Entitlement service tests for active, expired, and missing subscriptions.
 - [x] Connected-account price, checkout, portal, and webhook replay service tests.
 - [x] Booking-window selection and malformed-config tests.
-- [ ] Authorization tests that direct API calls cannot bypass entitlement.
+- [x] Booking-boundary authorization tests for anonymous, unsubscribed, subscribed, non-gated, and reschedule requests.
 - [ ] E2E: sign in → subscribe → webhook → book → portal → cancel → access revoked.
 
 ## Acceptance criteria

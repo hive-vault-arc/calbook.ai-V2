@@ -487,6 +487,38 @@ async function validateRescheduleRestrictions({
   }
 }
 
+type SubscriptionAccessService = Pick<
+  typeof subscriptionService,
+  "getEventTypeSubscriptionConfig" | "checkEntitlement"
+>;
+
+export async function validateSubscriptionAccess(
+  params: {
+    eventTypeId: number;
+    userId?: number;
+    bookerEmail: string;
+    isReschedule: boolean;
+  },
+  service: SubscriptionAccessService = subscriptionService
+): Promise<void> {
+  if (params.isReschedule) return;
+
+  const config = await service.getEventTypeSubscriptionConfig(params.eventTypeId);
+  if (!config?.requiresSubscription) return;
+  if (!params.userId || params.userId < 1) {
+    throw new HttpError({ statusCode: 401, message: "subscription_sign_in_required" });
+  }
+
+  const hasActiveSubscription = await service.checkEntitlement({
+    eventTypeId: params.eventTypeId,
+    userId: params.userId,
+    email: params.bookerEmail,
+  });
+  if (!hasActiveSubscription) {
+    throw new HttpError({ statusCode: 403, message: "active_subscription_required" });
+  }
+}
+
 async function handler(
   this: RegularBookingService,
   input: BookingHandlerInput,
@@ -604,23 +636,12 @@ async function handler(
     null;
   spamCheckService.startCheck({ email: bookerEmail, organizationId: eventTypeOrganizationId });
 
-  if (!rawBookingData.rescheduleUid) {
-    const subscriptionConfig = await subscriptionService.getEventTypeSubscriptionConfig(eventTypeId);
-    if (subscriptionConfig?.requiresSubscription) {
-      if (!userId || userId < 1) {
-        throw new HttpError({ statusCode: 401, message: "subscription_sign_in_required" });
-      }
-
-      const hasActiveSubscription = await subscriptionService.checkEntitlement({
-        eventTypeId,
-        userId,
-        email: bookerEmail,
-      });
-      if (!hasActiveSubscription) {
-        throw new HttpError({ statusCode: 403, message: "active_subscription_required" });
-      }
-    }
-  }
+  await validateSubscriptionAccess({
+    eventTypeId,
+    userId,
+    bookerEmail,
+    isReschedule: Boolean(rawBookingData.rescheduleUid),
+  });
 
   if (!rawBookingData.rescheduleUid) {
     await checkActiveBookingsLimitForBooker({
