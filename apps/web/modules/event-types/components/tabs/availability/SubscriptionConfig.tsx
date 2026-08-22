@@ -22,6 +22,7 @@ export function SubscriptionConfig(): JSX.Element {
   const [interval, setInterval] = useState<SubscriptionInterval>("month");
   const eventTypeId = watch("id");
   const requiresSubscription = watch("requiresSubscription");
+  const stripeConfiguration = trpc.viewer.subscriptions.getConfiguration.useQuery();
   const priceId = watch("stripeSubscriptionPriceId");
   const configurePrice = trpc.viewer.subscriptions.configurePrice.useMutation({
     onSuccess: ({ priceId }) => {
@@ -29,7 +30,10 @@ export function SubscriptionConfig(): JSX.Element {
     },
   });
   const amountInMinorUnits = Math.round(Number(amount) * 100);
-  const canConfigurePrice = Number.isFinite(amountInMinorUnits) && amountInMinorUnits >= 50;
+  const canConfigurePrice =
+    stripeConfiguration.data?.isConfigured === true &&
+    Number.isFinite(amountInMinorUnits) &&
+    amountInMinorUnits >= 50;
 
   return (
     <div className="rounded-lg border border-subtle p-6">
@@ -37,9 +41,13 @@ export function SubscriptionConfig(): JSX.Element {
         <div>
           <Label className="mb-1 font-semibold text-sm">{t("subscription_calendar")}</Label>
           <p className="text-sm text-subtle">{t("subscription_calendar_description")}</p>
+          {stripeConfiguration.data?.isConfigured === false && (
+            <p className="mt-1 text-sm text-warning">{t("stripe_api_key_required")}</p>
+          )}
         </div>
         <Switch
           checked={requiresSubscription}
+          disabled={stripeConfiguration.data?.isConfigured === false}
           onCheckedChange={(checked): void =>
             setValue("requiresSubscription", checked, { shouldDirty: true, shouldValidate: true })
           }

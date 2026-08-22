@@ -818,6 +818,7 @@
   "create_subscription_price": "Create Stripe price",
   "replace_subscription_price": "Replace Stripe price",
   "subscription_price_configured": "Stripe price configured",
+  "stripe_api_key_required": "Add STRIPE_PRIVATE_KEY to enable subscription checkout.",
   "subscriber_booking_window_days": "Subscriber window (days)",
   "non_subscriber_booking_window_days": "Non-subscriber window (days)",
   "subscription_required": "Subscription required",

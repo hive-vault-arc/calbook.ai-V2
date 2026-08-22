@@ -28,7 +28,7 @@ export class SubscriptionService {
       requiresSubscription: boolean;
       stripeSubscriptionPriceId: string | null;
     };
-    stripeAccount: string;
+    stripeAccount?: string;
   }> {
     const eventType = await prisma.eventType.findUnique({
       where: { id: eventTypeId },
@@ -54,8 +54,7 @@ export class SubscriptionService {
       select: { key: true },
     });
     const parsedCredential = stripeOAuthTokenSchema.safeParse(credential?.key);
-    const stripeAccount = parsedCredential.success ? parsedCredential.data.stripe_user_id : null;
-    if (!stripeAccount) throw ErrorWithCode.Factory.MissingPaymentCredential();
+    const stripeAccount = parsedCredential.success ? parsedCredential.data.stripe_user_id : undefined;
 
     return { eventType, stripeAccount };
   }
@@ -70,7 +69,7 @@ export class SubscriptionService {
     const { eventType, stripeAccount } = await this.getStripeAccountForEventType(params.eventTypeId);
     const product = await stripe.products.create(
       { name: eventType.title, metadata: { eventTypeId: String(eventType.id) } },
-      { stripeAccount }
+      stripeAccount ? { stripeAccount } : undefined
     );
     const price = await stripe.prices.create(
       {
@@ -80,7 +79,7 @@ export class SubscriptionService {
         recurring: { interval: params.interval },
         metadata: { eventTypeId: String(eventType.id) },
       },
-      { stripeAccount }
+      stripeAccount ? { stripeAccount } : undefined
     );
 
     await prisma.eventType.update({
@@ -135,7 +134,7 @@ export class SubscriptionService {
           },
         },
       },
-      { stripeAccount }
+      stripeAccount ? { stripeAccount } : undefined
     );
 
     log.info("Created subscription checkout session", {
@@ -145,6 +144,44 @@ export class SubscriptionService {
     });
 
     return { url: session.url ?? "" };
+  }
+
+  async syncCheckoutSession(params: {
+    eventTypeId: number;
+    userId: number;
+    email: string;
+    sessionId: string;
+  }): Promise<{ hasActiveSubscription: boolean }> {
+    const stripe = getStripeClient();
+    const { stripeAccount } = await this.getStripeAccountForEventType(params.eventTypeId);
+    const requestOptions = stripeAccount ? { stripeAccount } : undefined;
+    const session = await stripe.checkout.sessions.retrieve(params.sessionId, {}, requestOptions);
+    const metadataUserId = Number(session.metadata?.userId);
+    const metadataEventTypeId = Number(session.metadata?.eventTypeId);
+    const metadataEmail = session.metadata?.email?.toLowerCase();
+    if (
+      metadataUserId !== params.userId ||
+      metadataEventTypeId !== params.eventTypeId ||
+      metadataEmail !== params.email.toLowerCase()
+    ) {
+      throw ErrorWithCode.Factory.NotFound("Checkout session does not belong to this subscription");
+    }
+
+    const subscriptionId =
+      typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+    if (!subscriptionId) throw ErrorWithCode.Factory.NotFound("Checkout session has no subscription");
+
+    await this.handleCheckoutCompleted(session);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {}, requestOptions);
+    await this.handleSubscriptionUpdated(subscription);
+
+    return {
+      hasActiveSubscription: await this.checkEntitlement({
+        eventTypeId: params.eventTypeId,
+        userId: params.userId,
+        email: params.email,
+      }),
+    };
   }
 
   /**
@@ -180,7 +217,8 @@ export class SubscriptionService {
       return;
     }
 
-    const subscriptionId = session.subscription as string;
+    const subscriptionId =
+      typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
     if (!subscriptionId) {
       log.error("No subscription in checkout session", { sessionId: session.id });
       return;
@@ -336,7 +374,7 @@ export class SubscriptionService {
         customer: subscription.stripeCustomerId,
         return_url: params.returnUrl,
       },
-      { stripeAccount }
+      stripeAccount ? { stripeAccount } : undefined
     );
 
     return { url: session.url };

@@ -15,8 +15,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   const webhookSecret = process.env.STRIPE_EVENT_SUBSCRIPTION_WEBHOOK_SECRET;
 
   if (!stripeSecret || !webhookSecret) {
-    log.error("Missing Stripe configuration");
-    return NextResponse.json({ message: "Webhook not configured" }, { status: 500 });
+    log.warn("Stripe subscription webhook is disabled");
+    return new NextResponse(null, { status: 204 });
   }
 
   const stripe = new Stripe(stripeSecret, { apiVersion: "2020-08-27" });

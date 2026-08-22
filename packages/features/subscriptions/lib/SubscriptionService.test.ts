@@ -5,6 +5,8 @@ const stripeMocks = vi.hoisted(() => ({
   productsCreate: vi.fn(),
   pricesCreate: vi.fn(),
   checkoutSessionsCreate: vi.fn(),
+  checkoutSessionsRetrieve: vi.fn(),
+  subscriptionsRetrieve: vi.fn(),
   portalSessionsCreate: vi.fn(),
 }));
 
@@ -12,7 +14,13 @@ vi.mock("stripe", () => ({
   default: class StripeMock {
     products = { create: stripeMocks.productsCreate };
     prices = { create: stripeMocks.pricesCreate };
-    checkout = { sessions: { create: stripeMocks.checkoutSessionsCreate } };
+    checkout = {
+      sessions: {
+        create: stripeMocks.checkoutSessionsCreate,
+        retrieve: stripeMocks.checkoutSessionsRetrieve,
+      },
+    };
+    subscriptions = { retrieve: stripeMocks.subscriptionsRetrieve };
     billingPortal = { sessions: { create: stripeMocks.portalSessionsCreate } };
   },
 }));
@@ -80,6 +88,34 @@ describe("SubscriptionService", () => {
         select: { id: true },
       });
     });
+
+    it("uses the platform Stripe account when no Connect credential exists", async () => {
+      mockPrisma.eventType.findUnique.mockResolvedValue({
+        id: 10,
+        title: "Subscriber Session",
+        userId: 20,
+        teamId: null,
+        requiresSubscription: false,
+        stripeSubscriptionPriceId: null,
+      });
+      mockPrisma.credential.findFirst.mockResolvedValue(null);
+      stripeMocks.productsCreate.mockResolvedValue({ id: "prod_platform" });
+      stripeMocks.pricesCreate.mockResolvedValue({ id: "price_platform" });
+      mockPrisma.eventType.update.mockResolvedValue({ id: 10 });
+
+      await service.createEventTypePrice({
+        eventTypeId: 10,
+        amount: 2500,
+        currency: "usd",
+        interval: "month",
+      });
+
+      expect(stripeMocks.productsCreate).toHaveBeenCalledWith(
+        { name: "Subscriber Session", metadata: { eventTypeId: "10" } },
+        undefined
+      );
+      expect(stripeMocks.pricesCreate).toHaveBeenCalledWith(expect.any(Object), undefined);
+    });
   });
 
   describe("createCheckoutSession", () => {
@@ -113,6 +149,83 @@ describe("SubscriptionService", () => {
         }),
         { stripeAccount: "acct_123" }
       );
+    });
+  });
+
+  describe("syncCheckoutSession", () => {
+    it("activates checkout without requiring a webhook", async () => {
+      mockPrisma.eventType.findUnique.mockResolvedValue({
+        id: 10,
+        title: "Subscriber Session",
+        userId: 20,
+        teamId: null,
+        requiresSubscription: true,
+        stripeSubscriptionPriceId: "price_123",
+      });
+      mockPrisma.credential.findFirst.mockResolvedValue(null);
+      stripeMocks.checkoutSessionsRetrieve.mockResolvedValue({
+        id: "cs_123",
+        payment_status: "paid",
+        customer: "cus_123",
+        subscription: "sub_123",
+        metadata: { eventTypeId: "10", email: "booker@example.com", userId: "20" },
+      });
+      stripeMocks.subscriptionsRetrieve.mockResolvedValue({
+        id: "sub_123",
+        status: "active",
+        customer: "cus_123",
+        metadata: { eventTypeId: "10", email: "booker@example.com", userId: "20" },
+        items: { data: [{ id: "si_123" }] },
+        current_period_start: 1_700_000_000,
+        current_period_end: 1_900_000_000,
+        cancel_at: null,
+        canceled_at: null,
+      });
+      mockPrisma.eventSubscription.findFirst.mockResolvedValue({
+        id: 1,
+        currentPeriodEnd: new Date("2030-01-01T00:00:00.000Z"),
+      });
+
+      await expect(
+        service.syncCheckoutSession({
+          eventTypeId: 10,
+          userId: 20,
+          email: "booker@example.com",
+          sessionId: "cs_123",
+        })
+      ).resolves.toEqual({ hasActiveSubscription: true });
+
+      expect(stripeMocks.checkoutSessionsRetrieve).toHaveBeenCalledWith("cs_123", {}, undefined);
+      expect(stripeMocks.subscriptionsRetrieve).toHaveBeenCalledWith("sub_123", {}, undefined);
+      expect(mockPrisma.eventSubscription.upsert).toHaveBeenCalledTimes(2);
+    });
+
+    it("rejects checkout sessions belonging to another user", async () => {
+      mockPrisma.eventType.findUnique.mockResolvedValue({
+        id: 10,
+        title: "Subscriber Session",
+        userId: 20,
+        teamId: null,
+        requiresSubscription: true,
+        stripeSubscriptionPriceId: "price_123",
+      });
+      mockPrisma.credential.findFirst.mockResolvedValue(null);
+      stripeMocks.checkoutSessionsRetrieve.mockResolvedValue({
+        id: "cs_other",
+        payment_status: "paid",
+        subscription: "sub_123",
+        metadata: { eventTypeId: "10", email: "other@example.com", userId: "99" },
+      });
+
+      await expect(
+        service.syncCheckoutSession({
+          eventTypeId: 10,
+          userId: 20,
+          email: "booker@example.com",
+          sessionId: "cs_other",
+        })
+      ).rejects.toThrow("Checkout session does not belong to this subscription");
+      expect(mockPrisma.eventSubscription.upsert).not.toHaveBeenCalled();
     });
   });
 

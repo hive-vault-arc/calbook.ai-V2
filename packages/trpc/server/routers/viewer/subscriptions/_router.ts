@@ -1,3 +1,4 @@
+import process from "node:process";
 import { subscriptionService } from "@calcom/features/subscriptions/lib/SubscriptionService";
 import { WEBAPP_URL } from "@calcom/lib/constants";
 import prisma from "@calcom/prisma";
@@ -8,6 +9,10 @@ import authedProcedure from "../../../procedures/authedProcedure";
 import { router } from "../../../trpc";
 
 export const subscriptionsRouter = router({
+  getConfiguration: authedProcedure.query(() => ({
+    isConfigured: Boolean(process.env.STRIPE_PRIVATE_KEY),
+  })),
+
   configurePrice: authedProcedure
     .input(
       z.object({
@@ -95,11 +100,22 @@ export const subscriptionsRouter = router({
         eventTypeId: input.eventTypeId,
         email: ctx.user.email,
         userId: ctx.user.id,
-        successUrl: `${returnUrl}?subscription=success`,
+        successUrl: `${returnUrl}?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${returnUrl}?subscription=canceled`,
       });
 
       return { url: result.url };
+    }),
+
+  syncCheckout: authedProcedure
+    .input(z.object({ eventTypeId: z.number().int(), sessionId: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      return subscriptionService.syncCheckoutSession({
+        eventTypeId: input.eventTypeId,
+        sessionId: input.sessionId,
+        userId: ctx.user.id,
+        email: ctx.user.email,
+      });
     }),
 
   /**

@@ -147,6 +147,7 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
   const hasSession = sessionStatus === "authenticated";
   const requiresSubscription =
     event.data && "requiresSubscription" in event.data ? Boolean(event.data.requiresSubscription) : false;
+  const trpcUtils = trpc.useUtils();
   const entitlement = trpc.viewer.subscriptions.checkEntitlement.useQuery(
     { eventTypeId: event.data?.id ?? 0 },
     { enabled: requiresSubscription && hasSession && Boolean(event.data?.id) }
@@ -161,8 +162,33 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
       if (url) window.location.assign(url);
     },
   });
+  const syncCheckout = trpc.viewer.subscriptions.syncCheckout.useMutation({
+    onSuccess: async () => {
+      await trpcUtils.viewer.subscriptions.checkEntitlement.invalidate();
+      const url = new URL(window.location.href);
+      url.searchParams.delete("subscription");
+      url.searchParams.delete("session_id");
+      router.replace(`${url.pathname}${url.search}`);
+    },
+  });
   const hasActiveSubscription = entitlement.data?.hasActiveSubscription ?? false;
   const canViewSchedule = !requiresSubscription || (hasSession && hasActiveSubscription);
+  const subscriptionReturn = searchParams?.get("subscription");
+  const checkoutSessionId = searchParams?.get("session_id");
+  useEffect(() => {
+    const eventTypeId = event.data?.id;
+    if (
+      !requiresSubscription ||
+      !hasSession ||
+      !eventTypeId ||
+      subscriptionReturn !== "success" ||
+      !checkoutSessionId ||
+      !syncCheckout.isIdle
+    ) {
+      return;
+    }
+    syncCheckout.mutate({ eventTypeId, sessionId: checkoutSessionId });
+  }, [checkoutSessionId, event.data?.id, hasSession, requiresSubscription, subscriptionReturn, syncCheckout]);
   const firstNameQueryParam = searchParams?.get("firstName");
   const lastNameQueryParam = searchParams?.get("lastName");
   const metadata = Object.keys(routerQuery)
@@ -287,7 +313,9 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
     return (
       <SubscriptionGate
         hasSession={hasSession}
-        isPending={sessionStatus === "loading" || (hasSession && entitlement.isPending)}
+        isPending={
+          sessionStatus === "loading" || (hasSession && entitlement.isPending) || syncCheckout.isPending
+        }
         hasActiveSubscription={hasActiveSubscription}
         onSignIn={openLogin}
         onSubscribe={() => eventTypeId && checkout.mutate({ eventTypeId })}
