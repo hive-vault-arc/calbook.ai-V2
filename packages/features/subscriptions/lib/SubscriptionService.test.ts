@@ -1,20 +1,25 @@
+import type Stripe from "stripe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const stripeMocks = vi.hoisted(() => ({
   productsCreate: vi.fn(),
   pricesCreate: vi.fn(),
+  checkoutSessionsCreate: vi.fn(),
+  portalSessionsCreate: vi.fn(),
 }));
 
 vi.mock("stripe", () => ({
   default: class StripeMock {
     products = { create: stripeMocks.productsCreate };
     prices = { create: stripeMocks.pricesCreate };
+    checkout = { sessions: { create: stripeMocks.checkoutSessionsCreate } };
+    billingPortal = { sessions: { create: stripeMocks.portalSessionsCreate } };
   },
 }));
 
 vi.mock("@calcom/prisma", () => ({
   default: {
-    eventSubscription: { findFirst: vi.fn() },
+    eventSubscription: { findFirst: vi.fn(), upsert: vi.fn(), updateMany: vi.fn() },
     eventType: { findUnique: vi.fn(), update: vi.fn() },
     credential: { findFirst: vi.fn() },
   },
@@ -25,7 +30,11 @@ import prisma from "@calcom/prisma";
 import { SubscriptionService } from "./SubscriptionService";
 
 const mockPrisma = prisma as unknown as {
-  eventSubscription: { findFirst: ReturnType<typeof vi.fn> };
+  eventSubscription: {
+    findFirst: ReturnType<typeof vi.fn>;
+    upsert: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
+  };
   eventType: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   credential: { findFirst: ReturnType<typeof vi.fn> };
 };
@@ -70,6 +79,115 @@ describe("SubscriptionService", () => {
         data: { stripeSubscriptionPriceId: "price_123" },
         select: { id: true },
       });
+    });
+  });
+
+  describe("createCheckoutSession", () => {
+    it("creates checkout on the organizer connected account", async () => {
+      mockPrisma.eventType.findUnique.mockResolvedValue({
+        id: 10,
+        title: "Subscriber Session",
+        userId: 20,
+        teamId: null,
+        requiresSubscription: true,
+        stripeSubscriptionPriceId: "price_123",
+      });
+      mockPrisma.credential.findFirst.mockResolvedValue({ key: { stripe_user_id: "acct_123" } });
+      stripeMocks.checkoutSessionsCreate.mockResolvedValue({ id: "cs_123", url: "https://checkout.test" });
+
+      await expect(
+        service.createCheckoutSession({
+          eventTypeId: 10,
+          email: "booker@example.com",
+          userId: 20,
+          successUrl: "https://calbook.test/success",
+          cancelUrl: "https://calbook.test/cancel",
+        })
+      ).resolves.toEqual({ url: "https://checkout.test" });
+
+      expect(stripeMocks.checkoutSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: "subscription",
+          customer_email: "booker@example.com",
+          line_items: [{ price: "price_123", quantity: 1 }],
+        }),
+        { stripeAccount: "acct_123" }
+      );
+    });
+  });
+
+  describe("createPortalSession", () => {
+    it("creates the portal session on the organizer connected account", async () => {
+      mockPrisma.eventType.findUnique.mockResolvedValue({
+        id: 10,
+        title: "Subscriber Session",
+        userId: 20,
+        teamId: null,
+        requiresSubscription: true,
+        stripeSubscriptionPriceId: "price_123",
+      });
+      mockPrisma.credential.findFirst.mockResolvedValue({ key: { stripe_user_id: "acct_123" } });
+      mockPrisma.eventSubscription.findFirst.mockResolvedValue({ stripeCustomerId: "cus_123" });
+      stripeMocks.portalSessionsCreate.mockResolvedValue({ url: "https://portal.test" });
+
+      await expect(
+        service.createPortalSession({
+          eventTypeId: 10,
+          email: "booker@example.com",
+          returnUrl: "https://calbook.test/event",
+        })
+      ).resolves.toEqual({ url: "https://portal.test" });
+      expect(stripeMocks.portalSessionsCreate).toHaveBeenCalledWith(
+        { customer: "cus_123", return_url: "https://calbook.test/event" },
+        { stripeAccount: "acct_123" }
+      );
+    });
+  });
+
+  describe("handleStripeWebhook", () => {
+    it("upserts the same subscription key when Stripe replays checkout completion", async () => {
+      const event = {
+        id: "evt_123",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_123",
+            payment_status: "paid",
+            customer: "cus_123",
+            subscription: "sub_123",
+            metadata: { eventTypeId: "10", email: "booker@example.com", userId: "20" },
+          },
+        },
+      } as Stripe.Event;
+
+      await service.handleStripeWebhook(event);
+      await service.handleStripeWebhook(event);
+
+      expect(mockPrisma.eventSubscription.upsert).toHaveBeenCalledTimes(2);
+      expect(mockPrisma.eventSubscription.upsert).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ where: { stripeSubscriptionId: "sub_123" } })
+      );
+    });
+
+    it("does not activate an unpaid checkout", async () => {
+      const event = {
+        id: "evt_unpaid",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_unpaid",
+            payment_status: "unpaid",
+            customer: "cus_123",
+            subscription: "sub_123",
+            metadata: { eventTypeId: "10", email: "booker@example.com", userId: "20" },
+          },
+        },
+      } as Stripe.Event;
+
+      await service.handleStripeWebhook(event);
+
+      expect(mockPrisma.eventSubscription.upsert).not.toHaveBeenCalled();
     });
   });
 
