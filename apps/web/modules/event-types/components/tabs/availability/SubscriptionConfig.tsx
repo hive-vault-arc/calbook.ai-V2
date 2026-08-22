@@ -5,6 +5,7 @@ import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import { Button } from "@calcom/ui/components/button";
 import { Label, Select, Switch, TextField } from "@calcom/ui/components/form";
+import { useFlags } from "@calcom/web/modules/feature-flags/hooks/useFlags";
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 
@@ -12,6 +13,8 @@ type SubscriptionInterval = "month" | "year";
 
 export function SubscriptionConfig(): JSX.Element {
   const { t } = useLocale();
+  const flags = useFlags();
+  if (flags["event-subscriptions"] === false) return <></>;
   const intervalOptions = [
     { value: "month" as const, label: t("monthly") },
     { value: "year" as const, label: t("yearly") },

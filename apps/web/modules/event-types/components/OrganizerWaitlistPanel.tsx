@@ -4,6 +4,7 @@ import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import { Badge } from "@calcom/ui/components/badge";
 import { SkeletonText } from "@calcom/ui/components/skeleton";
+import { useFlags } from "@calcom/web/modules/feature-flags/hooks/useFlags";
 import dayjs from "dayjs";
 
 type OrganizerWaitlistPanelProps = {
@@ -12,7 +13,13 @@ type OrganizerWaitlistPanelProps = {
 
 export function OrganizerWaitlistPanel({ eventTypeId }: OrganizerWaitlistPanelProps) {
   const { t } = useLocale();
-  const { data, isPending } = trpc.viewer.slots.getWaitlistForEventType.useQuery({ eventTypeId });
+  const flags = useFlags();
+  const { data, isPending } = trpc.viewer.slots.getWaitlistForEventType.useQuery(
+    { eventTypeId },
+    { enabled: flags["waitlist"] !== false }
+  );
+
+  if (flags["waitlist"] === false) return <></>;
 
   if (isPending) {
     return (

@@ -1,3 +1,4 @@
+import { isSaaSFeatureEnabled, SAAS_FLAGS } from "@calcom/features/flags/saasFlags";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import authedProcedure from "../../../procedures/authedProcedure";
@@ -66,6 +67,9 @@ export const slotsRouter = router({
   getWaitlistForEventType: authedProcedure
     .input(z.object({ eventTypeId: z.number().int() }))
     .query(async ({ input, ctx }) => {
+      if (!(await isSaaSFeatureEnabled(SAAS_FLAGS.waitlist))) {
+        return { entries: [] };
+      }
       const { prisma } = ctx;
       // Verify the user owns this event type
       const eventType = await prisma.eventType.findFirst({

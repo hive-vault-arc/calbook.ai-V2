@@ -12,6 +12,7 @@ import { parseTierSchedules, resolveTierScheduleId } from "@calcom/features/avai
 import type { IGetAvailableSlots } from "@calcom/features/bookings/Booker/hooks/useAvailableTimeSlots";
 import type { CheckBookingLimitsService } from "@calcom/features/bookings/lib/checkBookingLimits";
 import { checkForConflicts } from "@calcom/features/bookings/lib/conflictChecker/checkForConflicts";
+import { isSaaSFeatureEnabled, SAAS_FLAGS } from "@calcom/features/flags/saasFlags";
 import { subscriptionService } from "@calcom/features/subscriptions/lib/SubscriptionService";
 
 type QualifiedHostsService = {
@@ -923,7 +924,12 @@ export class AvailableSlotsService {
       throw new TRPCError({ code: "NOT_FOUND" });
     }
 
-    if (fetchedEventType.id && !input.rescheduleUid && "requiresSubscription" in fetchedEventType) {
+    if (
+      fetchedEventType.id &&
+      !input.rescheduleUid &&
+      "requiresSubscription" in fetchedEventType &&
+      (await isSaaSFeatureEnabled(SAAS_FLAGS.eventSubscriptions))
+    ) {
       const userId = ctx?.session?.user?.id;
       const hasActiveSubscription = userId
         ? await subscriptionService.checkEntitlement({ eventTypeId: fetchedEventType.id, userId })
@@ -950,7 +956,7 @@ export class AvailableSlotsService {
     }
 
     let eventType = fetchedEventType;
-    if (input.tier && eventType.id) {
+    if (input.tier && eventType.id && (await isSaaSFeatureEnabled(SAAS_FLAGS.tieredAvailability))) {
       const rawEventType = await this.dependencies.eventTypeRepo.findTierSchedules({ id: eventType.id });
       if (rawEventType?.tierSchedules) {
         const parsedTiers = parseTierSchedules(rawEventType.tierSchedules);

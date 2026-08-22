@@ -39,6 +39,7 @@ import {
 } from "@calcom/features/eventtypes/di/EventTypeService.container";
 import { getUsernameList } from "@calcom/features/eventtypes/lib/defaultEvents";
 import { getEventName, updateHostInEventName } from "@calcom/features/eventtypes/lib/eventNaming";
+import { isSaaSFeatureEnabled, SAAS_FLAGS } from "@calcom/features/flags/saasFlags";
 import { getFullName } from "@calcom/features/form-builder/utils";
 import type { HashedLinkService } from "@calcom/features/hashedLink/lib/service/HashedLinkService";
 import { ProfileRepository } from "@calcom/features/profile/repositories/ProfileRepository";
@@ -502,6 +503,7 @@ export async function validateSubscriptionAccess(
   service: SubscriptionAccessService = subscriptionService
 ): Promise<void> {
   if (params.isReschedule) return;
+  if (!(await isSaaSFeatureEnabled(SAAS_FLAGS.eventSubscriptions))) return;
 
   const config = await service.getEventTypeSubscriptionConfig(params.eventTypeId);
   if (!config?.requiresSubscription) return;
@@ -2242,7 +2244,12 @@ async function handler(
     !!booking;
 
   let redeemedPackageId: number | null = null;
-  if (bookingRequiresPayment && booking && bookerEmail) {
+  if (
+    bookingRequiresPayment &&
+    booking &&
+    bookerEmail &&
+    (await isSaaSFeatureEnabled(SAAS_FLAGS.monetization))
+  ) {
     const activePackage = await bookingPackageService.findActivePackage({
       organizerId: organizerUser.id,
       attendeeEmail: bookerEmail,

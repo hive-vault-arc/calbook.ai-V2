@@ -1,4 +1,5 @@
 import process from "node:process";
+import { isSaaSFeatureEnabled, SAAS_FLAGS } from "@calcom/features/flags/saasFlags";
 import { subscriptionService } from "@calcom/features/subscriptions/lib/SubscriptionService";
 import { WEBAPP_URL } from "@calcom/lib/constants";
 import prisma from "@calcom/prisma";
@@ -7,6 +8,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import authedProcedure from "../../../procedures/authedProcedure";
 import { router } from "../../../trpc";
+
+async function ensureSubscriptionsEnabled(): Promise<void> {
+  if (!(await isSaaSFeatureEnabled(SAAS_FLAGS.eventSubscriptions))) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "event_subscriptions_disabled" });
+  }
+}
 
 export const subscriptionsRouter = router({
   getConfiguration: authedProcedure.query(() => ({
@@ -23,6 +30,7 @@ export const subscriptionsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      await ensureSubscriptionsEnabled();
       const eventType = await prisma.eventType.findFirst({
         where: {
           id: input.eventTypeId,
@@ -59,6 +67,7 @@ export const subscriptionsRouter = router({
   createCheckout: authedProcedure
     .input(z.object({ eventTypeId: z.number().int() }))
     .mutation(async ({ input, ctx }) => {
+      await ensureSubscriptionsEnabled();
       const eventType = await prisma.eventType.findUnique({
         where: { id: input.eventTypeId },
         select: {
@@ -110,6 +119,7 @@ export const subscriptionsRouter = router({
   syncCheckout: authedProcedure
     .input(z.object({ eventTypeId: z.number().int(), sessionId: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
+      await ensureSubscriptionsEnabled();
       return subscriptionService.syncCheckoutSession({
         eventTypeId: input.eventTypeId,
         sessionId: input.sessionId,
@@ -128,6 +138,7 @@ export const subscriptionsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      await ensureSubscriptionsEnabled();
       let returnUrl = `${WEBAPP_URL}/settings/billing`;
       if (input.eventTypeId) {
         const eventType = await prisma.eventType.findUnique({

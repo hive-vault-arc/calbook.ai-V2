@@ -207,7 +207,7 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [ ] **R5.1** Validate production secrets, Stripe live mode, webhook endpoints, callback URLs, and email DNS.
 - [ ] **R5.2** Confirm database backups, restoration procedure, and migration rollback procedure.
 - [ ] **R5.3** Add dashboards and alerts for checkout failures, webhook failures, email failures, booking failures, queue backlog, and elevated 5xx responses.
-- [ ] **R5.4** Add feature-flag/controlled rollout strategy for monetization, tiers, waitlists, and subscriptions.
+- [x] **R5.4** Added feature-flag/controlled rollout strategy for monetization, tiers, waitlists, and subscriptions. Four global flags (`monetization-paid-bookings`, `tiered-availability`, `waitlist`, `event-subscriptions`) gate server-side entry points in tRPC routers, slot util, booking service, and cancel handler, plus client-side organizer config UI and booker wrapper. Flags default to enabled when no Feature row exists.
 - [ ] **R5.5** Publish Terms, Privacy Policy, cancellation/refund policy, and support workflow.
 - [ ] **R5.6** Create support and incident response runbooks.
 

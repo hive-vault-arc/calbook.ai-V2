@@ -19,6 +19,7 @@ import { useRouterQuery } from "@calcom/lib/hooks/useRouterQuery";
 import { localStorage } from "@calcom/lib/webstorage";
 import { trpc } from "@calcom/trpc/react";
 import { Button } from "@calcom/ui/components/button";
+import { useFlags } from "@calcom/web/modules/feature-flags/hooks/useFlags";
 import { useEvent, useScheduleForEvent } from "@calcom/web/modules/schedules/hooks/useEvent";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -145,8 +146,10 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
   const { data: session, status: sessionStatus } = useSession();
   const routerQuery = useRouterQuery();
   const hasSession = sessionStatus === "authenticated";
-  const requiresSubscription =
+  const flags = useFlags();
+  const eventRequiresSubscription =
     event.data && "requiresSubscription" in event.data ? Boolean(event.data.requiresSubscription) : false;
+  const requiresSubscription = eventRequiresSubscription && flags["event-subscriptions"] !== false;
   const trpcUtils = trpc.useUtils();
   const entitlement = trpc.viewer.subscriptions.checkEntitlement.useQuery(
     { eventTypeId: event.data?.id ?? 0 },

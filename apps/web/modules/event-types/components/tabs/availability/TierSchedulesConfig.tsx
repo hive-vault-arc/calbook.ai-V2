@@ -5,6 +5,7 @@ import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { Button } from "@calcom/ui/components/button";
 import { Label, Select, TextField } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
+import { useFlags } from "@calcom/web/modules/feature-flags/hooks/useFlags";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { useEffect } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
@@ -26,6 +27,8 @@ type TierEntry = {
 
 export function TierSchedulesConfig({ schedules }: TierSchedulesConfigProps) {
   const { t } = useLocale();
+  const flags = useFlags();
+  if (flags["tiered-availability"] === false) return <></>;
   const form = useFormContext<FormValues>();
   const { watch, setValue } = form;
   const [animationRef] = useAutoAnimate<HTMLDivElement>();

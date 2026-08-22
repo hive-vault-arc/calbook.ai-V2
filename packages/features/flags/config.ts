@@ -25,6 +25,10 @@ export type AppFlags = {
   "hwm-seating": boolean;
   "signup-watchlist-review": boolean;
   "sink-shortener": boolean;
+  "monetization-paid-bookings": boolean;
+  "tiered-availability": boolean;
+  waitlist: boolean;
+  "event-subscriptions": boolean;
 };
 
 export type TeamFeatures = Record<keyof AppFlags, boolean>;

@@ -1,4 +1,5 @@
 import { waitlistService } from "@calcom/features/bookings/lib/service/WaitlistService";
+import { isSaaSFeatureEnabled, SAAS_FLAGS } from "@calcom/features/flags/saasFlags";
 import prisma from "@calcom/prisma";
 import { TRPCError } from "@trpc/server";
 import type { TJoinWaitlistInputSchema, TLeaveWaitlistInputSchema } from "./types";
@@ -31,6 +32,9 @@ function checkRateLimit(email: string): boolean {
 }
 
 export const joinWaitlistHandler = async ({ input }: JoinWaitlistOptions) => {
+  if (!(await isSaaSFeatureEnabled(SAAS_FLAGS.waitlist))) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "waitlist_disabled" });
+  }
   const slotTime = new Date(input.slotUtcStartDate);
   if (isNaN(slotTime.getTime())) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid slot time" });

@@ -24,6 +24,10 @@ const initialData: AppFlags = {
   "hwm-seating": false,
   "signup-watchlist-review": false,
   "sink-shortener": false,
+  "monetization-paid-bookings": false,
+  "tiered-availability": false,
+  waitlist: false,
+  "event-subscriptions": false,
 };
 
 export function useFlags(): Partial<AppFlags> {

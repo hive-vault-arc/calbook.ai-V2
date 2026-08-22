@@ -14,6 +14,7 @@ import {
   type EventTypeBrandingData,
   getEventTypeService,
 } from "@calcom/features/eventtypes/di/EventTypeService.container";
+import { isSaaSFeatureEnabled, SAAS_FLAGS } from "@calcom/features/flags/saasFlags";
 import { UserRepository } from "@calcom/features/users/repositories/UserRepository";
 import type { GetSubscriberOptions } from "@calcom/features/webhooks/lib/getWebhooks";
 import getWebhooks from "@calcom/features/webhooks/lib/getWebhooks";
@@ -518,10 +519,12 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
 
   if (bookingToDelete.eventTypeId && bookingToDelete.startTime) {
     try {
-      await waitlistService.promoteFromWaitlist({
-        eventTypeId: bookingToDelete.eventTypeId,
-        slotTime: bookingToDelete.startTime,
-      });
+      if (await isSaaSFeatureEnabled(SAAS_FLAGS.waitlist)) {
+        await waitlistService.promoteFromWaitlist({
+          eventTypeId: bookingToDelete.eventTypeId,
+          slotTime: bookingToDelete.startTime,
+        });
+      }
     } catch (error) {
       log.error("Failed to promote from waitlist after cancellation", error);
     }
