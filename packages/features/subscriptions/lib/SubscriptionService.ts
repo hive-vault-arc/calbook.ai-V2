@@ -1,5 +1,6 @@
 import process from "node:process";
 import { stripeOAuthTokenSchema } from "@calcom/app-store/stripepayment/lib/server";
+import { FAILURE_CATEGORIES, logFailure } from "@calcom/features/monitoring/lib/monitoring";
 import { ErrorWithCode } from "@calcom/lib/errors";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
@@ -213,14 +214,22 @@ export class SubscriptionService {
     const userId = session.metadata?.userId ? parseInt(session.metadata.userId, 10) : undefined;
 
     if (!eventTypeId || !email) {
-      log.error("Missing metadata in checkout session", { sessionId: session.id });
+      logFailure({
+        category: FAILURE_CATEGORIES.CHECKOUT,
+        message: "Missing metadata in checkout session",
+        context: { sessionId: session.id },
+      });
       return;
     }
 
     const subscriptionId =
       typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
     if (!subscriptionId) {
-      log.error("No subscription in checkout session", { sessionId: session.id });
+      logFailure({
+        category: FAILURE_CATEGORIES.CHECKOUT,
+        message: "No subscription in checkout session",
+        context: { sessionId: session.id },
+      });
       return;
     }
     if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
@@ -253,7 +262,11 @@ export class SubscriptionService {
   private async handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
     const eventTypeId = parseInt(subscription.metadata?.eventTypeId ?? "0", 10);
     if (!eventTypeId) {
-      log.error("Missing eventTypeId in subscription metadata", { subscriptionId: subscription.id });
+      logFailure({
+        category: FAILURE_CATEGORIES.SUBSCRIPTION,
+        message: "Missing eventTypeId in subscription metadata",
+        context: { subscriptionId: subscription.id },
+      });
       return;
     }
 

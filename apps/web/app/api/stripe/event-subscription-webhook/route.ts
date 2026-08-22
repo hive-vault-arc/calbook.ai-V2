@@ -1,4 +1,6 @@
 import process from "node:process";
+import { errorRateTracker } from "@calcom/features/monitoring/lib/errorRateTracker";
+import { FAILURE_CATEGORIES, logFailure } from "@calcom/features/monitoring/lib/monitoring";
 import { subscriptionService } from "@calcom/features/subscriptions/lib/SubscriptionService";
 import logger from "@calcom/lib/logger";
 import { NextResponse } from "next/server";
@@ -40,7 +42,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     await subscriptionService.handleStripeWebhook(event);
     return NextResponse.json({ received: true });
   } catch (err) {
-    log.error("Webhook handler error", { type: event.type, error: err });
+    logFailure({
+      category: FAILURE_CATEGORIES.WEBHOOK,
+      message: "Subscription webhook handler error",
+      error: err,
+      context: { eventType: event.type, eventId: event.id },
+    });
+    errorRateTracker.recordError("subscription-webhook");
     return NextResponse.json({ message: "Webhook handler failed" }, { status: 500 });
   }
 }
