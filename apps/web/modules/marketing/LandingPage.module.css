@@ -1,0 +1,199 @@
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mediaIn {
+  from {
+    opacity: 0;
+    transform: translate3d(24px, 18px, 0) rotate(1deg);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0);
+  }
+}
+
+@keyframes answerIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.heroEyebrow,
+.heroTitle,
+.heroCopy,
+.heroActions,
+.heroProof {
+  animation: riseIn 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.heroTitle {
+  animation-delay: 80ms;
+}
+.heroCopy {
+  animation-delay: 170ms;
+}
+.heroActions {
+  animation-delay: 260ms;
+}
+.heroProof {
+  animation-delay: 350ms;
+}
+
+.mediaFrame {
+  animation: mediaIn 850ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    transform 350ms ease,
+    box-shadow 350ms ease;
+}
+.mediaFrame:hover {
+  transform: translateY(-6px) rotate(-0.25deg);
+  box-shadow: 0 32px 80px rgb(45 32 73 / 18%);
+}
+
+.primaryButton,
+.secondaryButton {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.primaryButton::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 24%) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 650ms ease;
+}
+.primaryButton:hover::before {
+  transform: translateX(120%);
+}
+.secondaryButton::after {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 0.65rem;
+  left: 1.5rem;
+  height: 1px;
+  content: "";
+  background: #7c3aed;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 250ms ease;
+}
+.secondaryButton:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.mediaPlaceholder {
+  transition: background-color 250ms ease;
+}
+.mediaPlaceholder:hover {
+  background-color: #11101a;
+}
+.featureRow {
+  transition:
+    transform 250ms ease,
+    background-color 250ms ease;
+}
+.featureRow:hover {
+  background-color: #faf8ff;
+  transform: translateX(6px);
+}
+
+.scrollReveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.scrollRevealDelay {
+  transition-delay: 120ms;
+}
+.scrollReveal[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.faqItem summary {
+  transition: color 200ms ease;
+}
+.faqItem:hover summary {
+  color: #7c3aed;
+}
+.faqItem[open] p {
+  animation: answerIn 250ms ease both;
+}
+
+.finalCta {
+  position: relative;
+  overflow: hidden;
+}
+.finalCta::before,
+.finalCta::after {
+  position: absolute;
+  width: 14rem;
+  height: 14rem;
+  pointer-events: none;
+  content: "";
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 9999px;
+}
+.finalCta::before {
+  top: -7rem;
+  left: -4rem;
+}
+.finalCta::after {
+  right: -4rem;
+  bottom: -8rem;
+}
+
+@media (min-width: 768px) {
+  .footerGrid {
+    grid-template-columns: 6fr 2fr 4fr;
+  }
+  .footerLegal {
+    justify-self: end;
+    text-align: right;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroEyebrow,
+  .heroTitle,
+  .heroCopy,
+  .heroActions,
+  .heroProof,
+  .mediaFrame,
+  .faqItem[open] p {
+    animation: none;
+  }
+  .mediaFrame,
+  .featureRow,
+  .scrollReveal,
+  .primaryButton::before,
+  .secondaryButton::after {
+    transition: none;
+  }
+  .scrollReveal {
+    opacity: 1;
+    transform: none;
+  }
+  .mediaFrame:hover,
+  .featureRow:hover {
+    transform: none;
+  }
+}
