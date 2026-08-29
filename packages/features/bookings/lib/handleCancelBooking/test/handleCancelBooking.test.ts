@@ -2,24 +2,21 @@ import {
   BookingLocations,
   createBookingScenario,
   getBooker,
+  getDate,
   getGoogleCalendarCredential,
   getOrganizer,
   getScenarioData,
   mockCalendarToHaveNoBusySlots,
   mockSuccessfulVideoMeetingCreation,
   TestData,
-  getDate,
 } from "@calcom/testing/lib/bookingScenario/bookingScenario";
-import {
-  expectBookingCancelledWebhookToHaveBeenFired,
-} from "@calcom/testing/lib/bookingScenario/expects";
-import { setupAndTeardown } from "@calcom/testing/lib/bookingScenario/setupAndTeardown";
-
-import { describe, expect, vi } from "vitest";
-
 import { processPaymentRefund } from "@calcom/features/bookings/lib/payment/processPaymentRefund";
+import prisma from "@calcom/prisma";
 import { BookingStatus } from "@calcom/prisma/enums";
+import { expectBookingCancelledWebhookToHaveBeenFired } from "@calcom/testing/lib/bookingScenario/expects";
+import { setupAndTeardown } from "@calcom/testing/lib/bookingScenario/setupAndTeardown";
 import { test } from "@calcom/testing/lib/fixtures/fixtures";
+import { describe, expect, vi } from "vitest";
 
 vi.mock("@calcom/features/bookings/lib/payment/processPaymentRefund", () => ({
   processPaymentRefund: vi.fn(),
@@ -157,6 +154,108 @@ describe("Cancel Booking", () => {
         },
       })
     ).rejects.toThrow("Booking not found.");
+  });
+
+  test("Should promote only one matching-tier entry when cancellation requests race", async () => {
+    const handleCancelBooking = (await import("@calcom/features/bookings/lib/handleCancelBooking")).default;
+    const booker = getBooker({ email: "booker@example.com", name: "Booker" });
+    const organizer = getOrganizer({
+      name: "Organizer",
+      email: "organizer@example.com",
+      id: 101,
+      schedules: [TestData.schedules.IstWorkHours],
+    });
+    const bookingId = 1020;
+    const bookingUid = "waitlistRaceBookingUid";
+    const { dateString } = getDate({ dateIncrement: 1 });
+    const startTime = new Date(`${dateString}T05:00:00.000Z`);
+    const endTime = new Date(`${dateString}T05:30:00.000Z`);
+
+    await createBookingScenario(
+      getScenarioData({
+        eventTypes: [
+          {
+            id: 1,
+            slotInterval: 30,
+            length: 30,
+            users: [{ id: organizer.id }],
+          },
+        ],
+        bookings: [
+          {
+            id: bookingId,
+            uid: bookingUid,
+            attendees: [{ email: booker.email, timeZone: "Asia/Kolkata" }],
+            eventTypeId: 1,
+            userId: organizer.id,
+            responses: {
+              email: booker.email,
+              name: booker.name,
+              location: { optionValue: "", value: BookingLocations.CalVideo },
+            },
+            status: BookingStatus.ACCEPTED,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            metadata: { calbookTier: "pro" },
+          },
+        ],
+        organizer,
+      })
+    );
+    await prisma.bookingWaitlist.createMany({
+      data: [
+        {
+          eventTypeId: 1,
+          slotTime: startTime,
+          slotEndTime: endTime,
+          tier: "free",
+          email: "free@example.com",
+          deduplicationKey: "race-free",
+        },
+        {
+          eventTypeId: 1,
+          slotTime: startTime,
+          slotEndTime: endTime,
+          tier: "pro",
+          email: "pro-first@example.com",
+          deduplicationKey: "race-pro-first",
+        },
+        {
+          eventTypeId: 1,
+          slotTime: startTime,
+          slotEndTime: endTime,
+          tier: "pro",
+          email: "pro-second@example.com",
+          deduplicationKey: "race-pro-second",
+        },
+      ],
+    });
+    const cancellation = {
+      bookingData: {
+        id: bookingId,
+        uid: bookingUid,
+        cancelledBy: organizer.email,
+        cancellationReason: "No reason",
+      },
+    };
+
+    const results = await Promise.allSettled([
+      handleCancelBooking(cancellation),
+      handleCancelBooking(cancellation),
+    ]);
+    const entries = await prisma.bookingWaitlist.findMany({
+      where: { eventTypeId: 1, slotTime: startTime },
+      select: { email: true, tier: true, notifiedAt: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(entries.filter((entry) => entry.notifiedAt !== null)).toEqual([
+      expect.objectContaining({ email: "pro-first@example.com", tier: "pro" }),
+    ]);
+    expect(entries.find((entry) => entry.email === "free@example.com")?.notifiedAt).toBeNull();
+    expect(entries.find((entry) => entry.email === "pro-second@example.com")?.notifiedAt).toBeNull();
   });
 
   test("Should call processPaymentRefund", async () => {
@@ -371,7 +470,11 @@ describe("Cancel Booking", () => {
     );
     mockSuccessfulVideoMeetingCreation({
       metadataLookupKey: "dailyvideo",
-      videoMeetingData: { id: "MOCK_ID", password: "MOCK_PASS", url: `http://mock-dailyvideo.example.com/meeting-1` },
+      videoMeetingData: {
+        id: "MOCK_ID",
+        password: "MOCK_PASS",
+        url: `http://mock-dailyvideo.example.com/meeting-1`,
+      },
     });
     mockCalendarToHaveNoBusySlots("googlecalendar", {
       create: { id: "MOCKED_GOOGLE_CALENDAR_EVENT_ID" },

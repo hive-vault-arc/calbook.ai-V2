@@ -30,6 +30,7 @@ import { isEventTypeLoggingEnabled } from "@calcom/features/bookings/lib/isEvent
 import { bookingPackageService } from "@calcom/features/bookings/lib/service/BookingPackageService";
 import { waitlistService } from "@calcom/features/bookings/lib/service/WaitlistService";
 import type { BookingEmailAndSmsTasker } from "@calcom/features/bookings/lib/tasker/BookingEmailAndSmsTasker";
+import { addWaitlistTierToBookingMetadata } from "@calcom/features/bookings/lib/waitlistTierMetadata";
 import type { BuiltCalendarEvent } from "@calcom/features/CalendarEventBuilder";
 import { CalendarEventBuilder } from "@calcom/features/CalendarEventBuilder";
 import { getSpamCheckService } from "@calcom/features/di/watchlist/containers/SpamCheckService.container";
@@ -1779,7 +1780,7 @@ async function handler(
         rescheduledBy: reqBody.rescheduledBy,
         reqBody: {
           user: reqBody.user,
-          metadata: reqBody.metadata,
+          metadata: addWaitlistTierToBookingMetadata(reqBody.metadata, reqBody.tier),
           recurringEventId: reqBody.recurringEventId,
         },
         eventType: {

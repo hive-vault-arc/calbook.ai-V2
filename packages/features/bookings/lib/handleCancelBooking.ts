@@ -52,6 +52,7 @@ import { getAllCredentialsIncludeServiceAccountKey } from "./getAllCredentialsFo
 import { getBookingToDelete } from "./getBookingToDelete";
 import cancelAttendeeSeat from "./handleSeats/cancel/cancelAttendeeSeat";
 import type { IBookingCancelService } from "./interfaces/IBookingCancelService";
+import { getWaitlistTierFromBookingMetadata } from "./waitlistTierMetadata";
 
 const log = logger.getSubLogger({ prefix: ["handleCancelBooking"] });
 
@@ -366,9 +367,10 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
     const recurringEventId = bookingToDelete.recurringEventId;
     const gte = cancelSubsequentBookings ? bookingToDelete.startTime : new Date();
     // Proceed to mark as cancelled all remaining recurring events instances (greater than or equal to right now)
-    await bookingRepository.updateMany({
+    const cancellation = await bookingRepository.updateMany({
       where: {
         recurringEventId,
+        status: { not: BookingStatus.CANCELLED },
         startTime: {
           gte,
         },
@@ -379,6 +381,9 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
         cancelledBy: cancelledBy,
       },
     });
+    if (cancellation.count === 0) {
+      throw new HttpError({ statusCode: 400, message: "This booking has already been cancelled." });
+    }
     const allUpdatedBookings = await bookingRepository.findManyIncludeReferences({
       where: {
         recurringEventId: bookingToDelete.recurringEventId,
@@ -393,18 +398,27 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
       await attendeeRepository.deleteManyByBookingId(bookingToDelete.id);
     }
 
-    const updatedBooking = await bookingRepository.updateIncludeReferences({
-      where: {
-        uid: bookingToDelete.uid,
-      },
-      data: {
-        status: BookingStatus.CANCELLED,
-        cancellationReason: cancellationReason,
-        cancelledBy: cancelledBy,
-        // Assume that canceling the booking is the last action
-        iCalSequence: evt.iCalSequence || 100,
-      },
-    });
+    let updatedBooking: Awaited<ReturnType<BookingRepository["updateIncludeReferences"]>>;
+    try {
+      updatedBooking = await bookingRepository.updateIncludeReferences({
+        where: {
+          uid: bookingToDelete.uid,
+          status: { not: BookingStatus.CANCELLED },
+        },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancellationReason: cancellationReason,
+          cancelledBy: cancelledBy,
+          // Assume that canceling the booking is the last action
+          iCalSequence: evt.iCalSequence || 100,
+        },
+      });
+    } catch (error) {
+      if (isPrismaError(error) && error.code === "P2025") {
+        throw new HttpError({ statusCode: 400, message: "This booking has already been cancelled." });
+      }
+      throw error;
+    }
 
     updatedBookings.push(updatedBooking);
 
@@ -520,12 +534,10 @@ async function handler(input: CancelBookingInput, dependencies?: Dependencies) {
   if (bookingToDelete.eventTypeId && bookingToDelete.startTime) {
     try {
       if (await isSaaSFeatureEnabled(SAAS_FLAGS.waitlist)) {
-        // Note: tier is not stored on the Booking model, so we promote the
-        // next person in line regardless of tier. A future schema change
-        // could add tier to Booking for tier-specific promotion.
         await waitlistService.promoteFromWaitlist({
           eventTypeId: bookingToDelete.eventTypeId,
           slotTime: bookingToDelete.startTime,
+          tier: getWaitlistTierFromBookingMetadata(bookingToDelete.metadata),
         });
       }
     } catch (error) {

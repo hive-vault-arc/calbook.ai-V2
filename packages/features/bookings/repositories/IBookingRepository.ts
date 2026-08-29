@@ -6,18 +6,20 @@ export interface BookingWhereInput {
   id?: number;
   uid?: string;
   recurringEventId?: string | null;
+  status?: BookingStatus | { not: BookingStatus };
   startTime?: {
     gte?: Date;
   };
 }
 
-export type BookingWhereUniqueInput =
+export type BookingWhereUniqueInput = (
   | {
       id: number;
     }
   | {
       uid: string;
-    };
+    }
+) & { status?: BookingStatus | { not: BookingStatus } };
 
 export interface BookingUpdateData {
   status?: BookingStatus;
@@ -45,9 +47,7 @@ export interface IBookingRepository {
 
   update(params: { where: BookingWhereUniqueInput; data: BookingUpdateData }): Promise<Booking>;
 
-  findManyIncludeReferences(params: {
-    where: BookingWhereInput;
-  }): Promise<BookingWithReferences[]>;
+  findManyIncludeReferences(params: { where: BookingWhereInput }): Promise<BookingWithReferences[]>;
 
   getBookingForCalEventBuilderFromUid(bookingUid: string): Promise<BookingForCalEventBuilder | null>;
 }
