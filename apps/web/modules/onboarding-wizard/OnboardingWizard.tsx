@@ -18,7 +18,7 @@ export function OnboardingWizard(): ReactElement {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [bio, setBio] = useState("");
-  const [brandColor, setBrandColor] = useState("#e8a317");
+  const [brandColor, setBrandColor] = useState("#8B5CF6");
   const [invites, setInvites] = useState<Array<{ email: string; name: string }>>([{ email: "", name: "" }]);
 
   const slugCheck = trpc.viewer.organizations.checkSlug.useQuery(
@@ -113,7 +113,7 @@ export function OnboardingWizard(): ReactElement {
               <span className="text-emphasis text-sm font-medium">Organization name</span>
               <Input
                 className="mt-1.5"
-                placeholder="Acme Recruiting"
+                placeholder="Acme Coaching"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -122,7 +122,7 @@ export function OnboardingWizard(): ReactElement {
               <span className="text-emphasis text-sm font-medium">URL slug</span>
               <div className="mt-1.5">
                 <Input
-                  placeholder="acme-recruiting"
+                  placeholder="your-practice"
                   value={slug}
                   onChange={(e) => handleSlugChange(e.target.value)}
                 />
@@ -208,7 +208,7 @@ export function OnboardingWizard(): ReactElement {
             <div className="text-center">
               <h2 className="text-emphasis text-xl font-bold">Invite your team</h2>
               <p className="text-subtle mt-1 text-sm">
-                Add team members to collaborate on candidates and interviews.
+                Add collaborators who help you deliver your services.
               </p>
             </div>
             {invites.map((invite, index) => (
@@ -273,14 +273,14 @@ export function OnboardingWizard(): ReactElement {
                 color="minimal"
                 variant="button"
                 className="w-full"
-                onClick={() => (window.location.href = "/recruiting/pipeline")}>
-                Set up your interview pipeline
+                onClick={() => (window.location.href = "/event-types/new")}>
+                Create your first booking link
               </Button>
               <Button
                 color="minimal"
                 variant="button"
                 className="w-full"
-                onClick={() => (window.location.href = "/settings/my-account/billing")}>
+                onClick={() => (window.location.href = "/settings/billing")}>
                 Manage billing
               </Button>
             </div>

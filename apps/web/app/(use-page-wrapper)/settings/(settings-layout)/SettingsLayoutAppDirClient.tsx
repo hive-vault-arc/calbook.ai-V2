@@ -67,6 +67,11 @@ const getTabs = (
           trackingMetadata: { section: "my_account", page: "appearance" },
         },
         {
+          name: "billing",
+          href: "/settings/billing",
+          trackingMetadata: { section: "my_account", page: "billing" },
+        },
+        {
           name: "out_of_office",
           href: "/settings/my-account/out-of-office",
           trackingMetadata: { section: "my_account", page: "out_of_office" },

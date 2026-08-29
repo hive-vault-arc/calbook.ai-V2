@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { TRIAL_LIMIT_DAYS } from "@calcom/lib/constants";
 import logger from "@calcom/lib/logger";
-import type { Prisma, PrismaClient } from "@calcom/prisma/client";
+import type { PrismaClient } from "@calcom/prisma/client";
 import { MembershipRole } from "@calcom/prisma/enums";
 
 const log = logger.getSubLogger({ prefix: ["organization", "creation-service"] });
@@ -69,7 +69,7 @@ export async function createOrganization(prisma: PrismaClient, input: CreateOrga
 
     const user = await tx.user.findUnique({
       where: { id: input.userId },
-      select: { username: true, metadata: true },
+      select: { username: true },
     });
     if (!user) throw new Error(`Unable to create organization: user ${input.userId} was not found`);
 
@@ -87,13 +87,9 @@ export async function createOrganization(prisma: PrismaClient, input: CreateOrga
     if (input.startTrial) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_LIMIT_DAYS);
-      const metadata = (user.metadata ?? {}) as Record<string, unknown>;
       await tx.user.update({
         where: { id: input.userId },
-        data: {
-          trialEndsAt,
-          metadata: { ...metadata, plan: "pro" } as Prisma.InputJsonValue,
-        },
+        data: { trialEndsAt },
       });
     }
 

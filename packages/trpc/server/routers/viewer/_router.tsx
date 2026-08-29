@@ -8,6 +8,7 @@ import { apiKeysRouter } from "./apiKeys/_router";
 import { appsRouter } from "./apps/_router";
 import { authRouter } from "./auth/_router";
 import { availabilityRouter } from "./availability/_router";
+import { billingRouter } from "./billing/_router";
 import { bookingsRouter } from "./bookings/_router";
 import { calendarsRouter } from "./calendars/_router";
 import { calVideoRouter } from "./calVideo/_router";
@@ -43,6 +44,7 @@ export const viewerRouter = router({
   eventTypes: eventTypesRouter,
   eventTypesHeavy: heavyEventTypesRouter,
   availability: availabilityRouter,
+  billing: billingRouter,
   timezones: timezonesRouter,
   webhook: webhookRouter,
   slots: slotsRouter,
