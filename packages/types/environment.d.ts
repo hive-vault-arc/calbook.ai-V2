@@ -34,6 +34,14 @@ declare namespace NodeJS {
     readonly STRIPE_CLIENT_ID: string | undefined;
     readonly STRIPE_WEBHOOK_SECRET: string | undefined;
     readonly STRIPE_WEBHOOK_SECRET_APPS: string | undefined;
+    readonly STRIPE_WEBHOOK_SECRET_BILLING: string | undefined;
+    readonly STRIPE_PLATFORM_BILLING_WEBHOOK_SECRET: string | undefined;
+    readonly STRIPE_PLATFORM_PRO_MONTHLY_PRICE_ID: `price_${string}` | undefined;
+    readonly STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID: `price_${string}` | undefined;
+    readonly STRIPE_PLATFORM_ENTERPRISE_MONTHLY_PRICE_ID: `price_${string}` | undefined;
+    readonly STRIPE_PLATFORM_ENTERPRISE_ANNUAL_PRICE_ID: `price_${string}` | undefined;
+    readonly STRIPE_ORG_MONTHLY_PRICE_ID: `price_${string}` | undefined;
+    readonly STRIPE_ORG_ANNUAL_PRICE_ID: `price_${string}` | undefined;
     readonly STRIPE_TEAM_PRODUCT_ID: `prod_${string}` | undefined;
     readonly PAYMENT_FEE_PERCENTAGE: number | undefined;
     readonly PAYMENT_FEE_FIXED: number | undefined;

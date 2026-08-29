@@ -1,5 +1,6 @@
 import process from "node:process";
 import { platformBillingService } from "@calcom/features/billing/lib/PlatformBillingService";
+import { getPlatformBillingEnv } from "@calcom/features/billing/lib/platform-billing-env";
 import { errorRateTracker } from "@calcom/features/monitoring/lib/errorRateTracker";
 import { FAILURE_CATEGORIES, logFailure } from "@calcom/features/monitoring/lib/monitoring";
 import logger from "@calcom/lib/logger";
@@ -9,8 +10,7 @@ import Stripe from "stripe";
 const log = logger.getSubLogger({ prefix: ["stripe-platform-billing-webhook"] });
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const secret = process.env.STRIPE_PLATFORM_BILLING_WEBHOOK_SECRET;
-  const key = process.env.STRIPE_PRIVATE_KEY;
+  const { webhookSecret: secret, privateKey: key } = getPlatformBillingEnv(process.env);
   if (!secret || !key) {
     log.error("Stripe platform billing webhook is not configured");
     return NextResponse.json({ message: "Webhook is not configured" }, { status: 503 });

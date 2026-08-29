@@ -1,4 +1,6 @@
 import process from "node:process";
+import { getPlatformBillingEnv } from "./platform-billing-env";
+
 export type PlatformPlanId = "free" | "pro" | "enterprise";
 
 export type PlatformPlan = {
@@ -10,6 +12,8 @@ export type PlatformPlan = {
   monthlyPriceId?: string;
   annualPriceId?: string;
 };
+
+const billingEnv = getPlatformBillingEnv(process.env);
 
 export const PLATFORM_PLANS: Record<PlatformPlanId, PlatformPlan> = {
   free: {
@@ -25,8 +29,8 @@ export const PLATFORM_PLANS: Record<PlatformPlanId, PlatformPlan> = {
     description: "For professionals monetizing their time",
     monthlyPriceCents: 2900,
     annualPriceCents: 29000,
-    monthlyPriceId: process.env.STRIPE_PLATFORM_PRO_MONTHLY_PRICE_ID,
-    annualPriceId: process.env.STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID,
+    monthlyPriceId: billingEnv.proMonthlyPriceId,
+    annualPriceId: billingEnv.proAnnualPriceId,
   },
   enterprise: {
     id: "enterprise",
@@ -34,8 +38,8 @@ export const PLATFORM_PLANS: Record<PlatformPlanId, PlatformPlan> = {
     description: "For organizations with advanced scheduling needs",
     monthlyPriceCents: null,
     annualPriceCents: null,
-    monthlyPriceId: process.env.STRIPE_PLATFORM_ENTERPRISE_MONTHLY_PRICE_ID,
-    annualPriceId: process.env.STRIPE_PLATFORM_ENTERPRISE_ANNUAL_PRICE_ID,
+    monthlyPriceId: billingEnv.enterpriseMonthlyPriceId,
+    annualPriceId: billingEnv.enterpriseAnnualPriceId,
   },
 };
 

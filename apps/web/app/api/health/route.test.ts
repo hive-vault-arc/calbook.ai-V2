@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getResendApiKey: vi.fn<() => string | undefined>(),
@@ -30,6 +30,10 @@ type HealthResponse = {
       status: string;
       detail: string;
     };
+    platformBilling: {
+      status: string;
+      detail?: string;
+    };
   };
 };
 
@@ -38,7 +42,13 @@ describe("GET /api/health email check", () => {
     mocks.getResendApiKey.mockReturnValue("re_test");
     mocks.queryRaw.mockResolvedValue([{ result: 1 }]);
     mocks.verify.mockResolvedValue(true);
+    vi.stubEnv("STRIPE_PRIVATE_KEY", "sk_test_example");
+    vi.stubEnv("STRIPE_PLATFORM_BILLING_WEBHOOK_SECRET", "whsec_platform");
+    vi.stubEnv("STRIPE_PLATFORM_PRO_MONTHLY_PRICE_ID", "price_pro_monthly");
+    vi.stubEnv("STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID", "price_pro_annual");
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it("reports Resend as healthy only after transport verification succeeds", async () => {
     const response = await GET();
@@ -56,5 +66,18 @@ describe("GET /api/health email check", () => {
 
     expect(response.status).toBe(503);
     expect(body.checks.email).toEqual({ status: "error", detail: "Resend unreachable" });
+  });
+
+  it("reports which platform billing variable is missing without exposing values", async () => {
+    vi.stubEnv("STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID", "");
+
+    const response = await GET();
+    const body = (await response.json()) as HealthResponse;
+
+    expect(response.status).toBe(200);
+    expect(body.checks.platformBilling).toEqual({
+      status: "degraded",
+      detail: "Missing: STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID",
+    });
   });
 });

@@ -1,4 +1,5 @@
 import process from "node:process";
+import { getPlatformBillingReadiness } from "@calcom/features/billing/lib/platform-billing-env";
 import { getResendApiKey } from "@calcom/lib/getResendConfig";
 import { serverConfig } from "@calcom/lib/serverConfig";
 import { prisma } from "@calcom/prisma";
@@ -38,6 +39,17 @@ function checkStripe(): SubsystemCheck {
   return { status: "degraded", detail: "Unrecognized Stripe key format" };
 }
 
+function checkPlatformBilling(): SubsystemCheck {
+  const readiness = getPlatformBillingReadiness();
+  if (readiness.ready) return { status: "ok" };
+
+  const details = [
+    readiness.missing.length ? `Missing: ${readiness.missing.join(", ")}` : "",
+    readiness.invalid.length ? `Invalid: ${readiness.invalid.join(", ")}` : "",
+  ].filter(Boolean);
+  return { status: "degraded", detail: details.join("; ") };
+}
+
 async function checkEmail(): Promise<SubsystemCheck> {
   const resendApiKey = getResendApiKey();
   const hasSmtp = Boolean(process.env.EMAIL_SERVER || process.env.EMAIL_SERVER_HOST);
@@ -68,6 +80,7 @@ export async function GET(): Promise<NextResponse> {
   const checks: Record<string, SubsystemCheck> = {
     database,
     stripe: checkStripe(),
+    platformBilling: checkPlatformBilling(),
     email,
     redis: checkRedis(),
   };

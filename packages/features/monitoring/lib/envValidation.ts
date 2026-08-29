@@ -1,4 +1,5 @@
 import process from "node:process";
+import { getPlatformBillingReadiness } from "@calcom/features/billing/lib/platform-billing-env";
 import { getResendApiKey, getResendFromAddress } from "@calcom/lib/getResendConfig";
 
 /**
@@ -104,6 +105,22 @@ export function validateProductionEnv(env: NodeJS.ProcessEnv = process.env): Val
         message: rule.message,
       });
     }
+  }
+
+  const platformBilling = getPlatformBillingReadiness(env);
+  for (const key of platformBilling.missing) {
+    findings.push({
+      key,
+      severity: "error",
+      message: "Platform billing configuration is required for paid plans",
+    });
+  }
+  for (const key of platformBilling.invalid) {
+    findings.push({
+      key,
+      severity: "error",
+      message: "Platform billing configuration has an invalid Stripe identifier",
+    });
   }
 
   const resendApiKey = getResendApiKey(env);

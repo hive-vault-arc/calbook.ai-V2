@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { assertProductionEnv, validateProductionEnv } from "./envValidation";
 
 describe("envValidation", () => {
@@ -10,6 +10,9 @@ describe("envValidation", () => {
     STRIPE_PRIVATE_KEY: "sk_live_abc123",
     NEXT_PUBLIC_STRIPE_PUBLIC_KEY: "pk_live_abc123",
     STRIPE_WEBHOOK_SECRET: "whsec_abc123",
+    STRIPE_PLATFORM_BILLING_WEBHOOK_SECRET: "whsec_platform123",
+    STRIPE_PLATFORM_PRO_MONTHLY_PRICE_ID: "price_pro_monthly",
+    STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID: "price_pro_annual",
     RESEND_API_KEY: "re_abc123",
     RESEND_FROM: "noreply@calbook.test",
   } as NodeJS.ProcessEnv;
@@ -48,10 +51,34 @@ describe("envValidation", () => {
 
   it("warns when Stripe key format is unrecognized", () => {
     const result = validateProductionEnv({ ...validEnv, STRIPE_PRIVATE_KEY: "wrong_format" });
+    expect(result.valid).toBe(false);
+    expect(result.findings.some((f) => f.key === "STRIPE_PRIVATE_KEY" && f.severity === "error")).toBe(true);
+  });
+
+  it("fails when a required platform billing price is missing", () => {
+    const result = validateProductionEnv({ ...validEnv, STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID: undefined });
+
+    expect(result.valid).toBe(false);
+    expect(result.findings).toContainEqual({
+      key: "STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID",
+      severity: "error",
+      message: "Platform billing configuration is required for paid plans",
+    });
+  });
+
+  it("accepts the existing organization billing variables as compatibility aliases", () => {
+    const env = { ...validEnv } as NodeJS.ProcessEnv;
+    delete env.STRIPE_PLATFORM_BILLING_WEBHOOK_SECRET;
+    delete env.STRIPE_PLATFORM_PRO_MONTHLY_PRICE_ID;
+    delete env.STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID;
+    env.STRIPE_WEBHOOK_SECRET_BILLING = "whsec_legacy";
+    env.STRIPE_ORG_MONTHLY_PRICE_ID = "price_legacy_monthly";
+    env.STRIPE_ORG_ANNUAL_PRICE_ID = "price_legacy_annual";
+
+    const result = validateProductionEnv(env);
+
     expect(result.valid).toBe(true);
-    expect(result.findings.some((f) => f.key === "STRIPE_PRIVATE_KEY" && f.severity === "warning")).toBe(
-      true
-    );
+    expect(result.findings).toHaveLength(0);
   });
 
   it("warns when no email transport is configured", () => {
@@ -95,10 +122,10 @@ describe("envValidation", () => {
     warnSpy.mockRestore();
   });
 
-  it("assertProductionEnv does not throw when only warnings exist", () => {
+  it("assertProductionEnv does not throw when only email warnings exist", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     expect(() =>
-      assertProductionEnv({ ...validEnv, STRIPE_PRIVATE_KEY: "wrong" } as NodeJS.ProcessEnv)
+      assertProductionEnv({ ...validEnv, EMAIL_SERVER_HOST: "bad host" } as NodeJS.ProcessEnv)
     ).not.toThrow();
     warnSpy.mockRestore();
   });
