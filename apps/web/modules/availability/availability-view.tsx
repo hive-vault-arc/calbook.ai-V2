@@ -16,16 +16,23 @@ import { revalidateAvailabilityList } from "app/(use-page-wrapper)/(main-nav)/av
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { getWeeklyAvailabilitySummary, orderWeekdays } from "./lib/getWeeklyAvailabilitySummary";
 
 type AvailabilityListProps = {
   availabilities: RouterOutputs["viewer"]["availability"]["list"];
 };
 export function AvailabilityList({ availabilities }: AvailabilityListProps) {
-  const { t } = useLocale();
+  const { i18n, t } = useLocale();
   const [bulkUpdateModal, setBulkUpdateModal] = useState(false);
   const utils = trpc.useUtils();
   const router = useRouter();
   const { data: user } = useMeQuery();
+  const defaultSchedule = availabilities.schedules.find((schedule) => schedule.isDefault);
+  const defaultWeek = defaultSchedule
+    ? orderWeekdays(getWeeklyAvailabilitySummary(defaultSchedule.availability), user?.weekStart)
+    : [];
+  const availableDayCount = defaultWeek.filter(({ minutes }) => minutes > 0).length;
+  const dayFormatter = new Intl.DateTimeFormat(i18n.language, { weekday: "short", timeZone: "UTC" });
 
   const deleteMutation = trpc.viewer.availability.schedule.delete.useMutation({
     onMutate: async ({ scheduleId }) => {
@@ -134,7 +141,64 @@ export function AvailabilityList({ availabilities }: AvailabilityListProps) {
         </div>
       ) : (
         <>
-          <div className="border-subtle bg-default overflow-hidden rounded-md border">
+          {defaultSchedule && (
+            <section className="border-subtle bg-default mb-8 overflow-hidden rounded-xl border shadow-sm">
+              <div className="border-subtle flex flex-col gap-1 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-subtle text-xs font-medium uppercase tracking-wide">
+                    {t("default_week")}
+                  </p>
+                  <h2 className="text-emphasis mt-1 text-lg font-semibold">
+                    {t("bookable_on_days", { count: availableDayCount })}
+                  </h2>
+                </div>
+                <p className="text-subtle text-sm">{defaultSchedule.timeZone ?? user?.timeZone}</p>
+              </div>
+              <div className="grid grid-cols-7 gap-px bg-subtle p-px">
+                {defaultWeek.map(({ day, minutes }) => {
+                  const dayName = dayFormatter.format(new Date(Date.UTC(2024, 0, 7 + day)));
+                  const hours = minutes / 60;
+                  const hoursLabel = Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
+
+                  return (
+                    <div
+                      key={day}
+                      className="bg-default flex min-w-0 flex-col gap-3 px-2 py-3 sm:px-4"
+                      aria-label={
+                        minutes > 0
+                          ? t("day_hours_available", { day: dayName, hours: hoursLabel })
+                          : t("day_unavailable", { day: dayName })
+                      }>
+                      <span className="text-subtle truncate text-xs font-medium">{dayName}</span>
+                      <span
+                        className={
+                          minutes > 0 ? "text-emphasis text-sm font-semibold" : "text-muted text-sm"
+                        }>
+                        {minutes > 0 ? hoursLabel : "—"}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={
+                          minutes > 0 ? "h-1.5 rounded-full bg-brand-default" : "h-1.5 rounded-full bg-subtle"
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-subtle px-5 py-3 text-sm">{t("default_week_description")}</p>
+            </section>
+          )}
+          <div className="mb-3 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-emphasis text-base font-semibold">{t("schedules")}</h2>
+              <p className="text-subtle mt-1 text-sm">{t("schedules_description")}</p>
+            </div>
+            <span className="text-subtle shrink-0 text-sm">
+              {t("schedule_count", { count: availabilities.schedules.length })}
+            </span>
+          </div>
+          <div className="border-subtle bg-default overflow-hidden rounded-xl border">
             <ul className="divide-subtle divide-y" data-testid="schedules" ref={animationParentRef}>
               {availabilities.schedules.map((schedule) => (
                 <ScheduleListItem
@@ -179,9 +243,11 @@ export function AvailabilityList({ availabilities }: AvailabilityListProps) {
 }
 
 export const AvailabilityCTA = () => {
+  const { t } = useLocale();
+
   return (
     <div className="flex items-center gap-2">
-      <NewScheduleButton />
+      <NewScheduleButton label={t("new_schedule")} />
     </div>
   );
 };

@@ -6,11 +6,40 @@ import { SkeletonText } from "@calcom/ui/components/skeleton";
 
 function SkeletonLoader() {
   return (
-    <ul className="divide-subtle border-subtle bg-default animate-pulse divide-y rounded-md border sm:mx-0 sm:overflow-hidden">
-      <SkeletonItem />
-      <SkeletonItem />
-      <SkeletonItem />
-    </ul>
+    <div className="animate-pulse">
+      <div className="border-subtle bg-default mb-8 overflow-hidden rounded-xl border">
+        <div className="border-subtle flex items-center justify-between border-b px-5 py-4">
+          <div>
+            <SkeletonText className="mb-2 h-3 w-20" />
+            <SkeletonText className="h-5 w-40" />
+          </div>
+          <SkeletonText className="h-4 w-28" />
+        </div>
+        <div className="grid grid-cols-7 gap-px bg-subtle p-px">
+          {Array.from({ length: 7 }, (_, day) => (
+            <div key={day} className="bg-default px-2 py-3 sm:px-4">
+              <SkeletonText className="mb-3 h-3 w-8" />
+              <SkeletonText className="mb-3 h-4 w-7" />
+              <SkeletonText className="h-1.5 w-full rounded-full" />
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-3">
+          <SkeletonText className="h-4 w-64 max-w-full" />
+        </div>
+      </div>
+      <div className="mb-3 flex items-end justify-between">
+        <div>
+          <SkeletonText className="mb-2 h-4 w-20" />
+          <SkeletonText className="h-3 w-72 max-w-full" />
+        </div>
+        <SkeletonText className="h-3 w-16" />
+      </div>
+      <ul className="divide-subtle border-subtle bg-default divide-y rounded-xl border sm:mx-0 sm:overflow-hidden">
+        <SkeletonItem />
+        <SkeletonItem />
+      </ul>
+    </div>
   );
 }
 

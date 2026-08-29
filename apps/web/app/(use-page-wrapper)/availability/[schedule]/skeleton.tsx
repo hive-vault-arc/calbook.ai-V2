@@ -1,7 +1,6 @@
 "use client";
 
-import { SkeletonText, SkeletonContainer, SkeletonButton } from "@calcom/ui/components/skeleton";
-
+import { SkeletonButton, SkeletonContainer, SkeletonText } from "@calcom/ui/components/skeleton";
 import Shell from "~/shell/Shell";
 
 export function AvailabilityScheduleSkeleton() {
@@ -38,8 +37,9 @@ export function AvailabilityScheduleSkeleton() {
                   <SkeletonButton className="mr-2 hidden h-9 w-9 rounded-md sm:inline-flex" />
                   {/* Second divider */}
                   <div className="mx-3 hidden h-4 w-px bg-gray-200 sm:inline" /> {/* Divider */}
+                  <SkeletonText className="mr-3 hidden h-3 w-16 md:block" /> {/* Save status */}
                   {/* Save button - updated to match screenshot */}
-                  <SkeletonButton className="h-9 w-20 rounded-md bg-gray-200" /> {/* Save button */}
+                  <SkeletonButton className="h-9 w-28 rounded-md bg-gray-200" /> {/* Save button */}
                 </div>
               </div>
             </header>
@@ -50,7 +50,11 @@ export function AvailabilityScheduleSkeleton() {
             <div className="flex flex-col sm:mx-0 xl:flex-row xl:space-x-6">
               <div className="flex-1 flex-row xl:mr-0 xl:w-[75%]">
                 {/* Schedule container */}
-                <div className="border-subtle mb-6 rounded-md border">
+                <div className="border-subtle mb-6 overflow-hidden rounded-xl border">
+                  <div className="border-subtle border-b px-5 py-4">
+                    <SkeletonText className="mb-2 h-4 w-28" />
+                    <SkeletonText className="h-3 w-72 max-w-full" />
+                  </div>
                   <div className="flex flex-col gap-4 p-2 sm:p-4">
                     {/* Days of the week */}
                     {Array(7)
@@ -94,7 +98,7 @@ export function AvailabilityScheduleSkeleton() {
                 </div>
 
                 {/* Date overrides section */}
-                <div className="p-6">
+                <div className="border-subtle rounded-xl border p-6">
                   <div className="flex items-center">
                     <SkeletonText className="h-5 w-32 font-medium" /> {/* Date overrides */}
                     <SkeletonText className="ml-2 h-4 w-4 rounded-full" /> {/* Info icon */}
@@ -109,14 +113,14 @@ export function AvailabilityScheduleSkeleton() {
               {/* Sidebar - only visible on desktop */}
               <div className="min-w-40 stack-y-2 col-span-3 hidden md:block lg:col-span-1 xl:w-[25%]">
                 <div className="xl:max-w-80 w-full pr-4 sm:ml-0 sm:mr-36 sm:p-0">
-                  <div>
+                  <div className="border-subtle rounded-xl border p-4">
+                    <SkeletonText className="mb-2 h-4 w-32" />
+                    <SkeletonText className="mb-4 h-3 w-64 max-w-full" />
                     <SkeletonText className="mb-1 h-4 w-24 text-sm" /> {/* Timezone */}
                     <SkeletonText className="mt-1 h-9 w-72 rounded-md" /> {/* Timezone selector */}
                   </div>
 
-                  <hr className="border-subtle my-6 mr-8" />
-
-                  <div className="rounded-md">
+                  <div className="border-subtle mt-4 rounded-xl border p-4">
                     <SkeletonText className="h-5 w-64 text-sm" /> {/* Something doesn't look right? */}
                     <div className="mt-3 flex">
                       <SkeletonButton className="h-9 w-40 rounded-md" /> {/* Launch troubleshooter */}

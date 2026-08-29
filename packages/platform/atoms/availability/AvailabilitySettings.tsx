@@ -1,22 +1,8 @@
 "use client";
 
-import type { SetStateAction, Dispatch } from "react";
-import React from "react";
-import {
-  useMemo,
-  useState,
-  useEffect,
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useCallback,
-} from "react";
-import { Controller, useFieldArray, useForm, useFormContext, useWatch } from "react-hook-form";
-
 import dayjs from "@calcom/dayjs";
 import { BookerStoreProvider } from "@calcom/features/bookings/Booker/BookerStoreProvider";
 import { Dialog } from "@calcom/features/components/controlled-dialog";
-import { TimezoneSelect as WebTimezoneSelect } from "@calcom/web/modules/timezone/components/TimezoneSelect";
 import type {
   BulkUpdatParams,
   EventTypes,
@@ -24,32 +10,33 @@ import type {
 import { BulkEditDefaultForEventsModal } from "@calcom/features/eventtypes/components/BulkEditDefaultForEventsModal";
 import DateOverrideInputDialog from "@calcom/features/schedules/components/DateOverrideInputDialog";
 import DateOverrideList from "@calcom/features/schedules/components/DateOverrideList";
-import {
-  ScheduleComponent as PlatformSchedule,
-} from "@calcom/features/schedules/components/ScheduleComponent";
-import WebSchedule from "@calcom/web/modules/schedules/components/Schedule";
+import { ScheduleComponent as PlatformSchedule } from "@calcom/features/schedules/components/ScheduleComponent";
+import type { TravelScheduleRepository } from "@calcom/features/travelSchedule/repositories/TravelScheduleRepository";
 import { availabilityAsString } from "@calcom/lib/availability";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { sortAvailabilityStrings } from "@calcom/lib/weekstart";
-import type { TravelScheduleRepository } from "@calcom/features/travelSchedule/repositories/TravelScheduleRepository";
 import type { TimeRange, WorkingHours } from "@calcom/types/schedule";
 import classNames from "@calcom/ui/classNames";
 import { Button } from "@calcom/ui/components/button";
-import { DialogTrigger, ConfirmationDialogContent } from "@calcom/ui/components/dialog";
+import { ConfirmationDialogContent, DialogTrigger } from "@calcom/ui/components/dialog";
 import { VerticalDivider } from "@calcom/ui/components/divider";
 import { EditableHeading } from "@calcom/ui/components/editable-heading";
-import { Form } from "@calcom/ui/components/form";
-import { Label } from "@calcom/ui/components/form";
-import { Switch } from "@calcom/ui/components/form";
+import { Form, Label, Switch } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
-import { SkeletonText, SelectSkeletonLoader, Skeleton } from "@calcom/ui/components/skeleton";
+import { SelectSkeletonLoader, Skeleton, SkeletonText } from "@calcom/ui/components/skeleton";
 import { Tooltip } from "@calcom/ui/components/tooltip";
+import WebSchedule from "@calcom/web/modules/schedules/components/Schedule";
 import WebShell from "@calcom/web/modules/shell/Shell";
-
+import { TimezoneSelect as WebTimezoneSelect } from "@calcom/web/modules/timezone/components/TimezoneSelect";
+import type React from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { Controller, useFieldArray, useForm, useFormContext, useWatch } from "react-hook-form";
 import { Shell as PlatformShell } from "../src/components/ui/shell";
 import { cn } from "../src/lib/utils";
 import { Timezone as PlatformTimzoneSelect } from "../timezone/index";
-import type { AvailabilityFormValues, scheduleClassNames, AvailabilitySettingsFormRef } from "./types";
+import { hasAvailabilityFormChanged } from "./lib/hasAvailabilityFormChanged";
+import type { AvailabilityFormValues, AvailabilitySettingsFormRef, scheduleClassNames } from "./types";
 
 export type Schedule = {
   id: number;
@@ -340,13 +327,17 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
     }, [form, schedule]);
 
     const formHasChanges = useMemo(() => {
-      if (!initialValuesRef.current) return false;
-      try {
-        return (JSON.stringify(form.watch("schedule")) !== JSON.stringify(initialValuesRef.current.availability) || JSON.stringify(watchedValues) !== JSON.stringify(initialValuesRef.current));
-      } catch {
-        return form.formState.isDirty;
-      }
-    }, [watchedValues, form.formState.isDirty]);
+      return hasAvailabilityFormChanged(initialValuesRef.current, watchedValues);
+    }, [watchedValues]);
+
+    const submitAvailability = useCallback(
+      async (data: AvailabilityFormValues) => {
+        await handleSubmit(data);
+        initialValuesRef.current = data;
+        form.reset(data);
+      },
+      [form, handleSubmit]
+    );
 
     // Trigger callback whenever the form state changes
     useEffect(() => {
@@ -374,7 +365,7 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
         } else {
           form.handleSubmit(async (data) => {
             try {
-              await handleSubmit(data);
+              await submitAvailability(data);
               callbacksRef?.current?.onSuccess?.();
             } catch (error) {
               callbacksRef?.current?.onError?.(error as Error);
@@ -382,7 +373,7 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
           })();
         }
       },
-      [form, handleSubmit, callbacksRef]
+      [form, submitAvailability, callbacksRef]
     );
 
     const validateForm = useCallback(async () => {
@@ -637,15 +628,26 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
               </>
             </SmallScreenSideBar>
             <div className="border-default border-l-2" />
+            <span
+              className="text-subtle mr-3 hidden items-center gap-2 text-xs md:inline-flex"
+              aria-live="polite">
+              <span
+                aria-hidden="true"
+                className={classNames(
+                  "h-1.5 w-1.5 rounded-full",
+                  formHasChanges ? "bg-warning" : "bg-success"
+                )}
+              />
+              {formHasChanges ? t("unsaved_changes") : t("all_changes_saved")}
+            </span>
             <Button
               ref={saveButtonRef}
               className="ml-4 lg:ml-0"
               type="submit"
               form="availability-form"
               loading={isSaving}
-              disabled={isLoading || !formHasChanges}
-            >
-              {t("save")}
+              disabled={isLoading || !formHasChanges}>
+              {t("save_changes")}
             </Button>
             <Button
               className="ml-3 sm:hidden"
@@ -661,15 +663,21 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
             form={form}
             id="availability-form"
             handleSubmit={async (props) => {
-              handleSubmit(props);
+              await submitAvailability(props);
             }}
             className={cn(customClassNames?.formClassName, "flex flex-col sm:mx-0 xl:flex-row xl:space-x-6")}>
             <div className="flex-1">
               <div
                 className={cn(
-                  "border-subtle mb-6 rounded-md border",
+                  "border-subtle mb-6 overflow-hidden rounded-xl border",
                   customClassNames?.scheduleClassNames?.scheduleContainer
                 )}>
+                {!isPlatform && (
+                  <div className="border-subtle border-b px-5 py-4">
+                    <h2 className="text-emphasis font-semibold">{t("weekly_hours")}</h2>
+                    <p className="text-subtle mt-1 text-sm">{t("weekly_hours_description")}</p>
+                  </div>
+                )}
                 <div>
                   {typeof weekStart === "string" && (
                     <Schedule
@@ -700,13 +708,13 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
                 </div>
               </div>
               {enableOverrides && (
-                <div className="border-subtle rounded-md border mb-6">
+                <div className="border-subtle mb-6 rounded-xl border">
                   <BookerStoreProvider>
                     <DateOverride
                       isDryRun={isDryRun}
                       workingHours={schedule.workingHours}
                       userTimeFormat={timeFormat}
-                      handleSubmit={handleSubmit}
+                      handleSubmit={submitAvailability}
                       travelSchedules={travelSchedules}
                       weekStart={
                         [
@@ -728,7 +736,13 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
             </div>
             <div className="min-w-40 stack-y-2 col-span-3 hidden md:block lg:col-span-1">
               <div className="xl:max-w-80 w-full pr-4 sm:ml-0 sm:mr-36 sm:p-0">
-                <div>
+                <div className={cn(!isPlatform && "border-subtle rounded-xl border p-4")}>
+                  {!isPlatform && (
+                    <>
+                      <h2 className="text-emphasis font-semibold">{t("booking_timezone")}</h2>
+                      <p className="text-subtle mb-4 mt-1 text-sm">{t("booking_timezone_description")}</p>
+                    </>
+                  )}
                   <Skeleton
                     as={Label}
                     htmlFor="timeZone-lg-viewport"
@@ -756,8 +770,7 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
                   <></>
                 ) : (
                   <>
-                    <hr className="border-subtle my-8 mr-8" />
-                    <div className="border-subtle rounded-md border p-4">
+                    <div className="border-subtle mt-4 rounded-xl border p-4">
                       <Skeleton
                         as="h3"
                         className="mb-0 inline-block text-sm font-medium"
