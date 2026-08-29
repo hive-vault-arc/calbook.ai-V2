@@ -60,6 +60,12 @@ export type PromotionClaim = {
   claimToken: string;
 };
 
+export type WaitlistRecoveryResult = {
+  expired: number;
+  promoted: number;
+  failed: number;
+};
+
 export class WaitlistService {
   async addToWaitlist(params: {
     eventTypeId: number;
@@ -123,7 +129,7 @@ export class WaitlistService {
         return null;
       }
 
-      // R3.4: Generate a signed, single-use promotion token with 2-hour expiry
+      // R3.4: Generate a cryptographically random, single-use promotion token with 2-hour expiry
       const promotionToken = generatePromotionToken();
       const expiresAt = new Date(Date.now() + PROMOTION_EXPIRY_MS);
 
@@ -137,7 +143,7 @@ export class WaitlistService {
       if (!notified) return null;
 
       log.info("Waitlist promotion notification", {
-        email: notified.email,
+        waitlistEntryId: notified.id,
         slotTime: params.slotTime.toISOString(),
         expiresAt: expiresAt.toISOString(),
         tier: params.tier,
@@ -146,29 +152,7 @@ export class WaitlistService {
       return notified;
     });
 
-    // R3.5: Send promotion email outside the transaction (email failure shouldn't roll back the promotion)
-    if (promoted) {
-      const bookingLink = `${WEBSITE_URL}/booking/waitlist/${promoted.promotionToken}`;
-      const eventType = await prisma.eventType.findUnique({
-        where: { id: params.eventTypeId },
-        select: { title: true, slug: true, userId: true, users: { select: { username: true, name: true } } },
-      });
-      if (eventType) {
-        const organizer = eventType.users[0];
-        await sendPromotionEmailWithRetry({
-          to: promoted.email,
-          name: promoted.name,
-          eventTitle: eventType.title,
-          organizerName: organizer?.name || "Organizer",
-          slotTime: params.slotTime.toISOString(),
-          slotEndTime: promoted.slotEndTime?.toISOString(),
-          tier: promoted.tier ?? undefined,
-          bookingLink,
-          expiresAt:
-            promoted.expiresAt?.toISOString() ?? new Date(Date.now() + PROMOTION_EXPIRY_MS).toISOString(),
-        });
-      }
-    }
+    if (promoted) await this.sendPromotionEmail(promoted);
 
     return promoted;
   }
@@ -187,7 +171,7 @@ export class WaitlistService {
     }
 
     if (entry.expiresAt < new Date()) {
-      log.info("Promotion token expired", { token: token.slice(0, 8), email: entry.email });
+      log.info("Promotion token expired", { waitlistEntryId: entry.id });
       return null;
     }
 
@@ -254,52 +238,100 @@ export class WaitlistService {
     });
   }
 
-  /**
-   * R3.6: Expire old invitations and promote the next eligible person.
-   * Only deletes entries that were actually notified (had a promotion sent).
-   * Returns the count of expired entries.
-   */
-  async expireOldNotifications(): Promise<number> {
-    const result = await prisma.bookingWaitlist.deleteMany({
+  async recoverExpiredPromotions(batchSize = 100): Promise<WaitlistRecoveryResult> {
+    const now = new Date();
+    const candidates = await prisma.bookingWaitlist.findMany({
       where: {
-        expiresAt: { lt: new Date() },
         notifiedAt: { not: null },
+        expiresAt: { lt: now },
+        OR: [{ redemptionClaimToken: null }, { redemptionClaimExpiresAt: { lt: now } }],
       },
+      select: { id: true, eventTypeId: true, slotTime: true, tier: true },
+      orderBy: { expiresAt: "asc" },
+      take: Math.max(1, Math.min(batchSize, 100)),
     });
-    return result.count;
-  }
+    const result: WaitlistRecoveryResult = { expired: 0, promoted: 0, failed: 0 };
 
-  /**
-   * R3.6: After expiring old notifications, promote the next person for each
-   * slot that had an expired entry. This should be called after expireOldNotifications.
-   */
-  async promoteAfterExpiry(): Promise<void> {
-    // Find slots that had expired entries (now deleted) but still have waiting people.
-    // We need to find slots where there are unnotified entries that haven't been promoted yet.
-    const slotsNeedingPromotion = await prisma.bookingWaitlist.findMany({
-      where: {
-        notifiedAt: null,
-        expiresAt: null,
-      },
-      select: {
-        eventTypeId: true,
-        slotTime: true,
-        tier: true,
-      },
-      distinct: ["eventTypeId", "slotTime"],
-    });
-
-    for (const slot of slotsNeedingPromotion) {
+    for (const candidate of candidates) {
       try {
-        await this.promoteFromWaitlist({
-          eventTypeId: slot.eventTypeId,
-          slotTime: slot.slotTime,
-          tier: slot.tier ?? undefined,
+        const recovery = await prisma.$transaction(async (tx) => {
+          const expired = await tx.bookingWaitlist.deleteMany({
+            where: {
+              id: candidate.id,
+              notifiedAt: { not: null },
+              expiresAt: { lt: now },
+              OR: [{ redemptionClaimToken: null }, { redemptionClaimExpiresAt: { lt: now } }],
+            },
+          });
+          if (expired.count !== 1) return { expired: false, promoted: null };
+
+          const nextInLine = await tx.bookingWaitlist.findFirst({
+            where: {
+              eventTypeId: candidate.eventTypeId,
+              slotTime: candidate.slotTime,
+              tier: candidate.tier,
+              notifiedAt: null,
+              expiresAt: null,
+            },
+            orderBy: { createdAt: "asc" },
+          });
+          if (!nextInLine) return { expired: true, promoted: null };
+
+          const expiresAt = new Date(Date.now() + PROMOTION_EXPIRY_MS);
+          const promoted = await tx.bookingWaitlist.updateMany({
+            where: { id: nextInLine.id, notifiedAt: null, expiresAt: null },
+            data: {
+              notifiedAt: new Date(),
+              expiresAt,
+              promotionToken: generatePromotionToken(),
+            },
+          });
+          if (promoted.count !== 1) return { expired: true, promoted: null };
+
+          const entry = await tx.bookingWaitlist.findUnique({ where: { id: nextInLine.id } });
+          return { expired: true, promoted: entry };
         });
+
+        if (!recovery.expired) continue;
+        result.expired += 1;
+        if (!recovery.promoted) continue;
+
+        result.promoted += 1;
+        await this.sendPromotionEmail(recovery.promoted);
       } catch (error) {
-        log.error("Failed to promote after expiry", { ...slot, error });
+        result.failed += 1;
+        log.error("Failed to recover expired waitlist promotion", {
+          waitlistEntryId: candidate.id,
+          eventTypeId: candidate.eventTypeId,
+          slotTime: candidate.slotTime.toISOString(),
+          error,
+        });
       }
     }
+
+    return result;
+  }
+
+  private async sendPromotionEmail(promoted: BookingWaitlist): Promise<void> {
+    const eventType = await prisma.eventType.findUnique({
+      where: { id: promoted.eventTypeId },
+      select: { title: true, users: { select: { name: true } } },
+    });
+    if (!eventType) return;
+
+    const bookingLink = `${WEBSITE_URL}/booking/waitlist/${promoted.promotionToken}`;
+    await sendPromotionEmailWithRetry({
+      to: promoted.email,
+      name: promoted.name,
+      eventTitle: eventType.title,
+      organizerName: eventType.users[0]?.name || "Organizer",
+      slotTime: promoted.slotTime.toISOString(),
+      slotEndTime: promoted.slotEndTime?.toISOString(),
+      tier: promoted.tier ?? undefined,
+      bookingLink,
+      expiresAt:
+        promoted.expiresAt?.toISOString() ?? new Date(Date.now() + PROMOTION_EXPIRY_MS).toISOString(),
+    });
   }
 }
 

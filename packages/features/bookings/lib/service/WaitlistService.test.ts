@@ -522,17 +522,99 @@ describe("WaitlistService", () => {
     });
   });
 
-  describe("expireOldNotifications", () => {
-    it("should delete entries with past expiry dates", async () => {
-      mockPrisma.bookingWaitlist.deleteMany.mockResolvedValue({ count: 5 });
-      const result = await service.expireOldNotifications();
-      expect(result).toBe(5);
+  describe("recoverExpiredPromotions", () => {
+    const expiredEntry = {
+      id: 1,
+      eventTypeId: 10,
+      slotTime: new Date("2026-09-01T10:00:00Z"),
+      tier: "pro",
+    };
+
+    it("should atomically replace an expired invitation with the next matching person", async () => {
+      const next = makeEntry({ id: 2, tier: "pro", email: "next@example.com" });
+      const promoted = makeEntry({
+        id: 2,
+        tier: "pro",
+        email: "next@example.com",
+        notifiedAt: new Date(),
+        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        promotionToken: "replacement-token",
+      });
+      mockPrisma.bookingWaitlist.findMany.mockResolvedValue([expiredEntry]);
+      const txBookingWaitlist = {
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findFirst: vi.fn().mockResolvedValue(next),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue(promoted),
+      };
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({ bookingWaitlist: txBookingWaitlist })
+      );
+
+      await expect(service.recoverExpiredPromotions()).resolves.toEqual({
+        expired: 1,
+        promoted: 1,
+        failed: 0,
+      });
+      expect(mockPrisma.bookingWaitlist.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            expiresAt: { lt: expect.any(Date) },
+            OR: [{ redemptionClaimToken: null }, { redemptionClaimExpiresAt: { lt: expect.any(Date) } }],
+          }),
+          take: 100,
+        })
+      );
+      expect(txBookingWaitlist.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ tier: "pro", notifiedAt: null, expiresAt: null }),
+        })
+      );
+      expect(sendWaitlistPromotionEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "next@example.com",
+          bookingLink: expect.stringContaining("replacement-token"),
+        })
+      );
     });
 
-    it("should return 0 when no expired entries exist", async () => {
-      mockPrisma.bookingWaitlist.deleteMany.mockResolvedValue({ count: 0 });
-      const result = await service.expireOldNotifications();
-      expect(result).toBe(0);
+    it("should let only one concurrent recovery claim an expired invitation", async () => {
+      mockPrisma.bookingWaitlist.findMany.mockResolvedValue([expiredEntry]);
+      const deleteMany = vi.fn().mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+      const findFirst = vi.fn().mockResolvedValue(null);
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({ bookingWaitlist: { deleteMany, findFirst, updateMany: vi.fn(), findUnique: vi.fn() } })
+      );
+
+      const results = await Promise.all([
+        service.recoverExpiredPromotions(),
+        service.recoverExpiredPromotions(),
+      ]);
+
+      expect(results).toEqual([
+        { expired: 1, promoted: 0, failed: 0 },
+        { expired: 0, promoted: 0, failed: 0 },
+      ]);
+      expect(findFirst).toHaveBeenCalledOnce();
+    });
+
+    it("should keep an active redemption claim out of the recovery batch", async () => {
+      mockPrisma.bookingWaitlist.findMany.mockResolvedValue([]);
+
+      await expect(service.recoverExpiredPromotions(500)).resolves.toEqual({
+        expired: 0,
+        promoted: 0,
+        failed: 0,
+      });
+      expect(mockPrisma.bookingWaitlist.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [{ redemptionClaimToken: null }, { redemptionClaimExpiresAt: { lt: expect.any(Date) } }],
+          }),
+          take: 100,
+        })
+      );
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
   });
 });

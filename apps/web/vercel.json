@@ -9,6 +9,10 @@
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/cron/waitlist-recovery",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/queuedFormResponseCleanup",
       "schedule": "0 */12 * * *"
     },
