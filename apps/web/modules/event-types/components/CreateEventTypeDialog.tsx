@@ -1,3 +1,4 @@
+import process from "node:process";
 import { Dialog } from "@calcom/features/components/controlled-dialog";
 import CreateEventTypeForm from "@calcom/features/eventtypes/components/CreateEventTypeForm";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
@@ -95,7 +96,7 @@ export function CreateEventTypeDialog({ profileOptions }: { profileOptions: Prof
       <DialogFooter showDivider>
         <DialogClose />
         <Button type="submit" loading={isPending}>
-          {t("continue")}
+          {t("create_booking_type")}
         </Button>
       </DialogFooter>
     );

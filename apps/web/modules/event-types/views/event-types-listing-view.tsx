@@ -15,7 +15,6 @@ import { MembershipRole, SchedulingType } from "@calcom/prisma/enums";
 import type { RouterOutputs } from "@calcom/trpc/react";
 import { trpc } from "@calcom/trpc/react";
 import classNames from "@calcom/ui/classNames";
-import { ArrowButton } from "@calcom/ui/components/arrow-button";
 import { UserAvatarGroup } from "@calcom/ui/components/avatar";
 import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
@@ -171,10 +170,12 @@ const Item = ({
   type,
   group,
   readOnly,
+  isFeatured,
 }: {
   type: EventType | InfiniteEventType;
   group: EventTypeGroup | InfiniteEventTypeGroup;
   readOnly: boolean;
+  isFeatured: boolean;
 }): JSX.Element => {
   const { t } = useLocale();
   const { resolvedTheme, forcedTheme } = useGetTheme();
@@ -220,9 +221,13 @@ const Item = ({
   );
 
   return (
-    <div className={classNames(eventTypeColor && "-ml-3", "relative flex-1 overflow-hidden pr-4 text-sm")}>
+    <div
+      className={classNames(
+        eventTypeColor && "-ml-3",
+        "relative min-w-0 flex-1 overflow-hidden pr-10 text-sm sm:pr-0"
+      )}>
       {eventTypeColor && (
-        <div className="absolute h-full w-0.5" style={{ backgroundColor: eventTypeColor }} />
+        <div className="absolute h-full w-1 rounded-full" style={{ backgroundColor: eventTypeColor }} />
       )}
       <div className={classNames(eventTypeColor && "ml-3")}>
         {readOnly ? (
@@ -238,6 +243,11 @@ const Item = ({
                 data-testid={`event-type-title-${type.id}`}>
                 {type.title}
               </span>
+              {isFeatured && (
+                <Badge variant="blue" className="ml-2">
+                  {t("featured")}
+                </Badge>
+              )}
               {group.profile.slug && type.schedulingType !== SchedulingType.MANAGED ? (
                 <small
                   className="hidden font-normal text-subtle leading-4 sm:inline"
@@ -245,6 +255,9 @@ const Item = ({
                   {`/${group.profile.slug}/${type.slug}`}
                 </small>
               ) : null}
+              <span className="ml-2 rounded-full bg-subtle px-2.5 py-1 font-medium text-xs text-subtle">
+                {(type.price ?? 0) > 0 ? t("paid") : t("free")}
+              </span>
               {!isManagedEventType && type.hidden && (
                 <span className="ml-2 text-gray-400 text-sm sm:hidden">{t("hidden")}</span>
               )}
@@ -268,6 +281,14 @@ const Item = ({
               }}
               shortenDescription
             />
+            <div className="mt-3 flex min-w-0 items-center gap-2 rounded-md border border-subtle bg-subtle px-3 py-2 text-xs">
+              <span className="shrink-0 font-semibold uppercase tracking-wide text-muted">
+                {t("booking_link")}
+              </span>
+              <span className="truncate font-mono text-subtle">
+                /{group.profile.slug}/{type.slug}
+              </span>
+            </div>
           </Link>
         )}
       </div>
@@ -298,6 +319,8 @@ export const InfiniteEventTypeList = ({
     null
   );
   const [privateLinkCopyIndices, setPrivateLinkCopyIndices] = useState<Record<string, number>>({});
+  const [draggedEventTypeId, setDraggedEventTypeId] = useState<number | null>(null);
+  const [dragOverEventTypeId, setDragOverEventTypeId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const mutation = trpc.viewer.loggedInViewerRouter.eventTypeOrder.useMutation({
@@ -361,27 +384,26 @@ export const InfiniteEventTypeList = ({
     },
   });
 
-  async function moveEventType(index: number, increment: 1 | -1): Promise<void> {
+  async function reorderEventTypes(sourceId: number, targetId: number): Promise<void> {
     if (!pages) return;
-    const newOrder = pages;
-    const pageNo = Math.floor(index / LIMIT);
+    if (sourceId === targetId) return;
 
-    const currentPositionEventType = newOrder[pageNo].eventTypes[index % LIMIT];
+    const currentOrder = pages.flatMap((page) => page.eventTypes);
+    const sourceIndex = currentOrder.findIndex((eventType) => eventType.id === sourceId);
+    const targetIndex = currentOrder.findIndex((eventType) => eventType.id === targetId);
+    if (sourceIndex === -1 || targetIndex === -1) return;
 
-    const newPageNo =
-      increment === -1
-        ? pageNo > 0 && index % LIMIT === 0
-          ? pageNo - 1
-          : pageNo
-        : index % LIMIT === LIMIT - 1
-          ? pageNo + 1
-          : pageNo;
+    const nextOrder = [...currentOrder];
+    const [movedEventType] = nextOrder.splice(sourceIndex, 1);
+    if (!movedEventType) return;
+    nextOrder.splice(targetIndex, 0, movedEventType);
 
-    const newIdx = (index + increment) % LIMIT;
-    const newPositionEventType = newOrder[newPageNo].eventTypes[newIdx];
-
-    newOrder[pageNo].eventTypes[index % LIMIT] = newPositionEventType;
-    newOrder[newPageNo].eventTypes[newIdx] = currentPositionEventType;
+    let offset = 0;
+    const reorderedPages = pages.map((page) => {
+      const eventTypes = nextOrder.slice(offset, offset + page.eventTypes.length);
+      offset += page.eventTypes.length;
+      return { ...page, eventTypes };
+    });
 
     await utils.viewer.eventTypes.getEventTypesFromGroup.cancel();
     const previousValue = utils.viewer.eventTypes.getEventTypesFromGroup.getInfiniteData({
@@ -402,7 +424,7 @@ export const InfiniteEventTypeList = ({
 
           return {
             ...data,
-            pages: newOrder.map((page) => ({
+            pages: reorderedPages.map((page) => ({
               ...page,
               nextCursor: page.nextCursor ?? undefined,
             })),
@@ -412,7 +434,7 @@ export const InfiniteEventTypeList = ({
     }
 
     mutation.mutate({
-      ids: newOrder.flatMap((page) => page.eventTypes.map((type) => type.id)),
+      ids: nextOrder.map((eventType) => eventType.id),
     });
   }
 
@@ -519,8 +541,8 @@ export const InfiniteEventTypeList = ({
     );
   }
 
-  const firstItem = pages?.[0]?.eventTypes[0];
-  const lastItem = pages?.[pages.length - 1]?.eventTypes[pages?.[pages.length - 1].eventTypes.length - 1];
+  const orderedEventTypes = pages.flatMap((page) => page.eventTypes);
+  const firstItem = orderedEventTypes[0];
   const isManagedEventPrefix = () => {
     return deleteDialogTypeSchedulingType === SchedulingType.MANAGED ? "_managed" : "";
   };
@@ -534,10 +556,33 @@ export const InfiniteEventTypeList = ({
   });
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-md border border-subtle bg-default">
-      <ul ref={parent} className="static! w-full divide-y divide-subtle" data-testid="event-types">
-        {pages.map((page, pageIdx) => {
-          return page?.eventTypes?.map((type, index) => {
+    <div className="flex flex-col overflow-hidden">
+      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-subtle bg-subtle px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span
+            className="grid shrink-0 grid-cols-2 gap-1 rounded-md border border-subtle bg-default p-2"
+            aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, dotIndex) => (
+              <span key={dotIndex} className="h-1 w-1 rounded-full bg-black opacity-60 dark:bg-white" />
+            ))}
+          </span>
+          <div>
+            <p className="font-semibold text-default text-sm">{t("public_page_order")}</p>
+            <p className="text-subtle text-xs">{t("public_page_order_description")}</p>
+          </div>
+        </div>
+        <span className="w-fit shrink-0 rounded-full border border-subtle bg-default px-2.5 py-1 font-medium text-subtle text-xs">
+          {t("order_saves_automatically")}
+        </span>
+      </div>
+      <ul
+        ref={parent}
+        className="static! grid w-full grid-cols-1 gap-4 lg:grid-cols-2"
+        data-testid="event-types">
+        {pages.map((page) => {
+          return page?.eventTypes?.map((type) => {
+            const flatIndex = orderedEventTypes.findIndex((eventType) => eventType.id === type.id);
+            const isFeatured = flatIndex === 0;
             const embedLink = `${group.profile.slug}/${type.slug}`;
             const calLink = `${bookerUrl}/${embedLink}`;
 
@@ -556,25 +601,67 @@ export const InfiniteEventTypeList = ({
               type.metadata?.managedEventConfig !== undefined &&
               type.schedulingType !== SchedulingType.MANAGED;
             return (
-              <li key={type.id}>
-                <div className="flex w-full items-center justify-between transition hover:bg-cal-muted">
-                  <div className="group flex w-full max-w-full items-center justify-between overflow-hidden px-4 py-4 sm:px-6">
-                    {!(firstItem && firstItem.id === type.id) && (
-                      <ArrowButton
-                        onClick={() => moveEventType(LIMIT * pageIdx + index, -1)}
-                        arrowDirection="up"
-                      />
-                    )}
-
-                    {!(lastItem && lastItem.id === type.id) && (
-                      <ArrowButton
-                        onClick={() => moveEventType(LIMIT * pageIdx + index, 1)}
-                        arrowDirection="down"
-                      />
-                    )}
-                    <MemoizedItem type={type} group={group} readOnly={readOnly} />
-                    <div className="mt-4 hidden sm:mt-0 sm:flex">
-                      <div className="flex justify-between space-x-2 rtl:space-x-reverse">
+              <li
+                key={type.id}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setDragOverEventTypeId(type.id);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const sourceId = Number(event.dataTransfer.getData("text/plain"));
+                  void reorderEventTypes(sourceId, type.id);
+                  setDraggedEventTypeId(null);
+                  setDragOverEventTypeId(null);
+                }}
+                className={classNames(
+                  "h-full overflow-hidden rounded-xl border bg-default shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emphasis hover:shadow-md motion-reduce:transform-none",
+                  isFeatured ? "border-emphasis" : "border-subtle",
+                  draggedEventTypeId === type.id && "opacity-50",
+                  dragOverEventTypeId === type.id && draggedEventTypeId !== type.id && "ring-2 ring-emphasis"
+                )}>
+                <div className="relative flex h-full w-full flex-col transition hover:bg-cal-muted">
+                  <div className="group relative flex h-full w-full max-w-full flex-col overflow-hidden px-5 py-5">
+                    <div className="flex items-start gap-3">
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          draggable
+                          aria-label={t("drag_booking_type", { title: type.title })}
+                          className="grid shrink-0 cursor-grab grid-cols-2 gap-1 rounded-md border border-subtle bg-subtle p-2 text-muted transition hover:border-emphasis hover:text-default active:cursor-grabbing"
+                          onDragStart={(event) => {
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/plain", String(type.id));
+                            setDraggedEventTypeId(type.id);
+                          }}
+                          onDragEnd={() => {
+                            setDraggedEventTypeId(null);
+                            setDragOverEventTypeId(null);
+                          }}
+                          onKeyDown={(event) => {
+                            if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+                              return;
+                            }
+                            event.preventDefault();
+                            const increment = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
+                            const targetEventType = orderedEventTypes[flatIndex + increment];
+                            if (targetEventType) {
+                              void reorderEventTypes(type.id, targetEventType.id);
+                            }
+                          }}>
+                          {Array.from({ length: 6 }).map((_, dotIndex) => (
+                            <span
+                              key={dotIndex}
+                              className="h-1 w-1 rounded-full bg-black opacity-60 dark:bg-white"
+                            />
+                          ))}
+                        </button>
+                      )}
+                      <MemoizedItem type={type} group={group} readOnly={readOnly} isFeatured={isFeatured} />
+                    </div>
+                    <div className="mt-auto hidden border-subtle border-t pt-4 sm:flex">
+                      <div className="flex w-full items-center justify-between gap-3">
                         {!!type.teamId && !isManagedEventType && (
                           <UserAvatarGroup
                             className="relative right-3"
@@ -596,7 +683,9 @@ export const InfiniteEventTypeList = ({
                         <div className="flex items-center justify-between space-x-2 rtl:space-x-reverse">
                           {!isManagedEventType && (
                             <>
-                              {type.hidden && <span className="text-gray-400 text-sm">{t("hidden")}</span>}
+                              <span className="text-sm font-medium text-subtle">
+                                {type.hidden ? t("hidden") : t("live")}
+                              </span>
                               <Tooltip
                                 content={
                                   type.hidden ? t("show_eventtype_on_profile") : t("hide_from_profile")
@@ -626,22 +715,22 @@ export const InfiniteEventTypeList = ({
                                     data-testid="preview-link-button"
                                     color="secondary"
                                     target="_blank"
-                                    variant="icon"
                                     href={calLink}
-                                    StartIcon="external-link"
-                                  />
+                                    StartIcon="external-link">
+                                    {t("preview")}
+                                  </Button>
                                 </Tooltip>
 
                                 <Tooltip content={t("copy_link")}>
                                   <Button
                                     color="secondary"
-                                    variant="icon"
                                     StartIcon="link"
                                     onClick={() => {
                                       showToast(t("link_copied"), "success");
                                       copyToClipboard(calLink);
-                                    }}
-                                  />
+                                    }}>
+                                    {t("copy_booking_link")}
+                                  </Button>
                                 </Tooltip>
 
                                 {isPrivateURLEnabled && (
@@ -742,7 +831,7 @@ export const InfiniteEventTypeList = ({
                       </div>
                     </div>
                   </div>
-                  <div className="mx-5 flex min-w-9 sm:hidden">
+                  <div className="absolute top-4 right-4 flex min-w-9 sm:hidden">
                     <Dropdown>
                       <DropdownMenuTrigger asChild data-testid={`event-type-options-${type.id}`}>
                         <Button type="button" variant="icon" color="secondary" StartIcon="ellipsis" />
@@ -928,12 +1017,10 @@ const CTA = ({ profileOptions }: { profileOptions: ProfileOption[] }) => {
         onChange={(e) => {
           setSearchTerm(e.target.value);
         }}
-        placeholder={t("search")}
+        placeholder={t("search_booking_types")}
       />
-      <Button
-        data-testid="new-event-type"
-        href={`?dialog=new&eventPage=${profileOptions[0]?.slug ?? ""}`}>
-        {t("new")}
+      <Button data-testid="new-event-type" href={`?dialog=new&eventPage=${profileOptions[0]?.slug ?? ""}`}>
+        {t("create_booking_type")}
       </Button>
       <CreateEventTypeDialog profileOptions={profileOptions} />
     </div>

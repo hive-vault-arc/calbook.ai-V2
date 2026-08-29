@@ -1,20 +1,17 @@
-import type { ReactNode } from "react";
-import { useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
-
 import { useIsPlatform } from "@calcom/atoms/hooks/useIsPlatform";
+import type { createEventTypeInput } from "@calcom/features/eventtypes/lib/types";
 import { MAX_EVENT_DURATION_MINUTES, MIN_EVENT_DURATION_MINUTES } from "@calcom/lib/constants";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { md } from "@calcom/lib/markdownIt";
 import slugify from "@calcom/lib/slugify";
 import turndown from "@calcom/lib/turndownService";
 import { Editor } from "@calcom/ui/components/editor";
-import { Form } from "@calcom/ui/components/form";
-import { TextAreaField } from "@calcom/ui/components/form";
-import { TextField } from "@calcom/ui/components/form";
+import { Form, TextAreaField, TextField } from "@calcom/ui/components/form";
 import { Tooltip } from "@calcom/ui/components/tooltip";
+import type { ReactNode } from "react";
+import { useState } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import type { z } from "zod";
-import { createEventTypeInput } from "@calcom/features/eventtypes/lib/types";
 
 type CreateEventTypeFormValues = z.infer<typeof createEventTypeInput>;
 
@@ -49,7 +46,7 @@ export default function CreateEventTypeForm({
       <div className="mt-3 stack-y-6 pb-11">
         <TextField
           label={t("title")}
-          placeholder={t("quick_chat")}
+          placeholder={t("booking_type_title_example")}
           data-testid="event-type-quick-chat"
           {...register("title")}
           onChange={(e) => {
@@ -113,14 +110,14 @@ export default function CreateEventTypeForm({
         )}
         <>
           {isPlatform ? (
-            <TextAreaField {...register("description")} placeholder={t("quick_video_meeting")} />
+            <TextAreaField {...register("description")} placeholder={t("booking_type_description_example")} />
           ) : (
             <Editor
               label={t("description")}
               getText={() => md.render(form.getValues("description") || "")}
               setText={(value: string) => form.setValue("description", turndown(value))}
               excludedToolbarItems={["blockType", "link"]}
-              placeholder={t("quick_video_meeting")}
+              placeholder={t("booking_type_description_example")}
               firstRender={firstRender}
               setFirstRender={setFirstRender}
               maxHeight="200px"

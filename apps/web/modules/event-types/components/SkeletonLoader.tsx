@@ -1,5 +1,5 @@
-import { ClockIcon, SearchIcon, UserIcon } from "@coss/ui/icons";
 import { SkeletonAvatar, SkeletonContainer, SkeletonText } from "@calcom/ui/components/skeleton";
+import { ClockIcon, SearchIcon, UserIcon } from "@coss/ui/icons";
 
 function SkeletonLoader() {
   return (
@@ -25,12 +25,45 @@ export default SkeletonLoader;
 export function InfiniteSkeletonLoader() {
   return (
     <SkeletonContainer>
-      <ul className="border-subtle bg-default divide-subtle divide-y rounded-md border sm:mx-0 sm:overflow-hidden">
-        <SkeletonItem />
-        <SkeletonItem />
-        <SkeletonItem />
+      <div className="mb-4 flex items-center gap-3 rounded-xl border border-subtle bg-subtle px-4 py-3">
+        <SkeletonAvatar className="h-7 w-7 rounded-md" />
+        <div className="flex flex-col gap-1.5">
+          <SkeletonText className="h-4 w-32" />
+          <SkeletonText className="h-3 w-72 max-w-full" />
+        </div>
+      </div>
+      <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <BookingTypeSkeletonCard />
+        <BookingTypeSkeletonCard />
+        <BookingTypeSkeletonCard />
+        <BookingTypeSkeletonCard />
       </ul>
     </SkeletonContainer>
+  );
+}
+
+function BookingTypeSkeletonCard() {
+  return (
+    <li className="min-h-48 rounded-xl border border-subtle bg-default p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <SkeletonAvatar className="h-9 w-8 shrink-0 rounded-md" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <SkeletonText className="h-5 w-36" />
+            <SkeletonText className="h-5 w-12 rounded-full" />
+          </div>
+          <div className="mt-2 flex gap-2">
+            <SkeletonText className="h-4 w-12" />
+            <SkeletonText className="h-4 w-24" />
+          </div>
+          <SkeletonText className="mt-4 h-9 w-full rounded-md" />
+        </div>
+      </div>
+      <div className="mt-4 flex items-center justify-between border-subtle border-t pt-4">
+        <SkeletonText className="h-6 w-20" />
+        <SkeletonText className="h-8 w-52 max-w-1/2 rounded-md" />
+      </div>
+    </li>
   );
 }
 
@@ -69,10 +102,18 @@ export function EventTypesSkeletonLoader() {
     <SkeletonContainer>
       <TabsSkeletonLoader />
       <SearchSkeletonLoader />
-      <ul className="border-subtle bg-default divide-subtle divide-y rounded-md border sm:mx-0 sm:overflow-hidden">
-        <SkeletonItem />
-        <SkeletonItem />
-        <SkeletonItem />
+      <div className="mb-4 flex items-center gap-3 rounded-xl border border-subtle bg-subtle px-4 py-3">
+        <SkeletonAvatar className="h-7 w-7 rounded-md" />
+        <div className="flex flex-col gap-1.5">
+          <SkeletonText className="h-4 w-32" />
+          <SkeletonText className="h-3 w-72 max-w-full" />
+        </div>
+      </div>
+      <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <BookingTypeSkeletonCard />
+        <BookingTypeSkeletonCard />
+        <BookingTypeSkeletonCard />
+        <BookingTypeSkeletonCard />
       </ul>
     </SkeletonContainer>
   );

@@ -1,12 +1,8 @@
 import { useCreateEventTypeForm } from "@calcom/atoms/hooks/event-types/private/useCreateEventTypeForm";
-import { createEventTypeInput } from "@calcom/features/eventtypes/lib/types";
-import { useDebounce } from "@calcom/lib/hooks/useDebounce";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { HttpError } from "@calcom/lib/http-error";
 import type { EventType } from "@calcom/prisma/client";
 import { trpc } from "@calcom/trpc/react";
-import { useState } from "react";
-import type { z } from "zod";
 
 export const useCreateEventType = (
   onSuccessMutation: (eventType: EventType) => void,
@@ -15,8 +11,6 @@ export const useCreateEventType = (
   const utils = trpc.useUtils();
   const { t } = useLocale();
   const { form, isManagedEventType } = useCreateEventTypeForm();
-  const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const createMutation = trpc.viewer.eventTypesHeavy.create.useMutation({
     onSuccess: async ({ eventType }) => {
@@ -24,7 +18,7 @@ export const useCreateEventType = (
 
       await utils.viewer.eventTypes.getEventTypesFromGroup.fetchInfinite({
         group: { teamId: eventType.teamId, parentId: eventType.parentId },
-        searchQuery: debouncedSearchTerm,
+        searchQuery: "",
         limit: 10,
       });
 
@@ -36,8 +30,12 @@ export const useCreateEventType = (
         error = `${err.statusCode}: ${err.message}`;
       }
 
-      if (err.data?.code === "BAD_REQUEST") {
+      if (err.data?.code === "BAD_REQUEST" && err.message.includes("URL Slug already exists")) {
         error = `${err.data.code}: ${t("error_event_type_url_duplicate")}`;
+      }
+
+      if (err.data?.code === "INTERNAL_SERVER_ERROR") {
+        error = t("unable_to_create_booking_type");
       }
 
       if (err.data?.code === "UNAUTHORIZED") {
