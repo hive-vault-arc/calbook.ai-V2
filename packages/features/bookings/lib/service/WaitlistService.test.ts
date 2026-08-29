@@ -1,3 +1,4 @@
+import { sendWaitlistPromotionEmail } from "@calcom/emails/templates/waitlist-promotion-email";
 import type { BookingWaitlist } from "@calcom/prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WaitlistService } from "./WaitlistService";
@@ -18,7 +19,9 @@ vi.mock("@calcom/prisma", () => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
+      upsert: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
     eventType: {
@@ -44,7 +47,9 @@ vi.mock("@calcom/prisma", () => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
+      upsert: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
     eventType: {
@@ -74,7 +79,9 @@ const mockPrisma = prisma as unknown as {
     findMany: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    upsert: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
     deleteMany: ReturnType<typeof vi.fn>;
   };
   $transaction: ReturnType<typeof vi.fn>;
@@ -91,9 +98,12 @@ function makeEntry(overrides: Partial<BookingWaitlist> = {}): BookingWaitlist {
     email: "booker@example.com",
     name: "Booker",
     phoneNumber: null,
+    deduplicationKey: "dedupe-key",
     createdAt: new Date("2026-08-01"),
     notifiedAt: null,
     expiresAt: null,
+    redemptionClaimToken: null,
+    redemptionClaimExpiresAt: null,
     ...overrides,
   } as BookingWaitlist;
 }
@@ -103,14 +113,14 @@ describe("WaitlistService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(sendWaitlistPromotionEmail).mockReset().mockResolvedValue(undefined);
     service = new WaitlistService();
   });
 
   describe("addToWaitlist", () => {
     it("should create a new waitlist entry with slot end time and tier", async () => {
       const entry = makeEntry({ tier: "pro", slotEndTime: new Date("2026-09-01T10:30:00Z") });
-      mockPrisma.bookingWaitlist.findFirst.mockResolvedValue(null);
-      mockPrisma.bookingWaitlist.create.mockResolvedValue(entry);
+      mockPrisma.bookingWaitlist.upsert.mockResolvedValue(entry);
 
       const result = await service.addToWaitlist({
         eventTypeId: 10,
@@ -122,28 +132,42 @@ describe("WaitlistService", () => {
       });
 
       expect(result).toEqual(entry);
-      expect(mockPrisma.bookingWaitlist.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+      expect(mockPrisma.bookingWaitlist.upsert).toHaveBeenCalledWith({
+        where: { deduplicationKey: expect.stringMatching(/^[a-f0-9]{64}$/) },
+        create: expect.objectContaining({
           eventTypeId: 10,
           email: "booker@example.com",
           tier: "pro",
           slotEndTime: expect.any(Date),
+          deduplicationKey: expect.stringMatching(/^[a-f0-9]{64}$/),
         }),
+        update: {},
       });
     });
 
-    it("should return existing entry if already on waitlist (deduplication)", async () => {
+    it("should give concurrent duplicate joins the same database entry", async () => {
       const existing = makeEntry();
-      mockPrisma.bookingWaitlist.findFirst.mockResolvedValue(existing);
+      mockPrisma.bookingWaitlist.upsert.mockResolvedValue(existing);
 
-      const result = await service.addToWaitlist({
+      const params = {
         eventTypeId: 10,
         slotTime: new Date("2026-09-01T10:00:00Z"),
-        email: "booker@example.com",
-      });
+        email: "Booker@Example.com",
+      };
+      const [first, second] = await Promise.all([
+        service.addToWaitlist(params),
+        service.addToWaitlist(params),
+      ]);
 
-      expect(result).toEqual(existing);
-      expect(mockPrisma.bookingWaitlist.create).not.toHaveBeenCalled();
+      expect(first).toEqual(existing);
+      expect(second).toEqual(existing);
+      expect(mockPrisma.bookingWaitlist.upsert).toHaveBeenCalledTimes(2);
+      const firstKey = mockPrisma.bookingWaitlist.upsert.mock.calls[0]?.[0].where.deduplicationKey;
+      const secondKey = mockPrisma.bookingWaitlist.upsert.mock.calls[1]?.[0].where.deduplicationKey;
+      expect(firstKey).toBe(secondKey);
+      expect(mockPrisma.bookingWaitlist.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ create: expect.objectContaining({ email: "booker@example.com" }) })
+      );
     });
   });
 
@@ -280,6 +304,69 @@ describe("WaitlistService", () => {
       expect(result).toBeNull();
       expect(txBookingWaitlist.updateMany).not.toHaveBeenCalled();
     });
+
+    it("should retry a transient promotion email failure with the same invitation", async () => {
+      const next = makeEntry({ id: 5 });
+      const promoted = makeEntry({
+        id: 5,
+        notifiedAt: new Date(),
+        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        promotionToken: "stable-promotion-token",
+      });
+      const txBookingWaitlist = {
+        findFirst: vi.fn().mockResolvedValue(next),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue(promoted),
+      };
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({ bookingWaitlist: txBookingWaitlist })
+      );
+      vi.mocked(sendWaitlistPromotionEmail)
+        .mockRejectedValueOnce(new Error("Temporary provider failure"))
+        .mockResolvedValueOnce(undefined);
+
+      await expect(
+        service.promoteFromWaitlist({
+          eventTypeId: 10,
+          slotTime: new Date("2026-09-01T10:00:00Z"),
+        })
+      ).resolves.toEqual(promoted);
+
+      expect(sendWaitlistPromotionEmail).toHaveBeenCalledTimes(2);
+      expect(sendWaitlistPromotionEmail).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ bookingLink: expect.stringContaining("stable-promotion-token") })
+      );
+    });
+
+    it("should preserve the claimed promotion when all email attempts fail", async () => {
+      const next = makeEntry({ id: 5 });
+      const promoted = makeEntry({
+        id: 5,
+        notifiedAt: new Date(),
+        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        promotionToken: "retryable-promotion-token",
+      });
+      const txBookingWaitlist = {
+        findFirst: vi.fn().mockResolvedValue(next),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue(promoted),
+      };
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({ bookingWaitlist: txBookingWaitlist })
+      );
+      vi.mocked(sendWaitlistPromotionEmail).mockRejectedValue(new Error("Provider unavailable"));
+
+      await expect(
+        service.promoteFromWaitlist({
+          eventTypeId: 10,
+          slotTime: new Date("2026-09-01T10:00:00Z"),
+        })
+      ).rejects.toThrow("Provider unavailable");
+
+      expect(sendWaitlistPromotionEmail).toHaveBeenCalledTimes(3);
+      expect(txBookingWaitlist.updateMany).toHaveBeenCalledOnce();
+    });
   });
 
   describe("validatePromotionToken", () => {
@@ -322,15 +409,93 @@ describe("WaitlistService", () => {
     });
   });
 
+  describe("claimPromotionToken", () => {
+    const claimParams = {
+      token: "promotion-token",
+      eventTypeId: 10,
+      email: "booker@example.com",
+      slotTime: new Date("2026-09-01T10:00:00Z"),
+      tier: undefined,
+    };
+
+    it("should atomically claim a valid promotion for the matching booking", async () => {
+      const entry = makeEntry({
+        promotionToken: claimParams.token,
+        notifiedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        redemptionClaimToken: "claim-token",
+      });
+      mockPrisma.bookingWaitlist.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.bookingWaitlist.findUnique.mockResolvedValue(entry);
+
+      const result = await service.claimPromotionToken(claimParams);
+
+      expect(result?.entry).toEqual(entry);
+      expect(result?.claimToken).toMatch(/^[a-f0-9]{64}$/);
+      expect(mockPrisma.bookingWaitlist.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          promotionToken: claimParams.token,
+          eventTypeId: 10,
+          email: { equals: "booker@example.com", mode: "insensitive" },
+          tier: null,
+          expiresAt: { gt: expect.any(Date) },
+          OR: [{ redemptionClaimToken: null }, { redemptionClaimExpiresAt: { lt: expect.any(Date) } }],
+        }),
+        data: {
+          redemptionClaimToken: expect.any(String),
+          redemptionClaimExpiresAt: expect.any(Date),
+        },
+      });
+    });
+
+    it("should allow only one concurrent request to claim a promotion", async () => {
+      const entry = makeEntry({ promotionToken: claimParams.token, redemptionClaimToken: "winner" });
+      mockPrisma.bookingWaitlist.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      mockPrisma.bookingWaitlist.findUnique.mockResolvedValue(entry);
+
+      const [first, second] = await Promise.all([
+        service.claimPromotionToken(claimParams),
+        service.claimPromotionToken(claimParams),
+      ]);
+
+      expect(first).not.toBeNull();
+      expect(second).toBeNull();
+      expect(mockPrisma.bookingWaitlist.findUnique).toHaveBeenCalledTimes(1);
+    });
+
+    it("should reject an already claimed or consumed promotion", async () => {
+      mockPrisma.bookingWaitlist.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.claimPromotionToken(claimParams)).resolves.toBeNull();
+      expect(mockPrisma.bookingWaitlist.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("should release only the request's own failed redemption claim", async () => {
+      mockPrisma.bookingWaitlist.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(service.releasePromotionClaim("promotion-token", "claim-token")).resolves.toBe(true);
+      expect(mockPrisma.bookingWaitlist.updateMany).toHaveBeenCalledWith({
+        where: { promotionToken: "promotion-token", redemptionClaimToken: "claim-token" },
+        data: { redemptionClaimToken: null, redemptionClaimExpiresAt: null },
+      });
+    });
+  });
+
   describe("consumePromotionToken", () => {
-    it("should delete the entry with the given token", async () => {
+    it("should consume only the request's own redemption claim", async () => {
       mockPrisma.bookingWaitlist.deleteMany.mockResolvedValue({ count: 1 });
-      await service.consumePromotionToken("some-token");
-      expect(mockPrisma.bookingWaitlist.deleteMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { promotionToken: "some-token" },
-        })
-      );
+      await expect(service.consumePromotionToken("some-token", "claim-token")).resolves.toBe(true);
+      expect(mockPrisma.bookingWaitlist.deleteMany).toHaveBeenCalledWith({
+        where: { promotionToken: "some-token", redemptionClaimToken: "claim-token" },
+      });
+    });
+
+    it("should reject reuse after the promotion row has already been consumed", async () => {
+      mockPrisma.bookingWaitlist.deleteMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.consumePromotionToken("some-token", "used-claim")).resolves.toBe(false);
     });
   });
 

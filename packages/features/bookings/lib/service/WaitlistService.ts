@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { sendWaitlistPromotionEmail } from "@calcom/emails/templates/waitlist-promotion-email";
 import { WEBSITE_URL } from "@calcom/lib/constants";
 import logger from "@calcom/lib/logger";
@@ -9,10 +9,56 @@ const log = logger.getSubLogger({ prefix: ["waitlist-service"] });
 
 const PROMOTION_EXPIRY_HOURS = 2;
 const PROMOTION_EXPIRY_MS = PROMOTION_EXPIRY_HOURS * 60 * 60 * 1000;
+const REDEMPTION_CLAIM_EXPIRY_MS = 30 * 60 * 1000;
+const PROMOTION_EMAIL_MAX_ATTEMPTS = 3;
 
 function generatePromotionToken(): string {
   return randomBytes(32).toString("hex");
 }
+
+function generateWaitlistDeduplicationKey(params: {
+  eventTypeId: number;
+  slotTime: Date;
+  tier?: string;
+  email: string;
+}): string {
+  return createHash("sha256")
+    .update(
+      [
+        params.eventTypeId,
+        params.slotTime.toISOString(),
+        params.tier ?? "",
+        params.email.trim().toLowerCase(),
+      ].join(":")
+    )
+    .digest("hex");
+}
+
+async function sendPromotionEmailWithRetry(
+  payload: Parameters<typeof sendWaitlistPromotionEmail>[0]
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= PROMOTION_EMAIL_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await sendWaitlistPromotionEmail(payload);
+      return;
+    } catch (error) {
+      lastError = error;
+      log.warn("Waitlist promotion email attempt failed", {
+        attempt,
+        maxAttempts: PROMOTION_EMAIL_MAX_ATTEMPTS,
+        recipient: payload.to,
+      });
+    }
+  }
+
+  throw lastError;
+}
+
+export type PromotionClaim = {
+  entry: BookingWaitlist;
+  claimToken: string;
+};
 
 export class WaitlistService {
   async addToWaitlist(params: {
@@ -24,32 +70,20 @@ export class WaitlistService {
     name?: string;
     phoneNumber?: string;
   }): Promise<BookingWaitlist> {
-    // Use a transaction to avoid the TOCTOU race between findFirst and create.
-    // Two concurrent requests could both pass the check and create duplicate entries.
-    return prisma.$transaction(async (tx) => {
-      const existing = await tx.bookingWaitlist.findFirst({
-        where: {
-          eventTypeId: params.eventTypeId,
-          slotTime: params.slotTime,
-          email: params.email,
-          expiresAt: null,
-        },
-      });
-      if (existing) {
-        return existing;
-      }
-
-      return tx.bookingWaitlist.create({
-        data: {
-          eventTypeId: params.eventTypeId,
-          slotTime: params.slotTime,
-          slotEndTime: params.slotEndTime,
-          tier: params.tier,
-          email: params.email,
-          name: params.name,
-          phoneNumber: params.phoneNumber,
-        },
-      });
+    const deduplicationKey = generateWaitlistDeduplicationKey(params);
+    return prisma.bookingWaitlist.upsert({
+      where: { deduplicationKey },
+      create: {
+        eventTypeId: params.eventTypeId,
+        slotTime: params.slotTime,
+        slotEndTime: params.slotEndTime,
+        tier: params.tier,
+        email: params.email.trim().toLowerCase(),
+        name: params.name,
+        phoneNumber: params.phoneNumber,
+        deduplicationKey,
+      },
+      update: {},
     });
   }
 
@@ -121,7 +155,7 @@ export class WaitlistService {
       });
       if (eventType) {
         const organizer = eventType.users[0];
-        await sendWaitlistPromotionEmail({
+        await sendPromotionEmailWithRetry({
           to: promoted.email,
           name: promoted.name,
           eventTitle: eventType.title,
@@ -160,14 +194,53 @@ export class WaitlistService {
     return entry;
   }
 
+  async claimPromotionToken(params: {
+    token: string;
+    eventTypeId: number;
+    email: string;
+    slotTime: Date;
+    tier?: string;
+  }): Promise<PromotionClaim | null> {
+    const now = new Date();
+    const claimToken = generatePromotionToken();
+    const claimExpiresAt = new Date(now.getTime() + REDEMPTION_CLAIM_EXPIRY_MS);
+    const claim = await prisma.bookingWaitlist.updateMany({
+      where: {
+        promotionToken: params.token,
+        eventTypeId: params.eventTypeId,
+        email: { equals: params.email, mode: "insensitive" },
+        slotTime: params.slotTime,
+        tier: params.tier ?? null,
+        notifiedAt: { not: null },
+        expiresAt: { gt: now },
+        OR: [{ redemptionClaimToken: null }, { redemptionClaimExpiresAt: { lt: now } }],
+      },
+      data: { redemptionClaimToken: claimToken, redemptionClaimExpiresAt: claimExpiresAt },
+    });
+    if (claim.count !== 1) return null;
+
+    const entry = await prisma.bookingWaitlist.findUnique({ where: { redemptionClaimToken: claimToken } });
+    if (!entry) return null;
+    return { entry, claimToken };
+  }
+
+  async releasePromotionClaim(token: string, claimToken: string): Promise<boolean> {
+    const released = await prisma.bookingWaitlist.updateMany({
+      where: { promotionToken: token, redemptionClaimToken: claimToken },
+      data: { redemptionClaimToken: null, redemptionClaimExpiresAt: null },
+    });
+    return released.count === 1;
+  }
+
   /**
    * R3.4: Consume a promotion token after it's been used to create a booking.
    * Removes the waitlist entry so the token can't be reused.
    */
-  async consumePromotionToken(token: string): Promise<void> {
-    await prisma.bookingWaitlist.deleteMany({
-      where: { promotionToken: token },
+  async consumePromotionToken(token: string, claimToken: string): Promise<boolean> {
+    const consumed = await prisma.bookingWaitlist.deleteMany({
+      where: { promotionToken: token, redemptionClaimToken: claimToken },
     });
+    return consumed.count === 1;
   }
 
   async getWaitlistForSlot(params: { eventTypeId: number; slotTime: Date }): Promise<BookingWaitlist[]> {

@@ -688,8 +688,21 @@ async function handler(
       message: "event_type_not_found",
     });
 
+  let promotionClaimToken: string | undefined;
   if (reqBody.promotionToken) {
-    const promotion = await waitlistService.validatePromotionToken(reqBody.promotionToken);
+    const promotionClaim = isDryRun
+      ? null
+      : await waitlistService.claimPromotionToken({
+          token: reqBody.promotionToken,
+          eventTypeId,
+          email: bookerEmail,
+          slotTime: new Date(reqBody.start),
+          tier: reqBody.tier,
+        });
+    const promotion = isDryRun
+      ? await waitlistService.validatePromotionToken(reqBody.promotionToken)
+      : promotionClaim?.entry;
+    promotionClaimToken = promotionClaim?.claimToken;
     const promotionMatchesBooking =
       promotion?.eventTypeId === eventTypeId &&
       promotion.email.toLowerCase() === bookerEmail.toLowerCase() &&
@@ -2629,8 +2642,14 @@ async function handler(
     }
   }
 
-  if (reqBody.promotionToken && !isDryRun) {
-    await waitlistService.consumePromotionToken(reqBody.promotionToken);
+  if (reqBody.promotionToken && promotionClaimToken && !isDryRun) {
+    const consumed = await waitlistService.consumePromotionToken(reqBody.promotionToken, promotionClaimToken);
+    if (!consumed) {
+      tracingLogger.error("Unable to consume the claimed waitlist promotion", {
+        bookingId: booking.id,
+        eventTypeId,
+      });
+    }
   }
 
   // TODO: Refactor better so this booking object is not passed

@@ -946,23 +946,27 @@ model Booking {
 }
 
 model BookingWaitlist {
-  id             Int       @id @default(autoincrement())
-  eventTypeId    Int
-  eventType      EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
-  slotTime       DateTime
-  slotEndTime    DateTime?
-  tier           String?
-  email          String
-  name           String?
-  phoneNumber    String?
-  promotionToken String?   @unique
-  createdAt      DateTime  @default(now())
-  notifiedAt     DateTime?
-  expiresAt      DateTime?
+  id                       Int       @id @default(autoincrement())
+  eventTypeId              Int
+  eventType                EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  slotTime                 DateTime
+  slotEndTime              DateTime?
+  tier                     String?
+  email                    String
+  name                     String?
+  phoneNumber              String?
+  deduplicationKey         String    @unique
+  promotionToken           String?   @unique
+  redemptionClaimToken     String?   @unique
+  redemptionClaimExpiresAt DateTime?
+  createdAt                DateTime  @default(now())
+  notifiedAt               DateTime?
+  expiresAt                DateTime?
 
   @@index([eventTypeId, slotTime])
   @@index([email])
   @@index([promotionToken])
+  @@index([redemptionClaimExpiresAt])
 }
 
 /// Sprint 4: Tracks a booker's subscription to a specific event type.
