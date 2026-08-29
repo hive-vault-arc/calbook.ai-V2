@@ -1,6 +1,3 @@
-import { useEffect, useRef } from "react";
-import { shallow } from "zustand/shallow";
-
 import {
   useEmbedType,
   useEmbedUiConfig,
@@ -10,12 +7,14 @@ import {
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
 import { extraDaysConfig } from "@calcom/features/bookings/Booker/config";
 import type { BookerLayout } from "@calcom/features/bookings/Booker/types";
+import { getBookerLayoutSettings } from "@calcom/features/bookings/Booker/utils/getBookerLayoutSettings";
 import { validateLayout } from "@calcom/features/bookings/Booker/utils/layout";
 import { getQueryParam } from "@calcom/features/bookings/Booker/utils/query-param";
 import type { BookerEvent } from "@calcom/features/bookings/types";
 import useMediaQuery from "@calcom/lib/hooks/useMediaQuery";
 import type { BookerLayouts } from "@calcom/prisma/zod-utils";
-import { defaultBookerLayoutSettings } from "@calcom/prisma/zod-utils";
+import { useEffect, useRef } from "react";
+import { shallow } from "zustand/shallow";
 
 export type UseBookerLayoutType = ReturnType<typeof useBookerLayout>;
 
@@ -37,7 +36,7 @@ export const useBookerLayout = (
   const columnViewExtraDays = useRef<number>(
     isTablet ? extraDaysConfig[layout].tablet : extraDaysConfig[layout].desktop
   );
-  const bookerLayouts = profileBookerLayouts || defaultBookerLayoutSettings;
+  const bookerLayouts = getBookerLayoutSettings({ profileBookerLayouts, isEmbed: Boolean(isEmbed) });
   const defaultLayout = isEmbed
     ? validateLayout(embedUiConfig.layout) || bookerLayouts.defaultLayout
     : bookerLayouts.defaultLayout;
