@@ -58,7 +58,7 @@ CalBook.ai is the **AI-native scheduling platform** that treats meetings as rela
 **What we add:**
 
 - **Priority tiers on event types**: Each event type can have tiered availability. Free tier gets weekday afternoons. Pro tier gets prime slots (weekday mornings). Premium tier gets evenings + weekends. Implemented as multiple `Schedule` references on one `EventType` with a `tier` label.
-- **Tier-gated booking links**: Generate links that unlock specific tiers. `/pro/jane/consultation` shows pro-tier slots. `/free/jane/consultation` shows free-tier slots. The tier is encoded in the URL and validated against the event type's schedule config.
+- **Tier-gated booking links**: Generate links that unlock specific tiers. `/tier/pro/jane/consultation` shows pro-tier slots. `/tier/free/jane/consultation` shows free-tier slots. The tier is encoded in the URL and validated against the event type's schedule config.
 - **Waitlist for full slots**: When a premium slot is taken, offer a waitlist. New `BookingWaitlist` model. When a cancellation occurs, the next person on the waitlist gets an automated email with a one-click booking link valid for 2 hours.
 
 **Files to touch:**

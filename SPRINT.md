@@ -33,6 +33,7 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [ ] **B0.6** The legacy `feat/billing-stripe` branch is not safe to cherry-pick: it creates a parallel billing system in user metadata instead of using the current `PlatformBilling` model, and replaces the webhook stub with a broad independent Stripe lifecycle. Reimplement platform billing against the canonical schema and existing Stripe abstractions.
 - [x] **B0.7** Paid-booking schema, enum, and lifecycle changes cherry-picked from `feat/monetization-paid-bookings` onto `release/saas-v1` with a reviewed migration. Deposit (`createDeposit`/`chargeRemaining`), package (`BookingPackageService` with redemption flow), and tip (`createTip`) backends are integrated. 18 focused unit tests pass for `BookingPackageService`.
 - [x] **B0.8** Resolved: local PostgreSQL cluster provisioned on port 5433 for migration development. `DATABASE_DIRECT_URL` configured per-command for `prisma migrate dev` without touching remote Neon settings.
+- [ ] **B0.9** Transactional email now uses Resend with a verified transport health check. The remaining blocker is calendar-provider readiness: `GOOGLE_API_CREDENTIALS` is not configured and the test organizer has no connected calendar, so Google Calendar and Google Meet cannot synchronize real events yet.
 
 ## Non-negotiable release gates
 
@@ -81,11 +82,12 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [ ] **R1.3** Verify deposit checkout, remaining balance charge, cancellation, refund, and duplicate webhook behavior.
 - [ ] **R1.4** Verify package purchase, redemption, expiration, exhaustion, and concurrent booking behavior.
 - [ ] **R1.5** Verify tip creation, payment linkage, correct currency handling, and webhook idempotency.
-- [ ] **R1.6** Add organizer-facing visibility for deposits, package balance, and tips where absent.
+- [x] **R1.6** Organizer booking rows show each payment's formatted amount and state for deposits, tips, paid, pending, refunded, and card-held payments, plus the remaining session balance for package bookings.
 
 ## Tests
 
 - [x] Unit tests for `BookingPackageService` (18 tests: create, find, redeem, release, cancel, list).
+- [x] Organizer booking-row payment and package-balance helpers (8 focused tests).
 - [ ] Stripe webhook fixture/integration tests.
 - [ ] E2E: deposit booking, package redemption, and tip checkout.
 - [ ] Migration tests against empty and seeded databases.
@@ -108,13 +110,17 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [x] **R2.1** Created Prisma migration `20260820184822_add_tiered_schedules_and_waitlist` for `EventType.tierSchedules` (JSONB) and `BookingWaitlist` model with indexes.
 - [x] **R2.2** Built organizer settings UI (`TierSchedulesConfig` component) in the availability tab to create tiers and assign a schedule to each tier. Added `tierSchedules` to the update schema, form values, and get handler select.
 - [x] **R2.3** Validate tier schedule IDs in the update handler: all schedule IDs must exist and belong to the user or team. Malformed config is rejected with `BAD_REQUEST`/`FORBIDDEN`.
-- [x] **R2.4** Canonical tier-link behavior: path segment `/pro/jane/consultation` redirects to `/jane/consultation?tier=pro`. Both `[tier]/[user]/[type]` and `[tier]/[user]/[type]/embed` routes implemented.
+- [x] **R2.4** Canonical tier-link behavior: `/tier/pro/jane/consultation` redirects to `/jane/consultation?tier=pro`. The explicit `/tier/[tier]/[user]/[type]` namespace avoids conflicting with the standard `[user]/[type]` booking route; the embed equivalent is also implemented.
 - [x] **R2.5** Reject invalid tiers server-side in `getSchedule` util: if `tierSchedules` is configured but the requested tier doesn't exist, throw `BAD_REQUEST` instead of silently falling back.
 - [x] **R2.6** Tier context carried through: public event lookup (tierSchedules in getPublicEvent select), availability (resolveTierScheduleId in slots util), slot selection (tier param in getSchedule schema), booking creation (tier field in bookingCreateBodySchema), and waitlist (tier field in BookingWaitlist model and join schema).
+- [x] **R2.7** Redesigned the availability index with a default-week coverage map, explicit bookable-day and timezone context, clearer schedule grouping/counts, a descriptive create action, and a matching loading skeleton.
+- [x] **R2.8** Restructured the schedule editor around weekly hours, date overrides, and booking timezone; added truthful saved/unsaved feedback and reset the form baseline only after a successful persisted update.
 
 ## Tests
 
 - [x] Tier schedule resolution unit tests (20 tests: parse, resolve, getAvailableTiers).
+- [x] Weekly availability-summary unit tests (5 tests: recurring hours, split intervals, invalid data, and Sunday/Monday week starts).
+- [x] Availability editor change-detection unit tests (4 tests: initialization, unchanged forms, weekly hours, and timezone metadata).
 - [x] Waitlist service unit tests (14 tests: add with tier/slotEndTime, remove, atomic promote with token, tier-filtered promote, validate/consume token, get, expire).
 - [ ] tRPC tests for valid, missing, and invalid tiers.
 - [ ] E2E: organizer configuration and free/pro/premium booking links.
@@ -217,6 +223,50 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [ ] Production monitoring identifies payment and booking failure quickly.
 - [ ] Backup restoration has been rehearsed.
 - [ ] Rollback owners and procedures are assigned.
+
+---
+
+# Sprint 5.5 — Pre-Launch Hardening and Revenue Readiness
+
+**Goal:** close the remaining product, payment, reliability, and operational gaps before release-candidate verification.
+
+**Scope rule:** this sprint is for making the existing SaaS v1 surface safe to sell. Do not start Phase 2 AI features or add new monetization concepts.
+
+## Work items
+
+- [~] **R5.5.1 Platform billing on the canonical model** — Rebuild the Free/Pro/Enterprise subscription flow against `PlatformBilling` and the existing Stripe abstractions. Do not transplant the legacy `feat/billing-stripe` implementation. Checkout now prevents parallel subscriptions and uses a stable Stripe idempotency key; webhooks synchronize failed/recovered invoices, cancellation, and replay against `PlatformBilling`. A single plan-feature catalog now drives public plan data, inherited Pro/Enterprise capabilities, and typed server-side entitlement checks. The new `/settings/billing` workspace provides current-plan state, monthly/annual comparison, checkout, portal access, and a safe onboarding path. Pro trials use `User.trialEndsAt` for temporary catalog-driven access; onboarding no longer writes a parallel plan into user metadata. Ten focused billing tests pass. Remaining: portal-based upgrade/downgrade and cancellation acceptance, webhook endpoint fixtures, and full Stripe test-mode journeys.
+- [ ] **R5.5.2 Payment lifecycle verification** — Add focused Stripe test-mode coverage for one-time paid bookings, deposits, remaining balances, packages, tips, refunds, cancellation fees, and duplicate webhook delivery. Confirm every payment mutation is idempotent and currency-safe.
+- [ ] **R5.5.3 Waitlist concurrency and recovery** — Add concurrent cancellation/promotion tests, email-delivery failure/retry tests, and verification that expired or consumed promotion links cannot be reused. Record the tier behavior limitation explicitly wherever it affects user expectations.
+- [ ] **R5.5.4 Production monitoring hardening** — Replace or back the in-memory error-rate tracker with a deployment-safe strategy (Redis or provider-native alerting). Add correlation identifiers and actionable alert payloads for checkout, webhook, booking, payment, and email failures.
+- [ ] **R5.5.5 Backup and rollback rehearsal** — Confirm provider backup/PITR settings, document restore and migration rollback procedures, perform a restore rehearsal against a non-production database, and record the owner plus expected recovery time.
+- [ ] **R5.5.6 Staging acceptance journeys** — Run the complete Stripe test-mode and booking journeys in staging, including authentication, organization onboarding, payment, subscription access, waitlist promotion, cancellation, refund, email delivery, and webhook replay. Record failures as release blockers.
+- [ ] **R5.5.7 Legal, support, and incident readiness** — Publish Terms, Privacy, cancellation/refund policy, and support contact details. Create support and incident runbooks with escalation paths, severity levels, rollback authority, and customer communication templates.
+- [~] **R5.5.8 Product/documentation alignment** — App-store metadata for Google Calendar and Google Meet now identifies CalBook.ai and no longer links users to Cal.com. Customer-facing Cal.diy translation strings and hard-coded Cal.com support addresses are being replaced with CalBook.ai/configured support contact details. Remaining: brand palette/logo implementation, Terms and Privacy pages with final business details, public/deployment documentation, and a final customer-surface audit before launch. Verify branding and trademark assumptions before public launch.
+- [ ] **R5.5.9 Secret and repository hygiene** — Audit tracked environment/configuration files, rotate any exposed credentials, confirm production secrets are injected by the deployment platform, and add checks that prevent `.env` or secret material from entering commits.
+- [ ] **R5.5.10 Release decision record** — Update this sprint file with test results, known limitations, owners, rollback decision, and an explicit Go/No-Go recommendation before Sprint 6 begins.
+- [~] **R5.5.11 Transactional email and calendar-provider readiness** — Resend transport precedence, environment validation, and live health verification are complete. Local Gmail SMTP is verified reachable and a real booking (`muH8FxoojdeChzhZUiPSxf`) completed with an organizer, attendee, and added guest; organizer, attendee, and guest inbox delivery is confirmed. The calendar UI reports Google OAuth readiness and explains that calendar access is separate from email delivery. Remaining: document callback URLs and consent-screen requirements, verify the Google Calendar event/Meet link end-to-end, and remove the test event type's stale Daily-video location (the Daily app is not seeded; booking falls back to Cal Video).
+
+## Tests and verification
+
+- [x] Month-only public booking layout and Resend transport configuration/health regression suite (26 focused tests across layout policy, key/sender precedence, environment validation, SMTP selection, and reachable/unreachable health states).
+- [x] Google Calendar readiness-state unit tests (3 tests: platform setup missing, ready to connect, and connected).
+- [ ] Focused unit tests for billing, payment idempotency, entitlement boundaries, and waitlist concurrency.
+- [ ] Targeted Playwright journeys pass in staging.
+- [ ] Stripe webhook replay produces no duplicate payment, package redemption, or entitlement.
+- [ ] Backup restoration and migration rollback are demonstrated and documented.
+- [ ] Multi-instance monitoring behavior is verified or the deployment is explicitly constrained to a supported topology.
+- [ ] Secret scan and environment validation pass without exposing secret values.
+- [ ] Organizer, attendee, and added-guest emails are captured locally and delivered through the staging provider; email health fails when its transport is unreachable.
+- [ ] A user can connect Google Calendar, create a Google Meet booking, and see the synchronized event and conference link without sharing Gmail credentials with CalBook.ai.
+
+## Acceptance criteria
+
+- [ ] A real user can subscribe to a platform plan, configure a paid event, receive payment, and manage the subscription end-to-end.
+- [ ] Failed, duplicated, delayed, and replayed payment/webhook events leave the database in a correct state.
+- [ ] A released waitlist slot is promoted safely under concurrent cancellation, and its invitation is single-use and time-limited.
+- [ ] The team can restore production data and roll back a migration using a rehearsed procedure.
+- [ ] Support can respond to payment, booking, email, and access incidents using documented runbooks.
+- [ ] No known critical or high-severity blocker remains for Sprint 6 release-candidate verification.
 
 ---
 
