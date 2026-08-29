@@ -1,4 +1,6 @@
 import process from "node:process";
+import { getResendApiKey } from "@calcom/lib/getResendConfig";
+import { serverConfig } from "@calcom/lib/serverConfig";
 import { prisma } from "@calcom/prisma";
 import { NextResponse } from "next/server";
 
@@ -36,12 +38,24 @@ function checkStripe(): SubsystemCheck {
   return { status: "degraded", detail: "Unrecognized Stripe key format" };
 }
 
-function checkEmail(): SubsystemCheck {
-  if (process.env.RESEND_API_KEY) return { status: "ok", detail: "Resend configured" };
-  if (process.env.EMAIL_SERVER || process.env.EMAIL_SERVER_HOST) {
-    return { status: "ok", detail: "SMTP configured" };
+async function checkEmail(): Promise<SubsystemCheck> {
+  const resendApiKey = getResendApiKey();
+  const hasSmtp = Boolean(process.env.EMAIL_SERVER || process.env.EMAIL_SERVER_HOST);
+  if (!resendApiKey && !hasSmtp) return { status: "degraded", detail: "No email transport configured" };
+
+  try {
+    const { createTransport } = await import("nodemailer");
+    const transport = createTransport(serverConfig.transport);
+    await Promise.race([
+      transport.verify(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Email transport health check timed out")), 3_000)
+      ),
+    ]);
+    return { status: "ok", detail: resendApiKey ? "Resend reachable" : "SMTP reachable" };
+  } catch {
+    return { status: "error", detail: resendApiKey ? "Resend unreachable" : "SMTP unreachable" };
   }
-  return { status: "degraded", detail: "No email transport configured" };
 }
 
 function checkRedis(): SubsystemCheck {
@@ -50,10 +64,11 @@ function checkRedis(): SubsystemCheck {
 }
 
 export async function GET(): Promise<NextResponse> {
+  const [database, email] = await Promise.all([checkDatabase(), checkEmail()]);
   const checks: Record<string, SubsystemCheck> = {
-    database: await checkDatabase(),
+    database,
     stripe: checkStripe(),
-    email: checkEmail(),
+    email,
     redis: checkRedis(),
   };
 

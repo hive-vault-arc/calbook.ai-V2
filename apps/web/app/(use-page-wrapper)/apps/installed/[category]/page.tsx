@@ -1,17 +1,15 @@
+import googleCalendarMetadata from "@calcom/app-store/googlecalendar/_metadata";
+import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
+import { AppCategories } from "@calcom/prisma/enums";
+import { appsRouter } from "@calcom/trpc/server/routers/viewer/apps/_router";
+import { calendarsRouter } from "@calcom/trpc/server/routers/viewer/calendars/_router";
+import { buildLegacyRequest } from "@lib/buildLegacyCtx";
 import { createRouterCaller } from "app/_trpc/context";
 import type { PageProps } from "app/_types";
 import { _generateMetadata } from "app/_utils";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-
-import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
-import { AppCategories } from "@calcom/prisma/enums";
-import { appsRouter } from "@calcom/trpc/server/routers/viewer/apps/_router";
-import { calendarsRouter } from "@calcom/trpc/server/routers/viewer/calendars/_router";
-
-import { buildLegacyRequest } from "@lib/buildLegacyCtx";
-
 import InstalledApps from "~/apps/installed/[category]/installed-category-view";
 
 const querySchema = z.object({
@@ -57,6 +55,7 @@ const InstalledAppsWrapper = async ({ params }: PageProps) => {
     <InstalledApps
       connectedCalendars={connectedCalendars}
       installedCalendars={installedCalendars}
+      googleCalendarConfigured={Boolean(googleCalendarMetadata.installed)}
       category={parsedParams.data.category}
     />
   );

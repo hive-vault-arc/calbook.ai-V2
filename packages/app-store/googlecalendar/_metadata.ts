@@ -13,10 +13,10 @@ export const metadata = {
   category: "calendar",
   categories: ["calendar"],
   logo: "icon.svg",
-  publisher: "Cal.diy",
+  publisher: "CalBook.ai",
   slug: "google-calendar",
-  url: "https://cal.com/",
-  email: "help@cal.com",
+  url: process.env.WEBAPP_URL ?? "",
+  email: process.env.SUPPORT_MAIL_ADDRESS ?? "",
   dirName: "googlecalendar",
   isOAuth: true,
   delegationCredential: {

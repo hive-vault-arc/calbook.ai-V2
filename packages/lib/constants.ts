@@ -1,3 +1,5 @@
+import process from "node:process";
+
 /**
  * Ensures URL has a protocol prefix. If the URL doesn't start with http:// or https://,
  * prepends https:// to make it valid for URL parsing.
@@ -98,16 +100,16 @@ export const PUBLIC_QUICK_AVAILABILITY_ROLLOUT =
 
 /** @deprecated use `WEBAPP_URL` */
 export const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_WEBAPP_URL || `https://${process.env.VERCEL_URL}`;
-export const LOGO = "/calcom-logo-white-word.svg";
-export const LOGO_DARK = "/cal-logo-word-black.svg";
-export const LOGO_ICON = "/cal-com-icon-white.svg";
+export const LOGO = "/calbook-logo.svg";
+export const LOGO_DARK = "/calbook-logo.svg";
+export const LOGO_ICON = "/calbook-icon.svg";
 export const AVATAR_FALLBACK = "/avatar.svg";
-export const FAVICON_16 = "/favicon-16x16.png";
-export const FAVICON_32 = "/favicon-32x32.png";
-export const APPLE_TOUCH_ICON = "/apple-touch-icon.png";
-export const MSTILE_ICON = "/mstile-150x150.png";
-export const ANDROID_CHROME_ICON_192 = "/android-chrome-192x192.png";
-export const ANDROID_CHROME_ICON_256 = "/android-chrome-256x256.png";
+export const FAVICON_16 = "/calbook-icon-16.png";
+export const FAVICON_32 = "/calbook-icon-32.png";
+export const APPLE_TOUCH_ICON = "/calbook-icon-180.png";
+export const MSTILE_ICON = "/calbook-icon-150.png";
+export const ANDROID_CHROME_ICON_192 = "/calbook-icon-192.png";
+export const ANDROID_CHROME_ICON_256 = "/calbook-icon-256.png";
 export const ROADMAP = "https://cal.com/roadmap";
 export const DESKTOP_APP_LINK = "https://cal.com/download";
 export const JOIN_COMMUNITY = "https://github.com/calcom/cal.diy/discussions";
@@ -159,8 +161,8 @@ export const CREDENTIAL_SYNC_ENDPOINT = process.env.CALCOM_CREDENTIAL_SYNC_ENDPO
 // Service Account Encryption Key for encrypting/decrypting service account keys
 export const SERVICE_ACCOUNT_ENCRYPTION_KEY = process.env.CALCOM_SERVICE_ACCOUNT_ENCRYPTION_KEY;
 
-export const DEFAULT_LIGHT_BRAND_COLOR = "#292929";
-export const DEFAULT_DARK_BRAND_COLOR = "#fafafa";
+export const DEFAULT_LIGHT_BRAND_COLOR = "#7C3AED";
+export const DEFAULT_DARK_BRAND_COLOR = "#C4B5FD";
 
 export const TOP_BANNER_HEIGHT = 40;
 

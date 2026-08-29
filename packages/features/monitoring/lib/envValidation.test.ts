@@ -71,6 +71,15 @@ describe("envValidation", () => {
     expect(result.findings.some((f) => f.key === "EMAIL_TRANSPORT")).toBe(false);
   });
 
+  it("accepts NEXT_RESEND_API_KEY as a server-side Resend key alias", () => {
+    const env = { ...validEnv } as NodeJS.ProcessEnv;
+    delete env.RESEND_API_KEY;
+    env.NEXT_RESEND_API_KEY = "re_alias123";
+    const result = validateProductionEnv(env);
+    expect(result.findings.some((f) => f.key === "EMAIL_TRANSPORT")).toBe(false);
+    expect(result.findings.some((f) => f.key === "RESEND_API_KEY")).toBe(false);
+  });
+
   it("warns when RESEND_FROM is not a valid email", () => {
     const result = validateProductionEnv({ ...validEnv, RESEND_FROM: "not-an-email" });
     expect(result.findings.some((f) => f.key === "RESEND_FROM")).toBe(true);

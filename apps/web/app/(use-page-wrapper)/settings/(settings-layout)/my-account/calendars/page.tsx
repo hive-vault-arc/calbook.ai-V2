@@ -1,10 +1,9 @@
-import { createRouterCaller } from "app/_trpc/context";
-import { _generateMetadata } from "app/_utils";
-
+import googleCalendarMetadata from "@calcom/app-store/googlecalendar/_metadata";
 import { appsRouter } from "@calcom/trpc/server/routers/viewer/apps/_router";
 import { calendarsRouter } from "@calcom/trpc/server/routers/viewer/calendars/_router";
-
 import { CalendarListContainer } from "@components/apps/CalendarListContainer";
+import { createRouterCaller } from "app/_trpc/context";
+import { _generateMetadata } from "app/_utils";
 
 export const generateMetadata = async () =>
   await _generateMetadata(
@@ -29,7 +28,11 @@ const Page = async () => {
     }),
   ]);
   return (
-    <CalendarListContainer connectedCalendars={connectedCalendars} installedCalendars={installedCalendars} />
+    <CalendarListContainer
+      connectedCalendars={connectedCalendars}
+      installedCalendars={installedCalendars}
+      googleCalendarConfigured={Boolean(googleCalendarMetadata.installed)}
+    />
   );
 };
 

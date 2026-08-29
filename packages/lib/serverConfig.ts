@@ -1,19 +1,20 @@
+import process from "node:process";
+import { isENVDev } from "@calcom/lib/env";
+import { getResendApiKey, getResendFromAddress } from "@calcom/lib/getResendConfig";
 import type SendmailTransport from "nodemailer/lib/sendmail-transport";
 import type SMTPConnection from "nodemailer/lib/smtp-connection";
-
-import { isENVDev } from "@calcom/lib/env";
-
 import { getAdditionalEmailHeaders } from "./getAdditionalEmailHeaders";
 
 function detectTransport(): SendmailTransport.Options | SMTPConnection.Options | string {
-  if (process.env.RESEND_API_KEY) {
+  const resendApiKey = getResendApiKey();
+  if (resendApiKey) {
     const transport = {
       host: "smtp.resend.com",
       secure: true,
       port: 465,
       auth: {
         user: "resend",
-        pass: process.env.RESEND_API_KEY,
+        pass: resendApiKey,
       },
     };
 
@@ -56,6 +57,6 @@ function detectTransport(): SendmailTransport.Options | SMTPConnection.Options |
 
 export const serverConfig = {
   transport: detectTransport(),
-  from: process.env.EMAIL_FROM,
+  from: getResendFromAddress(),
   headers: getAdditionalEmailHeaders()[process.env.EMAIL_SERVER_HOST || ""] || undefined,
 };

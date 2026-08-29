@@ -1,4 +1,5 @@
 import process from "node:process";
+import { getResendApiKey, getResendFromAddress } from "@calcom/lib/getResendConfig";
 
 /**
  * R5.1: Production environment validation.
@@ -79,18 +80,6 @@ const rules: Rule[] = [
     test: (v) => !v || v.startsWith("whsec_"),
   },
   {
-    key: "RESEND_API_KEY",
-    severity: "warning",
-    message: "Resend API key should start with re_",
-    test: (v) => !v || v.startsWith("re_"),
-  },
-  {
-    key: "RESEND_FROM",
-    severity: "warning",
-    message: "Resend from address must be a valid email",
-    test: (v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v),
-  },
-  {
     key: "EMAIL_SERVER_HOST",
     severity: "warning",
     message: "Email server host should be a valid hostname",
@@ -117,14 +106,33 @@ export function validateProductionEnv(env: NodeJS.ProcessEnv = process.env): Val
     }
   }
 
+  const resendApiKey = getResendApiKey(env);
+  if (resendApiKey && !resendApiKey.startsWith("re_")) {
+    findings.push({
+      key: "RESEND_API_KEY",
+      severity: "warning",
+      message: "Resend API key should start with re_",
+    });
+  }
+
+  const resendFrom = getResendFromAddress(env);
+  if (resendApiKey && (!resendFrom || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(resendFrom))) {
+    findings.push({
+      key: "RESEND_FROM",
+      severity: "warning",
+      message: "Set RESEND_FROM or EMAIL_FROM to a valid sender on a verified Resend domain",
+    });
+  }
+
   // Check that at least one email transport is configured
-  const hasResend = Boolean(env.RESEND_API_KEY);
+  const hasResend = Boolean(resendApiKey);
   const hasSmtp = Boolean(env.EMAIL_SERVER_HOST || env.EMAIL_SERVER);
   if (!hasResend && !hasSmtp) {
     findings.push({
       key: "EMAIL_TRANSPORT",
       severity: "warning",
-      message: "No email transport configured (set RESEND_API_KEY or EMAIL_SERVER_HOST)",
+      message:
+        "No email transport configured (set RESEND_API_KEY, NEXT_RESEND_API_KEY, or EMAIL_SERVER_HOST)",
     });
   }
 
