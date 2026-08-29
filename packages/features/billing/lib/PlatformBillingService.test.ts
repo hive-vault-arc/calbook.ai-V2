@@ -3,15 +3,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const stripeMocks = vi.hoisted(() => ({
   customersCreate: vi.fn(),
+  pricesRetrieve: vi.fn(),
   checkoutSessionsCreate: vi.fn(),
+  portalConfigurationsList: vi.fn(),
+  portalConfigurationsCreate: vi.fn(),
+  portalConfigurationsUpdate: vi.fn(),
   portalSessionsCreate: vi.fn(),
 }));
 
 vi.mock("stripe", () => ({
   default: class StripeMock {
     customers = { create: stripeMocks.customersCreate };
+    prices = { retrieve: stripeMocks.pricesRetrieve };
     checkout = { sessions: { create: stripeMocks.checkoutSessionsCreate } };
-    billingPortal = { sessions: { create: stripeMocks.portalSessionsCreate } };
+    billingPortal = {
+      configurations: {
+        list: stripeMocks.portalConfigurationsList,
+        create: stripeMocks.portalConfigurationsCreate,
+        update: stripeMocks.portalConfigurationsUpdate,
+      },
+      sessions: { create: stripeMocks.portalSessionsCreate },
+    };
   },
 }));
 
@@ -197,6 +209,103 @@ describe("PlatformBillingService", () => {
       })
     ).rejects.toThrow("Use the billing portal to change plans");
     expect(stripeMocks.checkoutSessionsCreate).not.toHaveBeenCalled();
+  });
+
+  it("creates a managed portal that supports plan changes and period-end cancellation", async () => {
+    mockPrisma.platformBilling.findUnique.mockResolvedValue({
+      customerId: "cus_123",
+      subscriptionId: "sub_123",
+    });
+    stripeMocks.pricesRetrieve.mockImplementation((priceId: string) =>
+      Promise.resolve({
+        id: priceId,
+        product: priceId.includes("enterprise") ? "prod_enterprise" : "prod_pro",
+      })
+    );
+    stripeMocks.portalConfigurationsList.mockResolvedValue({ data: [] });
+    stripeMocks.portalConfigurationsCreate.mockResolvedValue({ id: "bpc_calbook" });
+    stripeMocks.portalSessionsCreate.mockResolvedValue({ url: "https://billing.test/session" });
+
+    await expect(service.createPortal(10, 20, "https://calbook.test/settings/billing")).resolves.toBe(
+      "https://billing.test/session"
+    );
+
+    expect(stripeMocks.portalConfigurationsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        features: expect.objectContaining({
+          subscription_cancel: expect.objectContaining({ enabled: true, mode: "at_period_end" }),
+          subscription_update: expect.objectContaining({
+            enabled: true,
+            default_allowed_updates: ["price", "promotion_code"],
+            proration_behavior: "create_prorations",
+            products: expect.arrayContaining([
+              { product: "prod_pro", prices: ["price_pro_monthly", "price_pro_annual"] },
+              {
+                product: "prod_enterprise",
+                prices: ["price_enterprise_monthly", "price_enterprise_annual"],
+              },
+            ]),
+          }),
+        }),
+      }),
+      { idempotencyKey: expect.stringMatching(/^calbook-platform-billing-portal:[a-f0-9]{32}$/) }
+    );
+    expect(stripeMocks.portalSessionsCreate).toHaveBeenCalledWith({
+      customer: "cus_123",
+      configuration: "bpc_calbook",
+      return_url: "https://calbook.test/settings/billing",
+    });
+  });
+
+  it("updates the existing CalBook portal configuration when catalog prices change", async () => {
+    mockPrisma.platformBilling.findUnique.mockResolvedValue({
+      customerId: "cus_123",
+      subscriptionId: "sub_123",
+    });
+    stripeMocks.pricesRetrieve.mockImplementation((priceId: string) =>
+      Promise.resolve({ id: priceId, product: "prod_platform" })
+    );
+    stripeMocks.portalConfigurationsList.mockResolvedValue({
+      data: [{ id: "bpc_existing", active: true, metadata: { purpose: "platform-billing" } }],
+    });
+    stripeMocks.portalConfigurationsUpdate.mockResolvedValue({ id: "bpc_existing" });
+    stripeMocks.portalSessionsCreate.mockResolvedValue({ url: "https://billing.test/session" });
+
+    await service.createPortal(10, 20, "https://calbook.test/settings/billing");
+
+    expect(stripeMocks.portalConfigurationsCreate).not.toHaveBeenCalled();
+    expect(stripeMocks.portalConfigurationsUpdate).toHaveBeenCalledWith(
+      "bpc_existing",
+      expect.objectContaining({
+        features: expect.objectContaining({
+          subscription_update: expect.objectContaining({
+            products: [
+              {
+                product: "prod_platform",
+                prices: [
+                  "price_pro_monthly",
+                  "price_pro_annual",
+                  "price_enterprise_monthly",
+                  "price_enterprise_annual",
+                ],
+              },
+            ],
+          }),
+        }),
+      })
+    );
+  });
+
+  it("does not open the portal for an abandoned checkout without a subscription", async () => {
+    mockPrisma.platformBilling.findUnique.mockResolvedValue({
+      customerId: "cus_123",
+      subscriptionId: null,
+    });
+
+    await expect(service.createPortal(10, 20, "https://calbook.test/settings/billing")).rejects.toThrow(
+      "No active Stripe subscription"
+    );
+    expect(stripeMocks.portalSessionsCreate).not.toHaveBeenCalled();
   });
 
   it("synchronizes an active subscription onto the canonical billing record", async () => {

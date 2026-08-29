@@ -1325,6 +1325,7 @@
   "your_organization": "Your organization",
   "billing_free_plan_status": "Your core scheduling tools are active. Upgrade whenever you need paid bookings and automation.",
   "billing_paid_plan_status": "Your paid capabilities are active and available to your organization.",
+  "change_or_cancel_plan": "Change or cancel plan",
   "billing_trial_status": "Your Pro trial is active through {{date}}. You can subscribe at any time without losing access.",
   "payment_attention_required": "Payment needs attention",
   "choose_your_plan": "Choose what your booking business needs",

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import process from "node:process";
 import { ErrorWithCode } from "@calcom/lib/errors";
 import logger from "@calcom/lib/logger";
@@ -19,6 +20,7 @@ import {
 } from "./plan-features";
 
 const log = logger.getSubLogger({ prefix: ["platform-billing"] });
+const PORTAL_CONFIGURATION_PURPOSE = "platform-billing";
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_PRIVATE_KEY;
@@ -76,6 +78,79 @@ async function getOrCreateCustomer(teamId: number, email: string, name?: string)
     select: { id: true },
   });
   return customer.id;
+}
+
+async function getPortalProducts(
+  stripe: Stripe
+): Promise<Stripe.BillingPortal.ConfigurationCreateParams.Features.SubscriptionUpdate.Product[]> {
+  const priceIds = Array.from(
+    new Set(
+      Object.values(PLATFORM_PLANS).flatMap((plan) =>
+        [plan.monthlyPriceId, plan.annualPriceId].filter((priceId): priceId is string => Boolean(priceId))
+      )
+    )
+  );
+  const prices = await Promise.all(priceIds.map((priceId) => stripe.prices.retrieve(priceId)));
+  const pricesByProduct = new Map<string, string[]>();
+
+  for (const price of prices) {
+    const productId = typeof price.product === "string" ? price.product : price.product.id;
+    pricesByProduct.set(productId, [...(pricesByProduct.get(productId) ?? []), price.id]);
+  }
+
+  return Array.from(pricesByProduct, ([product, prices]) => ({ product, prices }));
+}
+
+async function getPortalConfiguration(stripe: Stripe, returnUrl: string): Promise<string> {
+  const products = await getPortalProducts(stripe);
+  const configurationKey = createHash("sha256")
+    .update(
+      `${returnUrl}:${products
+        .flatMap((product) => product.prices)
+        .sort()
+        .join(":")}`
+    )
+    .digest("hex")
+    .slice(0, 32);
+  const features: Stripe.BillingPortal.ConfigurationCreateParams.Features = {
+    invoice_history: { enabled: true },
+    payment_method_update: { enabled: true },
+    subscription_cancel: {
+      enabled: true,
+      mode: "at_period_end",
+      cancellation_reason: {
+        enabled: true,
+        options: ["too_expensive", "missing_features", "unused", "switched_service", "other"],
+      },
+    },
+    subscription_update: {
+      enabled: products.length > 0,
+      default_allowed_updates: products.length > 0 ? ["price", "promotion_code"] : [],
+      products,
+      proration_behavior: "create_prorations",
+    },
+  };
+  const existingConfigurations = await stripe.billingPortal.configurations.list({ limit: 100 });
+  const existing = existingConfigurations.data.find(
+    (configuration) =>
+      configuration.active && configuration.metadata?.purpose === PORTAL_CONFIGURATION_PURPOSE
+  );
+  const configuration = existing
+    ? await stripe.billingPortal.configurations.update(existing.id, {
+        default_return_url: returnUrl,
+        features,
+      })
+    : await stripe.billingPortal.configurations.create(
+        {
+          default_return_url: returnUrl,
+          metadata: { purpose: PORTAL_CONFIGURATION_PURPOSE },
+          business_profile: { headline: "Manage your CalBook.ai plan and billing details" },
+          features,
+        },
+        { idempotencyKey: `calbook-platform-billing-portal:${configurationKey}` }
+      );
+
+  return configuration.id;
 }
 
 export class PlatformBillingService {
@@ -202,12 +277,21 @@ export class PlatformBillingService {
     await assertBillingAdmin(teamId, userId);
     const billing = await prisma.platformBilling.findUnique({
       where: { id: teamId },
-      select: { customerId: true },
+      select: { customerId: true, subscriptionId: true },
     });
     if (!billing?.customerId)
       throw ErrorWithCode.Factory.NotFound("No Stripe customer exists for this organization");
+    if (!billing.subscriptionId)
+      throw ErrorWithCode.Factory.NotFound("No active Stripe subscription exists for this organization");
+
+    const stripe = getStripe();
+    const configuration = await getPortalConfiguration(stripe, returnUrl);
     return (
-      await getStripe().billingPortal.sessions.create({ customer: billing.customerId, return_url: returnUrl })
+      await stripe.billingPortal.sessions.create({
+        customer: billing.customerId,
+        configuration,
+        return_url: returnUrl,
+      })
     ).url;
   }
 

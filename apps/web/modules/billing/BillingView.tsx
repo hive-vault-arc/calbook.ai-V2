@@ -111,7 +111,7 @@ export function BillingView({ teamId, teamName }: BillingViewProps): JSX.Element
                   EndIcon="external-link"
                   loading={portalMutation.isPending}
                   onClick={() => portalMutation.mutate({ teamId })}>
-                  {t("manage_billing")}
+                  {t("change_or_cancel_plan")}
                 </Button>
               ) : null}
             </div>
