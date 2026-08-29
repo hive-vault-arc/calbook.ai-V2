@@ -1,13 +1,13 @@
-import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
-
 import { getPaymentAppData } from "@calcom/app-store/_utils/payments/getPaymentAppData";
 import type { getEventLocationValue } from "@calcom/app-store/locations";
 import { getSuccessPageLocationMessage, guessEventLocationType } from "@calcom/app-store/locations";
 import dayjs from "@calcom/dayjs";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 // TODO: Use browser locale, implement Intl in Dayjs maybe?
 import "@calcom/dayjs/locales";
+import { formatPrice } from "@calcom/lib/currencyConversions";
 import { formatTime } from "@calcom/lib/dayjs";
 import { useCopy } from "@calcom/lib/hooks/useCopy";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
@@ -29,36 +29,36 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuPortal,
 } from "@calcom/ui/components/dropdown";
 import { Icon } from "@calcom/ui/components/icon";
 import { MeetingTimeInTimezones } from "@calcom/ui/components/popover";
 import { showToast } from "@calcom/ui/components/toast";
 import { Tooltip } from "@calcom/ui/components/tooltip";
-
 import assignmentReasonBadgeTitleMap from "@lib/booking/assignmentReasonBadgeTitleMap";
-
-import { WrongAssignmentDialog } from "../dialog/WrongAssignmentDialog";
 import { buildBookingLink } from "../../modules/bookings/lib/buildBookingLink";
+import { getRemainingPackageSessions } from "../../modules/bookings/lib/getPackageBalance";
+import { getPaymentBadgeKind } from "../../modules/bookings/lib/getPaymentBadge";
 import { useBookingDetailsSheetStore } from "../../modules/bookings/store/bookingDetailsSheetStore";
 import type { BookingAttendee } from "../../modules/bookings/types";
+import { WrongAssignmentDialog } from "../dialog/WrongAssignmentDialog";
 import { AcceptBookingButton } from "./AcceptBookingButton";
-import { RejectBookingButton } from "./RejectBookingButton";
 import { BookingActionsDropdown } from "./actions/BookingActionsDropdown";
 import {
-  useBookingActionsStoreContext,
   BookingActionsStoreProvider,
+  useBookingActionsStoreContext,
 } from "./actions/BookingActionsStoreProvider";
 import {
-  shouldShowPendingActions,
-  shouldShowRecurringCancelAction,
-  shouldShowIndividualReportButton,
   type BookingActionContext,
   getReportAction,
   isActionDisabled,
+  shouldShowIndividualReportButton,
+  shouldShowPendingActions,
+  shouldShowRecurringCancelAction,
 } from "./actions/bookingActions";
+import { RejectBookingButton } from "./RejectBookingButton";
 import type { BookingItemProps } from "./types";
 
 type ParsedBooking = ReturnType<typeof buildParsedBooking>;
@@ -257,7 +257,7 @@ function BookingListItem(booking: BookingItemProps) {
     email: booking.attendees?.[0]?.email,
   });
 
-  const title = booking.title;
+  const title = booking.eventType?.title || booking.title;
 
   const showPendingPayment = paymentAppData.enabled && booking.payment.length && !booking.paid;
 
@@ -564,6 +564,15 @@ const BookingItemBadges = ({
 }) => {
   const { t } = useLocale();
 
+  const paymentBadgeConfig = {
+    cardHeld: { label: t("card_held"), variant: "green" as const },
+    deposit: { label: t("deposit_received"), variant: "green" as const },
+    paid: { label: t("paid"), variant: "green" as const },
+    pending: { label: t("pending_payment"), variant: "orange" as const },
+    refunded: { label: t("refunded"), variant: "gray" as const },
+    tip: { label: t("tip_received"), variant: "blue" as const },
+  };
+
   return (
     <div className="hidden h-9 flex-row items-center pb-4 pl-6 sm:flex">
       {isPending && (
@@ -590,7 +599,9 @@ const BookingItemBadges = ({
       )}
       {booking?.assignmentReasonSortedByCreatedAt.length > 0 && (
         <AssignmentReasonTooltip
-          assignmentReason={booking.assignmentReasonSortedByCreatedAt[booking.assignmentReasonSortedByCreatedAt.length - 1]}
+          assignmentReason={
+            booking.assignmentReasonSortedByCreatedAt[booking.assignmentReasonSortedByCreatedAt.length - 1]
+          }
           onClick={onAssignmentReasonClick}
         />
       )}
@@ -612,15 +623,32 @@ const BookingItemBadges = ({
           </Badge>
         </Tooltip>
       )}
-      {booking.paid && !booking.payment[0] ? (
+      {booking.paid && booking.payment.length === 0 && (
         <Badge className="ltr:mr-2 rtl:ml-2" variant="orange">
           {t("error_collecting_card")}
         </Badge>
-      ) : booking.paid ? (
-        <Badge className="ltr:mr-2 rtl:ml-2" variant="green" data-testid="paid_badge">
-          {booking.payment[0].paymentOption === "HOLD" ? t("card_held") : t("paid")}
+      )}
+      {booking.payment.map((payment, index) => {
+        const badge = paymentBadgeConfig[getPaymentBadgeKind(payment)];
+        const formattedAmount = formatPrice(payment.amount, payment.currency);
+        return (
+          <Badge
+            key={`${payment.paymentOption}-${index}`}
+            className="ltr:mr-2 rtl:ml-2"
+            variant={badge.variant}
+            data-testid={`payment-badge-${getPaymentBadgeKind(payment)}`}>
+            {badge.label} · {formattedAmount}
+          </Badge>
+        );
+      })}
+      {booking.bookingPackage && (
+        <Badge className="ltr:mr-2 rtl:ml-2" variant="blue" data-testid="package-balance-badge">
+          {t("package_sessions_remaining", {
+            remaining: getRemainingPackageSessions(booking.bookingPackage),
+            total: booking.bookingPackage.totalSessions,
+          })}
         </Badge>
-      ) : null}
+      )}
       {recurringDates !== undefined && (
         <div className="text-muted -mt-1 text-sm">
           <RecurringBookingsTooltip

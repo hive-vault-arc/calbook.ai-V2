@@ -1,12 +1,16 @@
 import type { RouterInputs, RouterOutputs } from "@calcom/trpc/react";
 
-export type BookingListingStatus = NonNullable<
+type BookingListingStatus = NonNullable<
   RouterInputs["viewer"]["bookings"]["get"]["filters"]["statuses"]
 >[number];
 
 type BookingItem = RouterOutputs["viewer"]["bookings"]["get"]["bookings"][number];
 
-export type BookingItemProps = BookingItem & {
+type BookingItemProps = BookingItem & {
+  bookingPackage?: {
+    totalSessions: number;
+    usedSessions: number;
+  } | null;
   listingStatus: BookingListingStatus;
   recurringInfo: RouterOutputs["viewer"]["bookings"]["get"]["recurringInfo"][number] | undefined;
   loggedInUser: {
@@ -18,3 +22,5 @@ export type BookingItemProps = BookingItem & {
   isToday: boolean;
   onClick?: () => void;
 };
+
+export type { BookingItemProps, BookingListingStatus };

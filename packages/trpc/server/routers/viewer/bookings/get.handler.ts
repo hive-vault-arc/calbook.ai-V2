@@ -20,9 +20,15 @@ import type { TGetInputSchema } from "./get.schema";
 
 class PermissionCheckService {
   constructor(_prisma?: unknown) {}
-  async checkPermission(..._args: unknown[]) { return true; }
-  async hasPermission(..._args: unknown[]) { return true; }
-  async getTeamIdsWithPermission(..._args: unknown[]): Promise<number[]> { return []; }
+  async checkPermission(..._args: unknown[]) {
+    return true;
+  }
+  async hasPermission(..._args: unknown[]) {
+    return true;
+  }
+  async getTeamIdsWithPermission(..._args: unknown[]): Promise<number[]> {
+    return [];
+  }
 }
 
 type GetOptions = {
@@ -596,6 +602,12 @@ export async function getBookings({
               ])
               .whereRef("Payment.bookingId", "=", "Booking.id")
           ).as("payment"),
+          jsonObjectFrom(
+            eb
+              .selectFrom("BookingPackage")
+              .select(["BookingPackage.totalSessions", "BookingPackage.usedSessions"])
+              .whereRef("BookingPackage.id", "=", "Booking.bookingPackageId")
+          ).as("bookingPackage"),
           jsonObjectFrom(
             eb
               .selectFrom("users")
