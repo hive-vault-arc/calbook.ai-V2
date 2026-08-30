@@ -1,24 +1,21 @@
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { IframeHTMLAttributes } from "react";
-import React, { useEffect, useState } from "react";
-
-import { AppDependencyComponent } from "@calcom/app-store/AppDependencyComponent";
-import { InstallAppButton } from "@calcom/app-store/InstallAppButton";
 import { isRedirectApp } from "@calcom/app-store/_utils/redirectApps";
 import useAddAppMutation from "@calcom/app-store/_utils/useAddAppMutation";
+import { AppDependencyComponent } from "@calcom/app-store/AppDependencyComponent";
+import { InstallAppButton } from "@calcom/app-store/InstallAppButton";
 import { doesAppSupportTeamInstall, isConferencing } from "@calcom/app-store/utils";
-import DisconnectIntegration from "@calcom/web/modules/apps/components/DisconnectIntegration";
 import { AppOnboardingSteps } from "@calcom/lib/apps/appOnboardingSteps";
 import { getAppOnboardingUrl } from "@calcom/lib/apps/getAppOnboardingUrl";
-import { APP_NAME, COMPANY_NAME, SUPPORT_MAIL_ADDRESS, WEBAPP_URL } from "@calcom/lib/constants";
+import { APP_NAME, SUPPORT_MAIL_ADDRESS, WEBAPP_URL } from "@calcom/lib/constants";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { trpc, type RouterOutputs } from "@calcom/trpc/react";
+import { type RouterOutputs, trpc } from "@calcom/trpc/react";
 import type { App as AppType } from "@calcom/types/App";
 import classNames from "@calcom/ui/classNames";
 import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
+import { SkeletonButton, SkeletonText } from "@calcom/ui/components/skeleton";
+import { showToast } from "@calcom/ui/components/toast";
+import DisconnectIntegration from "@calcom/web/modules/apps/components/DisconnectIntegration";
 import {
   BookOpenIcon,
   CircleAlertIcon,
@@ -28,9 +25,12 @@ import {
   MailIcon,
   ShieldIcon,
 } from "@coss/ui/icons";
-import { SkeletonButton, SkeletonText } from "@calcom/ui/components/skeleton";
-import { showToast } from "@calcom/ui/components/toast";
-
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type React from "react";
+import type { IframeHTMLAttributes } from "react";
+import { useEffect, useState } from "react";
+import { getAppStoreBranding } from "./appStoreBranding";
 import { InstallAppButtonChild } from "./InstallAppButtonChild";
 import { MultiDisconnectIntegration } from "./MultiDisconnectIntegration";
 
@@ -90,6 +90,14 @@ export const AppPage = ({
   const { t, i18n } = useLocale();
   const router = useRouter();
   const searchParams = useCompatSearchParams();
+  const appStoreBranding = getAppStoreBranding({
+    author,
+    email,
+    website,
+    appName: APP_NAME,
+    supportEmail: SUPPORT_MAIL_ADDRESS,
+    webappUrl: WEBAPP_URL,
+  });
 
   const hasDescriptionItems = descriptionItems && descriptionItems.length > 0;
   const utils = trpc.useUtils();
@@ -371,8 +379,8 @@ export const AppPage = ({
                 </>
               )}
               •{" "}
-              <a target="_blank" rel="noreferrer" href={website}>
-                {t("published_by", { author })}
+              <a target="_blank" rel="noreferrer" href={appStoreBranding.website}>
+                {t("published_by", { author: appStoreBranding.author })}
               </a>
             </h2>
             {isTemplate && (
@@ -422,7 +430,7 @@ export const AppPage = ({
           <>
             <h4 className="text-emphasis mt-8 font-semibold ">{t("pricing")}</h4>
             <span className="text-default">
-                {price === 0 ? (
+              {price === 0 ? (
                 t("free_to_use_apps")
               ) : (
                 <>
@@ -452,28 +460,28 @@ export const AppPage = ({
               </a>
             </li>
           )}
-          {website && (
+          {appStoreBranding.website && (
             <li>
               <a
                 target="_blank"
                 rel="noreferrer"
                 className="text-emphasis font-normal no-underline hover:underline"
-                href={website}>
+                href={appStoreBranding.website}>
                 <ExternalLinkIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
-                {website.replace("https://", "")}
+                {appStoreBranding.website.replace("https://", "")}
               </a>
             </li>
           )}
-          {email && (
+          {appStoreBranding.email && (
             <li>
               <a
                 target="_blank"
                 rel="noreferrer"
                 className="text-emphasis font-normal no-underline hover:underline"
-                href={`mailto:${email}`}>
+                href={`mailto:${appStoreBranding.email}`}>
                 <MailIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
 
-                {email}
+                {appStoreBranding.email}
               </a>
             </li>
           )}
@@ -503,12 +511,12 @@ export const AppPage = ({
           )}
         </ul>
         <hr className="border-subtle my-8 border" />
-        <span className="text-subtle block text-xs">
-          {t("every_app_published", { appName: APP_NAME, companyName: COMPANY_NAME })}
-        </span>
-        <a className="mt-2 block text-xs text-red-500" href={`mailto:${SUPPORT_MAIL_ADDRESS}`}>
-          <FlagIcon className="inline h-3 w-3" /> {t("report_app")}
-        </a>
+        <span className="text-subtle block text-xs">{t("every_app_published", { appName: APP_NAME })}</span>
+        {SUPPORT_MAIL_ADDRESS && (
+          <a className="mt-2 block text-xs text-red-500" href={`mailto:${SUPPORT_MAIL_ADDRESS}`}>
+            <FlagIcon className="inline h-3 w-3" /> {t("report_app")}
+          </a>
+        )}
       </div>
     </div>
   );

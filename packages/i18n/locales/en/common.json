@@ -2349,7 +2349,7 @@
   "change_email_hint": "You may need to log out and back in to see any change take effect.",
   "confirm_password_change_email": "Please confirm your password before changing your email address",
   "seats": "seats",
-  "every_app_published": "Every app published on the {{appName}} App Store is open source and thoroughly tested via peer reviews. Nevertheless, {{companyName}} does not endorse or certify these apps unless they are published by {{appName}}. If you encounter inappropriate content or behaviour please report it.",
+  "every_app_published": "The {{appName}} App Store includes integrations managed by {{appName}} and integrations published by third parties. Each listing identifies its publisher. Please report an app if you encounter inappropriate content or behaviour.",
   "report_app": "Report app",
   "limit_booking_frequency": "Limit booking frequency",
   "limit_booking_frequency_description": "Limit how many times this event can be booked. <0>Learn more</0>",
