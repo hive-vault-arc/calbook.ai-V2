@@ -68,7 +68,7 @@ const KBAR_ACTION_CONFIGS: ActionConfig[] = [
   },
   {
     id: "app-store",
-    name: "app_store",
+    name: "integrations",
     section: "apps",
     shortcut: ["a", "s"],
     keywords: "app store",

@@ -10,6 +10,7 @@ import type { AppCategories } from "@calcom/prisma/enums";
 import { buildLegacyRequest } from "@lib/buildLegacyCtx";
 
 import AppsPage from "~/apps/apps-view";
+import { getCuratedRecruitmentIntegrations } from "~/apps/curatedIntegrations";
 
 export const generateMetadata = async () => {
   return await _generateMetadata(
@@ -35,7 +36,8 @@ const ServerPage = async () => {
     userAdminTeamsIds = [];
   }
 
-  const categoryQuery = appStore.map(({ categories }) => ({
+  const curatedAppStore = getCuratedRecruitmentIntegrations(appStore);
+  const categoryQuery = curatedAppStore.map(({ categories }) => ({
     categories: categories || [],
   }));
   const categories = categoryQuery.reduce(
@@ -57,7 +59,7 @@ const ServerPage = async () => {
       .sort(function (a, b) {
         return b.count - a.count;
       }),
-    appStore,
+    appStore: curatedAppStore,
     userAdminTeams: userAdminTeamsIds,
   };
 

@@ -30,7 +30,7 @@ const getNavigationItems = (): NavigationItemType[] => [
     icon: "clock",
   },
   {
-    name: "apps",
+    name: "integrations",
     href: "/apps",
     icon: "grid-3x3",
     moreOnMobile: true,
@@ -40,7 +40,7 @@ const getNavigationItems = (): NavigationItemType[] => [
     },
     child: [
       {
-        name: "app_store",
+        name: "integrations",
         href: "/apps",
         isCurrent: ({ pathname: path, item }) => {
           // During Server rendering path is /v2/apps but on client it becomes /apps(weird..)
@@ -48,7 +48,7 @@ const getNavigationItems = (): NavigationItemType[] => [
         },
       },
       {
-        name: "installed_apps",
+        name: "connected_integrations",
         href: "/apps/installed/calendar",
         isCurrent: ({ pathname: path }) =>
           (path?.startsWith("/apps/installed/") ?? false) ||
