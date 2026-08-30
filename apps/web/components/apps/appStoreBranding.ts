@@ -36,5 +36,15 @@ function getAppStoreBranding({
   };
 }
 
-export { getAppStoreBranding };
+function normalizeAppStoreContent(content: string, appName: string, webappUrl: string): string {
+  return content
+    .replaceAll("https://app.cal.com", webappUrl)
+    .replaceAll("https://cal.com", webappUrl)
+    .replaceAll("http://app.cal.com", webappUrl)
+    .replaceAll("http://cal.com", webappUrl)
+    .replaceAll("Cal.diy", appName)
+    .replaceAll("Cal.com", appName);
+}
+
+export { getAppStoreBranding, normalizeAppStoreContent };
 export type { AppStoreBranding };

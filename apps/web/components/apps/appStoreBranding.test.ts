@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAppStoreBranding } from "./appStoreBranding";
+import { getAppStoreBranding, normalizeAppStoreContent } from "./appStoreBranding";
 
 const calBookContext = {
   appName: "CalBook.ai",
@@ -53,5 +53,15 @@ describe("getAppStoreBranding", () => {
         supportEmail: "",
       }).email
     ).toBeUndefined();
+  });
+
+  it("normalizes legacy platform names and URLs in app-store copy", () => {
+    expect(
+      normalizeAppStoreContent(
+        "Connect your Cal.diy account at https://app.cal.com or https://cal.com/docs.",
+        "CalBook.ai",
+        "https://app.calbook.test"
+      )
+    ).toBe("Connect your CalBook.ai account at https://app.calbook.test or https://app.calbook.test/docs.");
   });
 });
