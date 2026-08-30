@@ -1,7 +1,7 @@
-import type { GetServerSidePropsContext } from "next";
-
 import { getAppRegistry, getAppRegistryWithCredentials } from "@calcom/app-store/_appRegistry";
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
+import type { GetServerSidePropsContext } from "next";
+import { getCuratedRecruitmentIntegrations } from "~/apps/curatedIntegrations";
 
 export const getServerSideProps = async (context: GetServerSidePropsContext) => {
   const { req } = context;
@@ -15,7 +15,7 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
     appStore = await getAppRegistry();
   }
 
-  const categories = appStore.reduce(
+  const categories = getCuratedRecruitmentIntegrations(appStore).reduce(
     (c, app) => {
       for (const category of app.categories) {
         c[category] = c[category] ? c[category] + 1 : 1;

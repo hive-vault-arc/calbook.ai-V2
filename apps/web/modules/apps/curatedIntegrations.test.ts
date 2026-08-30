@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCuratedRecruitmentIntegrations } from "./curatedIntegrations";
+import { getCuratedRecruitmentIntegrations, isCuratedRecruitmentIntegration } from "./curatedIntegrations";
 
 describe("getCuratedRecruitmentIntegrations", () => {
   it("shows only the calendar and video integrations needed for recruitment", () => {
@@ -17,5 +17,10 @@ describe("getCuratedRecruitmentIntegrations", () => {
       { slug: "msteams" },
       { slug: "zoom" },
     ]);
+  });
+
+  it("does not treat unrelated provider routes as part of the public catalog", () => {
+    expect(isCuratedRecruitmentIntegration("zapier")).toBe(false);
+    expect(isCuratedRecruitmentIntegration("google-calendar")).toBe(true);
   });
 });

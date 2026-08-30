@@ -6,6 +6,8 @@ const RECRUITMENT_INTEGRATION_SLUGS: ReadonlySet<string> = new Set([
   "zoom",
 ]);
 
-export const getCuratedRecruitmentIntegrations = <T extends { slug: string }>(apps: T[]): T[] => {
-  return apps.filter((app) => RECRUITMENT_INTEGRATION_SLUGS.has(app.slug));
-};
+export const isCuratedRecruitmentIntegration = (slug: string): boolean =>
+  RECRUITMENT_INTEGRATION_SLUGS.has(slug);
+
+export const getCuratedRecruitmentIntegrations = <T extends { slug: string }>(apps: T[]): T[] =>
+  apps.filter((app) => isCuratedRecruitmentIntegration(app.slug));

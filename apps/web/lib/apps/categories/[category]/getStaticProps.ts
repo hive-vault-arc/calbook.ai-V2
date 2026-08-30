@@ -1,6 +1,7 @@
 import { getAppRegistry } from "@calcom/app-store/_appRegistry";
 import prisma from "@calcom/prisma";
 import type { AppCategories } from "@calcom/prisma/enums";
+import { isCuratedRecruitmentIntegration } from "~/apps/curatedIntegrations";
 
 export type CategoryDataProps = NonNullable<Awaited<ReturnType<typeof getStaticProps>>>;
 
@@ -21,7 +22,9 @@ export const getStaticProps = async (category: AppCategories) => {
 
   const appStore = await getAppRegistry();
 
-  const apps = appStore.filter((app) => dbAppsSlugs.includes(app.slug));
+  const apps = appStore.filter(
+    (app) => dbAppsSlugs.includes(app.slug) && isCuratedRecruitmentIntegration(app.slug)
+  );
   return {
     apps,
     category,
