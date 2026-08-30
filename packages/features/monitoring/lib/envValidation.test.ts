@@ -15,6 +15,8 @@ describe("envValidation", () => {
     STRIPE_PLATFORM_PRO_ANNUAL_PRICE_ID: "price_pro_annual",
     RESEND_API_KEY: "re_abc123",
     RESEND_FROM: "noreply@calbook.test",
+    UPSTASH_REDIS_REST_URL: "https://redis.example.com",
+    UPSTASH_REDIS_REST_TOKEN: "redis-token",
   } as NodeJS.ProcessEnv;
 
   beforeEach(() => {
@@ -41,6 +43,17 @@ describe("envValidation", () => {
     const result = validateProductionEnv({ ...validEnv, NEXTAUTH_SECRET: "short" });
     expect(result.valid).toBe(false);
     expect(result.findings.some((f) => f.key === "NEXTAUTH_SECRET")).toBe(true);
+  });
+
+  it("fails when distributed monitoring Redis is not configured", () => {
+    const result = validateProductionEnv({ ...validEnv, UPSTASH_REDIS_REST_TOKEN: undefined });
+
+    expect(result.valid).toBe(false);
+    expect(result.findings).toContainEqual({
+      key: "UPSTASH_REDIS_REST_TOKEN",
+      severity: "error",
+      message: "Upstash Redis REST token is required for distributed production monitoring",
+    });
   });
 
   it("fails when NEXTAUTH_URL is not a valid URL", () => {

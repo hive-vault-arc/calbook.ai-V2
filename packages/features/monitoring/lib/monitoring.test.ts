@@ -50,8 +50,13 @@ describe("monitoring", () => {
       });
 
       expect(sentryMocks.captureException).toHaveBeenCalledWith(error, {
-        tags: { failureCategory: "checkout_failure" },
-        extra: { category: "checkout_failure", message: "Checkout failed", eventTypeId: 42 },
+        tags: { failureCategory: "checkout_failure", correlationId: expect.any(String) },
+        extra: {
+          category: "checkout_failure",
+          message: "Checkout failed",
+          eventTypeId: 42,
+          correlationId: expect.any(String),
+        },
       });
       expect(sentryMocks.captureMessage).not.toHaveBeenCalled();
     });
@@ -64,10 +69,28 @@ describe("monitoring", () => {
 
       expect(sentryMocks.captureMessage).toHaveBeenCalledWith("Email send failed", {
         level: "warning",
-        tags: { failureCategory: "email_failure" },
-        extra: { category: "email_failure", message: "Email send failed" },
+        tags: { failureCategory: "email_failure", correlationId: expect.any(String) },
+        extra: {
+          category: "email_failure",
+          message: "Email send failed",
+          correlationId: expect.any(String),
+        },
       });
       expect(sentryMocks.captureException).not.toHaveBeenCalled();
+    });
+
+    it("preserves a supplied correlation identifier across monitoring sinks", () => {
+      const correlationId = logFailure({
+        category: FAILURE_CATEGORIES.BOOKING,
+        message: "Booking failed",
+        correlationId: "trace-booking-123",
+      });
+
+      expect(correlationId).toBe("trace-booking-123");
+      expect(sentryMocks.captureMessage).toHaveBeenCalledWith(
+        "Booking failed",
+        expect.objectContaining({ tags: expect.objectContaining({ correlationId }) })
+      );
     });
   });
 });

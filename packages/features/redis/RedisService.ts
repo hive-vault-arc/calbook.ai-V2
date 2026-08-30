@@ -1,5 +1,5 @@
+import process from "node:process";
 import { Redis } from "@upstash/redis";
-
 import type { IRedisService } from "./IRedisService";
 
 export class RedisService implements IRedisService {
@@ -23,16 +23,16 @@ export class RedisService implements IRedisService {
     return this.redis.del(key);
   }
 
-  async set<TData>(key: string, value: TData, opts?: { ttl?: number }): Promise<"OK" | TData | null> {
-    return this.redis.set(
-      key,
-      value,
-      opts?.ttl
-        ? {
-            px: opts.ttl,
-          }
-        : undefined
-    );
+  async set<TData>(
+    key: string,
+    value: TData,
+    opts?: { ttl?: number; ifNotExists?: boolean }
+  ): Promise<"OK" | TData | null> {
+    if (opts?.ifNotExists) {
+      if (opts.ttl) return this.redis.set(key, value, { nx: true, px: opts.ttl });
+      return this.redis.set(key, value, { nx: true });
+    }
+    return this.redis.set(key, value, opts?.ttl ? { px: opts.ttl } : undefined);
   }
 
   async expire(key: string, seconds: number): Promise<0 | 1> {
@@ -45,6 +45,6 @@ export class RedisService implements IRedisService {
   }
 
   async lpush<TData>(key: string, ...elements: TData[]): Promise<number> {
-    return this.redis.lpush(key, elements);
+    return this.redis.lpush(key, ...elements);
   }
 }

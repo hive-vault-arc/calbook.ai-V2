@@ -13,7 +13,11 @@ export class NoopRedisService implements IRedisService {
     return 0;
   }
 
-  async set<TData>(_key: string, _value: TData, _opts?: { ttl?: number }): Promise<"OK" | TData | null> {
+  async set<TData>(
+    _key: string,
+    _value: TData,
+    _opts?: { ttl?: number; ifNotExists?: boolean }
+  ): Promise<"OK" | TData | null> {
     return "OK";
   }
 

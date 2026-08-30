@@ -86,6 +86,18 @@ const rules: Rule[] = [
     message: "Email server host should be a valid hostname",
     test: (v) => !v || /^[a-zA-Z0-9.-]+$/.test(v),
   },
+  {
+    key: "UPSTASH_REDIS_REST_URL",
+    severity: "error",
+    message: "Upstash Redis REST URL is required for distributed production monitoring",
+    test: (v) => Boolean(v && /^https:\/\/.+/.test(v)),
+  },
+  {
+    key: "UPSTASH_REDIS_REST_TOKEN",
+    severity: "error",
+    message: "Upstash Redis REST token is required for distributed production monitoring",
+    test: (v) => Boolean(v),
+  },
 ];
 
 /**

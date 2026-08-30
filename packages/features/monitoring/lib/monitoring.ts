@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import logger from "@calcom/lib/logger";
 import { captureException, captureMessage } from "@sentry/nextjs";
 
@@ -24,6 +25,7 @@ type LogFailureParams = {
   message: string;
   error?: unknown;
   context?: Record<string, unknown>;
+  correlationId?: string;
 };
 
 /**
@@ -31,28 +33,31 @@ type LogFailureParams = {
  * The event is sent to both the application logger (tslog) and Sentry
  * (when configured) so that dashboards and alerts can filter by category.
  */
-export function logFailure(params: LogFailureParams): void {
+export function logFailure(params: LogFailureParams): string {
   const { category, message, error, context } = params;
+  const correlationId = params.correlationId ?? randomUUID();
   const errorContext = {
     category,
     message,
     ...context,
+    correlationId,
   };
 
   log.error(message, errorContext);
 
   if (error) {
     captureException(error, {
-      tags: { failureCategory: category },
+      tags: { failureCategory: category, correlationId },
       extra: errorContext,
     });
   } else {
     captureMessage(message, {
       level: "warning",
-      tags: { failureCategory: category },
+      tags: { failureCategory: category, correlationId },
       extra: errorContext,
     });
   }
+  return correlationId;
 }
 
 /**
@@ -67,18 +72,24 @@ export function alertElevatedErrors(params: {
   errorCount: number;
   windowMinutes: number;
   threshold: number;
+  correlationId?: string;
+  category?: FailureCategory;
+  context?: Record<string, unknown>;
 }): void {
-  const { service, errorCount, windowMinutes, threshold } = params;
+  const { service, errorCount, windowMinutes, threshold, correlationId, category, context } = params;
   const message = `Elevated 5xx errors for ${service}: ${errorCount} errors in ${windowMinutes}m (threshold: ${threshold})`;
+  const alertContext = { service, errorCount, windowMinutes, threshold, correlationId, category, ...context };
 
-  log.error(message, { service, errorCount, windowMinutes, threshold });
+  log.error(message, alertContext);
 
   captureException(new Error(message), {
     tags: {
       failureCategory: "elevated_5xx",
       service,
+      ...(category ? { sourceFailureCategory: category } : {}),
+      ...(correlationId ? { correlationId } : {}),
     },
     level: "fatal",
-    extra: { errorCount, windowMinutes, threshold },
+    extra: alertContext,
   });
 }
