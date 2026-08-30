@@ -34,13 +34,20 @@ export async function POST(req: Request): Promise<NextResponse> {
     await platformBillingService.syncWebhook(event);
     return NextResponse.json({ received: true });
   } catch (error) {
-    logFailure({
+    const correlationId = logFailure({
       category: FAILURE_CATEGORIES.WEBHOOK,
       message: "Platform billing webhook handler error",
       error,
       context: { eventId: event.id, eventType: event.type },
     });
-    errorRateTracker.recordError("platform-billing-webhook");
-    return NextResponse.json({ message: "Webhook handler failed" }, { status: 500 });
+    await errorRateTracker.recordError("platform-billing-webhook", {
+      correlationId,
+      category: FAILURE_CATEGORIES.WEBHOOK,
+      context: { eventId: event.id, eventType: event.type },
+    });
+    return NextResponse.json(
+      { message: "Webhook handler failed", correlationId },
+      { status: 500, headers: { "x-correlation-id": correlationId } }
+    );
   }
 }

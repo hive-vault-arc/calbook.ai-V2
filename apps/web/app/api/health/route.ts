@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import process from "node:process";
 import { getPlatformBillingReadiness } from "@calcom/features/billing/lib/platform-billing-env";
+import { getRedisService } from "@calcom/features/di/containers/Redis";
 import { getResendApiKey } from "@calcom/lib/getResendConfig";
 import { serverConfig } from "@calcom/lib/serverConfig";
 import { prisma } from "@calcom/prisma";
@@ -70,19 +72,33 @@ async function checkEmail(): Promise<SubsystemCheck> {
   }
 }
 
-function checkRedis(): SubsystemCheck {
-  if (!process.env.REDIS_URL) return { status: "degraded", detail: "REDIS_URL not configured" };
-  return { status: "ok" };
+async function checkRedis(): Promise<SubsystemCheck> {
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return { status: "degraded", detail: "Distributed monitoring Redis not configured" };
+  }
+
+  const start = Date.now();
+  const key = `health:redis:${randomUUID()}`;
+  try {
+    const redis = getRedisService();
+    await redis.set(key, "ok", { ttl: 5_000 });
+    const value = await redis.get<string>(key);
+    await redis.del(key);
+    if (value !== "ok") throw new Error("Redis health value mismatch");
+    return { status: "ok", latencyMs: Date.now() - start };
+  } catch {
+    return { status: "error", latencyMs: Date.now() - start, detail: "Redis unreachable" };
+  }
 }
 
 export async function GET(): Promise<NextResponse> {
-  const [database, email] = await Promise.all([checkDatabase(), checkEmail()]);
+  const [database, email, redis] = await Promise.all([checkDatabase(), checkEmail(), checkRedis()]);
   const checks: Record<string, SubsystemCheck> = {
     database,
     stripe: checkStripe(),
     platformBilling: checkPlatformBilling(),
     email,
-    redis: checkRedis(),
+    redis,
   };
 
   const allOk = Object.values(checks).every((c) => c.status === "ok");

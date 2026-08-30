@@ -46,6 +46,8 @@ function request(signature?: string): Request {
 describe("platform billing webhook route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.logFailure.mockReturnValue("trace-webhook-123");
+    mocks.recordError.mockResolvedValue(undefined);
     vi.stubEnv("STRIPE_PRIVATE_KEY", "sk_test_example");
     vi.stubEnv("STRIPE_PLATFORM_BILLING_WEBHOOK_SECRET", "whsec_example");
   });
@@ -114,6 +116,15 @@ describe("platform billing webhook route", () => {
         context: { eventId: event.id, eventType: event.type },
       })
     );
-    expect(mocks.recordError).toHaveBeenCalledWith("platform-billing-webhook");
+    expect(mocks.recordError).toHaveBeenCalledWith("platform-billing-webhook", {
+      correlationId: "trace-webhook-123",
+      category: "webhook_failure",
+      context: { eventId: event.id, eventType: event.type },
+    });
+    expect(response.headers.get("x-correlation-id")).toBe("trace-webhook-123");
+    await expect(response.json()).resolves.toEqual({
+      message: "Webhook handler failed",
+      correlationId: "trace-webhook-123",
+    });
   });
 });

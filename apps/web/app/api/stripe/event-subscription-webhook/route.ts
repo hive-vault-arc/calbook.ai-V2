@@ -42,13 +42,20 @@ export async function POST(req: Request): Promise<NextResponse> {
     await subscriptionService.handleStripeWebhook(event);
     return NextResponse.json({ received: true });
   } catch (err) {
-    logFailure({
+    const correlationId = logFailure({
       category: FAILURE_CATEGORIES.WEBHOOK,
       message: "Subscription webhook handler error",
       error: err,
       context: { eventType: event.type, eventId: event.id },
     });
-    errorRateTracker.recordError("subscription-webhook");
-    return NextResponse.json({ message: "Webhook handler failed" }, { status: 500 });
+    await errorRateTracker.recordError("subscription-webhook", {
+      correlationId,
+      category: FAILURE_CATEGORIES.WEBHOOK,
+      context: { eventId: event.id, eventType: event.type },
+    });
+    return NextResponse.json(
+      { message: "Webhook handler failed", correlationId },
+      { status: 500, headers: { "x-correlation-id": correlationId } }
+    );
   }
 }
