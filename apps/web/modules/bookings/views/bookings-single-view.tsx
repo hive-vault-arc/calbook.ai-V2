@@ -22,6 +22,7 @@ import { shouldShowFieldInCustomResponses } from "@calcom/lib/bookings/SystemFie
 import { APP_NAME, WEBAPP_URL } from "@calcom/lib/constants";
 import { formatToLocalizedDate, formatToLocalizedTime, formatToLocalizedTimezone } from "@calcom/lib/dayjs";
 import useGetBrandingColours from "@calcom/lib/getBrandColours";
+import { getHelpCenterUrl } from "@calcom/lib/getHelpCenterUrl";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useRouterQuery } from "@calcom/lib/hooks/useRouterQuery";
@@ -1131,10 +1132,7 @@ export default function Success(props: PageProps) {
                     <div>
                       <p className="font-semibold">{t("google_new_spam_policy")}</p>
                       <span className="underline">
-                        <a
-                          target="_blank"
-                          href="https://cal.com/blog/google-s-new-spam-policy-may-be-affecting-your-invitations"
-                          rel="noreferrer">
+                        <a target="_blank" href={getHelpCenterUrl("booking-email-delivery")} rel="noreferrer">
                           {t("resolve")}
                         </a>
                       </span>

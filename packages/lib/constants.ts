@@ -39,6 +39,7 @@ export const BASE_URL = WEBAPP_URL;
 export const WEBSITE_URL = ensureProtocol(process.env.NEXT_PUBLIC_WEBSITE_URL) || WEBAPP_URL;
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "CalBook.ai";
 export const SUPPORT_MAIL_ADDRESS = process.env.NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS || "";
+export const HELP_CENTER_URL = ensureProtocol(process.env.NEXT_PUBLIC_HELP_CENTER_URL);
 export const COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || APP_NAME;
 export const SENDER_ID = process.env.NEXT_PUBLIC_SENDER_ID || "Cal";
 export const SENDER_NAME = process.env.NEXT_PUBLIC_SENDGRID_SENDER_NAME || APP_NAME;

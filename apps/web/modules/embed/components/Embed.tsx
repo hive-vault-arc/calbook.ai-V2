@@ -24,6 +24,7 @@ import type {
 } from "@calcom/features/embed/types";
 import { APP_NAME, DEFAULT_DARK_BRAND_COLOR, DEFAULT_LIGHT_BRAND_COLOR } from "@calcom/lib/constants";
 import { weekdayToWeekIndex } from "@calcom/lib/dayjs";
+import { getHelpCenterUrl } from "@calcom/lib/getHelpCenterUrl";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { BookerLayouts } from "@calcom/prisma/zod-utils";
@@ -218,7 +219,7 @@ const ChooseEmbedTypesDialogContent = ({
             data-testid={embed.type}
             onClick={() => {
               if (embed.type === "headless") {
-                window.open("https://cal.com/help/routing/headless-routing", "_blank");
+                window.open(getHelpCenterUrl("routing/headless-routing"), "_blank", "noopener,noreferrer");
               } else {
                 gotoState({
                   embedType: embed.type as EmbedType,
