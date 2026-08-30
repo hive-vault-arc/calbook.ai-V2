@@ -1,15 +1,11 @@
 openapi: 3.0.0
 info:
-  title: Calendso API
-  description: The open source Calendly alternative.
-  contact:
-    name: Support
-    email: support@cal.com
+  title: CalBook.ai API
+  description: Scheduling API for CalBook.ai.
   license:
     name: MIT License
     url: "https://opensource.org/licenses/MIT"
   version: 1.0.0
-  termsOfService: "https://cal.com/terms"
 server:
   url: "http://localhost:{port}"
   description: Local Development Server

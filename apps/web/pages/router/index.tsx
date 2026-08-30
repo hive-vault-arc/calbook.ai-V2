@@ -1,10 +1,9 @@
 "use client";
 
-import Head from "next/head";
-
+import { APP_NAME } from "@calcom/lib/constants";
 import { markdownToSafeHTML } from "@calcom/lib/markdownToSafeHTML";
-
 import PageWrapper from "@components/PageWrapper";
+import Head from "next/head";
 
 export default function Router({
   message,
@@ -17,7 +16,7 @@ export default function Router({
   return (
     <>
       <Head>
-        <title>Cal.diy Forms</title>
+        <title>{`${APP_NAME} Forms`}</title>
       </Head>
       <div className="mx-auto my-0 max-w-3xl md:my-24">
         <div className="w-full max-w-4xl ltr:mr-2 rtl:ml-2">
