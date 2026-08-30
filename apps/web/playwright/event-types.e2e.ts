@@ -24,7 +24,7 @@ test.describe("Event Types tests", () => {
 
     await page.goto("/event-types");
 
-    const locator = page.getByRole("heading", { name: "Event Types" });
+    const locator = page.getByRole("heading", { name: "Interview templates" });
 
     await expect(locator).toBeVisible();
   });
