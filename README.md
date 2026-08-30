@@ -675,11 +675,11 @@ Unlike Cal.com's "Open Core" model, Cal.diy has **no commercial/enterprise code*
 6. In the third page (Test Users), add the Google account(s) you'll be using. Make sure the details are correct on the last page of the wizard and your consent screen will be configured.
 7. Now select [Credentials](https://console.cloud.google.com/apis/credentials) from the side pane and then select Create Credentials. Select the OAuth Client ID option.
 8. Select Web Application as the Application Type.
-9. Under Authorized redirect URI's, select Add URI and then add the URI `<Cal.diy URL>/api/integrations/googlecalendar/callback` and `<Cal.diy URL>/api/auth/callback/google` replacing Cal.diy URL with the URI at which your application runs.
+9. Under Authorized redirect URIs, add `<CalBook.ai URL>/api/integrations/googlecalendar/callback`. Add `<CalBook.ai URL>/api/auth/callback/google` only when Google sign-in is enabled. Replace `<CalBook.ai URL>` with the exact canonical URL configured in `NEXT_PUBLIC_WEBAPP_URL`.
 10. The key will be created and you will be redirected back to the Credentials page. Select the newly generated client ID under OAuth 2.0 Client IDs.
-11. Select Download JSON. Copy the contents of this file and paste the entire JSON string in the `.env` file as the value for `GOOGLE_API_CREDENTIALS` key.
+11. Select Download JSON. Store its contents as `GOOGLE_API_CREDENTIALS` in your deployment platform's secret manager; do not commit it to `.env` or source control. See [the Google Calendar launch checklist](docs/operations/google-calendar-launch-checklist.md) for the consent-screen and verification steps.
 
-#### _Adding google calendar to Cal.diy App Store_
+#### _Adding Google Calendar to the CalBook.ai App Store_
 
 After adding Google credentials, you can now add the Google Calendar app to the App Store.
 You can repopulate the App Store by running
@@ -693,8 +693,8 @@ You will need to complete a few more steps to activate Google Calendar App.
 Make sure to complete section "Obtaining the Google API Credentials". After that do the
 following
 
-1. Add extra redirect URL `<Cal.diy URL>/api/auth/callback/google`
-1. Under 'OAuth consent screen', click "PUBLISH APP"
+1. Add the Google sign-in redirect URL `<CalBook.ai URL>/api/auth/callback/google` only if Google sign-in is enabled.
+1. Complete the consent-screen publishing or verification steps required for the selected audience and scopes.
 
 ### Obtaining Microsoft Graph Client ID and Secret
 
