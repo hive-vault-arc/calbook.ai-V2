@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 async function getHandler(request: NextRequest) {
-  const authorization = request.headers.get("authorization") || request.nextUrl.searchParams.get("apiKey");
+  const authorization = request.headers.get("authorization");
   const acceptedCredentials = [
     process.env.CRON_API_KEY,
     process.env.CRON_SECRET ? `Bearer ${process.env.CRON_SECRET}` : undefined,

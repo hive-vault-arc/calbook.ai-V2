@@ -78,7 +78,7 @@ describe("/api/cron/waitlist-recovery", () => {
     expect(waitlistService.recoverExpiredPromotions).toHaveBeenCalledOnce();
   });
 
-  test("accepts the configured API key as a query parameter", async () => {
+  test("rejects an API key supplied in the query string", async () => {
     vi.mocked(waitlistService.recoverExpiredPromotions).mockResolvedValue({
       expired: 0,
       promoted: 0,
@@ -89,7 +89,7 @@ describe("/api/cron/waitlist-recovery", () => {
 
     const response = await GET(request, { params: Promise.resolve({}) });
 
-    expect(response.status).toBe(200);
-    expect(waitlistService.recoverExpiredPromotions).toHaveBeenCalledOnce();
+    expect(response.status).toBe(403);
+    expect(waitlistService.recoverExpiredPromotions).not.toHaveBeenCalled();
   });
 });

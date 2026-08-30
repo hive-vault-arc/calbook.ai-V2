@@ -690,20 +690,9 @@ async function handler(
     });
 
   let promotionClaimToken: string | undefined;
+  let promotionClaimShouldRelease = false;
   if (reqBody.promotionToken) {
-    const promotionClaim = isDryRun
-      ? null
-      : await waitlistService.claimPromotionToken({
-          token: reqBody.promotionToken,
-          eventTypeId,
-          email: bookerEmail,
-          slotTime: new Date(reqBody.start),
-          tier: reqBody.tier,
-        });
-    const promotion = isDryRun
-      ? await waitlistService.validatePromotionToken(reqBody.promotionToken)
-      : promotionClaim?.entry;
-    promotionClaimToken = promotionClaim?.claimToken;
+    const promotion = await waitlistService.validatePromotionToken(reqBody.promotionToken);
     const promotionMatchesBooking =
       promotion?.eventTypeId === eventTypeId &&
       promotion.email.toLowerCase() === bookerEmail.toLowerCase() &&
@@ -1775,6 +1764,21 @@ async function handler(
 
   try {
     if (!isDryRun) {
+      if (reqBody.promotionToken) {
+        const promotionClaim = await waitlistService.claimPromotionToken({
+          token: reqBody.promotionToken,
+          eventTypeId,
+          email: bookerEmail,
+          slotTime: new Date(reqBody.start),
+          tier: reqBody.tier,
+        });
+        if (!promotionClaim) {
+          throw new HttpError({ statusCode: 403, message: "invalid_waitlist_promotion" });
+        }
+        promotionClaimToken = promotionClaim.claimToken;
+        promotionClaimShouldRelease = true;
+      }
+
       booking = await createBooking({
         uid,
         rescheduledBy: reqBody.rescheduledBy,
@@ -1802,6 +1806,7 @@ async function handler(
         creationSource: input.bookingData.creationSource,
         tracking: reqBody.tracking,
       });
+      promotionClaimShouldRelease = false;
 
       if (booking?.userId) {
         const usersRepository = new UsersRepository();
@@ -1887,6 +1892,22 @@ async function handler(
       };
     }
   } catch (_err) {
+    if (reqBody.promotionToken && promotionClaimToken && promotionClaimShouldRelease && !isDryRun) {
+      try {
+        const released = await waitlistService.releasePromotionClaim(
+          reqBody.promotionToken,
+          promotionClaimToken
+        );
+        if (!released) {
+          tracingLogger.error("Unable to release the claimed waitlist promotion", { eventTypeId });
+        }
+      } catch (releaseError) {
+        tracingLogger.error("Unable to release the claimed waitlist promotion", {
+          eventTypeId,
+          error: safeStringify(releaseError),
+        });
+      }
+    }
     const err = getServerErrorFromUnknown(_err);
     tracingLogger.error(`Booking ${eventTypeId} failed`, "Error when saving booking to db", err.message);
     if (err.cause && typeof err.cause === "object" && "code" in err.cause && err.cause.code === "P2002") {
