@@ -114,7 +114,7 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
             </div>
           </header>
           {/* logo icon for tablet */}
-          <Link href="/event-types" className="text-center md:inline lg:hidden">
+          <Link href="/home" className="text-center md:inline lg:hidden">
             <Logo small icon />
           </Link>
           <Navigation />

@@ -59,6 +59,14 @@ const getApps: AppAction[] = Object.values(appStoreMetadata).map(({ name, slug }
 
 const KBAR_ACTION_CONFIGS: ActionConfig[] = [
   {
+    id: "home",
+    name: "home",
+    section: "home",
+    shortcut: ["g", "h"],
+    keywords: "home dashboard recruiting interviews",
+    href: "/home",
+  },
+  {
     id: "event-types",
     name: "event_types_page_title",
     section: "event_types_page_title",

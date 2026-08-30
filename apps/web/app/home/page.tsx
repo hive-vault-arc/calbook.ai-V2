@@ -1,9 +1,15 @@
+import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
+import { buildLegacyRequest } from "@lib/buildLegacyCtx";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import type { ReactElement } from "react";
+import { RecruitingDashboard } from "~/home/RecruitingDashboard";
 
-/**
- * Keep the product-facing home URL stable while the authenticated dashboard
- * remains organized around the event types view.
- */
-export default function HomePage() {
-  redirect("/event-types");
+export default async function HomePage(): Promise<ReactElement> {
+  const session = await getServerSession({
+    req: buildLegacyRequest(await headers(), await cookies()),
+  });
+  if (!session?.user?.id) redirect("/auth/login");
+
+  return <RecruitingDashboard userName={session.user.name ?? session.user.email ?? ""} />;
 }
