@@ -2,7 +2,7 @@
 
 ## Release objective
 
-Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboarding, organization setup, platform billing, paid bookings, tiered availability, reliable waitlists, and per-event-type subscriptions.
+Ship CalBook.ai as a production SaaS for recruitment agencies: authenticated onboarding, organization setup, interview scheduling, calendar/video integrations, reliable candidate self-scheduling, and platform billing.
 
 ## Release baseline
 
@@ -269,6 +269,35 @@ Ship CalBook.ai as a production SaaS for solo professionals: authenticated onboa
 - [ ] The team can restore production data and roll back a migration using a rehearsed procedure.
 - [ ] Support can respond to payment, booking, email, and access incidents using documented runbooks.
 - [ ] No known critical or high-severity blocker remains for Sprint 6 release-candidate verification.
+
+---
+
+# Sprint 5.6 — Agency-First Product Experience
+
+**Goal:** make CalBook.ai feel purpose-built for recruitment agencies while retaining the proven scheduling engine underneath.
+
+## Product decisions
+
+- The V1 catalog is a curated **Integrations** area, not an open marketplace.
+- Public V1 integrations are Google Calendar, Outlook Calendar, Google Meet, Microsoft Teams, and Zoom. Other providers remain available in the codebase for controlled future expansion but are not promoted.
+- The primary user concept is an **Interview template**. Existing event types remain the internal model and preserve existing booking links.
+- Do not build a full ATS or candidate database in this sprint. Design the workflow so Greenhouse, Lever, and other ATS integrations can be added later without changing the booking foundation.
+
+## Work items
+
+- [x] **A5.6.1 Curate the integration catalog** — `/apps` is now labelled Integrations and only lists the five V1 calendar/video providers. Direct category listings apply the same allow-list. Navigation and command search use the new terminology. Focused catalog tests pass.
+- [x] **A5.6.2 Reframe booking types as interview templates** — Main navigation, metadata, creation flow, empty states, drag-and-drop ordering guidance, and the focused Playwright heading assertion now use recruiter-oriented copy without changing the underlying scheduling model.
+- [ ] **A5.6.3 Simplify the interview-template workspace** — Validate the list view with agency users; improve scanability of duration, interview format, hosts, and candidate-facing link; keep first/template ordering obvious.
+- [ ] **A5.6.4 Agency operating dashboard** — Replace the generic home experience with interviews today, awaiting candidate response, upcoming interviews, and recent changes. Reuse booking data; do not introduce candidate persistence without a separate schema decision.
+- [ ] **A5.6.5 Candidate scheduling polish** — Make candidate-facing schedule, reschedule, cancellation, timezone, confirmation, and reminder paths explicit and agency-branded.
+- [ ] **A5.6.6 ATS integration boundary** — Define a provider-neutral integration contract and validate the first ATS target with prospective agency customers before adding a Greenhouse, Lever, or similar connector.
+
+## Acceptance criteria
+
+- [ ] A recruiter understands the product’s interview-scheduling purpose from the first authenticated screen.
+- [ ] The integration area never promotes unsupported V1 apps.
+- [ ] Existing booking URLs, installed integrations, and scheduling behavior remain compatible.
+- [ ] The dashboard and candidate journeys are verified manually on desktop and mobile before release-candidate testing.
 
 ---
 
