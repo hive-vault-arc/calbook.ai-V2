@@ -38,9 +38,11 @@ import { MeetingTimeInTimezones } from "@calcom/ui/components/popover";
 import { showToast } from "@calcom/ui/components/toast";
 import { Tooltip } from "@calcom/ui/components/tooltip";
 import assignmentReasonBadgeTitleMap from "@lib/booking/assignmentReasonBadgeTitleMap";
+import { MeetingPlatformLogo } from "../../modules/bookings/components/MeetingPlatformLogo";
 import { buildBookingLink } from "../../modules/bookings/lib/buildBookingLink";
 import { getRemainingPackageSessions } from "../../modules/bookings/lib/getPackageBalance";
 import { getPaymentBadgeKind } from "../../modules/bookings/lib/getPaymentBadge";
+import { getMeetingPlatform } from "../../modules/bookings/lib/meetingPlatform";
 import { useBookingDetailsSheetStore } from "../../modules/bookings/store/bookingDetailsSheetStore";
 import type { BookingAttendee } from "../../modules/bookings/types";
 import { WrongAssignmentDialog } from "../dialog/WrongAssignmentDialog";
@@ -191,7 +193,7 @@ function BookingListItem(booking: BookingItemProps) {
     t,
     booking.status
   );
-  const provider = guessEventLocationType(location);
+  const platform = getMeetingPlatform({ location, videoCallUrl: locationVideoCallUrl });
 
   const isDisabledCancelling = booking.eventType.disableCancelling;
   const isDisabledRescheduling = booking.eventType.disableRescheduling;
@@ -308,7 +310,7 @@ function BookingListItem(booking: BookingItemProps) {
                 </div>
                 {!isPending && (
                   <div>
-                    {(provider?.label ||
+                    {(platform?.label ||
                       (typeof locationToDisplay === "string" && locationToDisplay?.startsWith("https://"))) &&
                       locationToDisplay.startsWith("http") && (
                         <a
@@ -319,18 +321,9 @@ function BookingListItem(booking: BookingItemProps) {
                           rel="noreferrer"
                           className="text-sm leading-6 text-blue-600 hover:underline dark:text-blue-400">
                           <div className="flex items-center gap-2">
-                            {provider?.iconUrl && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={provider.iconUrl}
-                                width={16}
-                                height={16}
-                                className="h-4 w-4 rounded-sm"
-                                alt={`${provider?.label} logo`}
-                              />
-                            )}
-                            {provider?.label
-                              ? t("join_event_location", { eventLocationType: provider?.label })
+                            <MeetingPlatformLogo platform={platform} />
+                            {platform?.label
+                              ? t("join_event_location", { eventLocationType: platform.label })
                               : t("join_meeting")}
                           </div>
                         </a>
@@ -433,7 +426,7 @@ function BookingListItem(booking: BookingItemProps) {
               )}
               {!isPending && (
                 <div className="sm:hidden">
-                  {(provider?.label ||
+                  {(platform?.label ||
                     (typeof locationToDisplay === "string" && locationToDisplay?.startsWith("https://"))) &&
                     locationToDisplay.startsWith("http") && (
                       <a
@@ -444,17 +437,9 @@ function BookingListItem(booking: BookingItemProps) {
                         rel="noreferrer"
                         className="text-sm leading-6 text-blue-600 hover:underline dark:text-blue-400">
                         <div className="flex items-center gap-2">
-                          {provider?.iconUrl && (
-                            <img
-                              src={provider.iconUrl}
-                              width={16}
-                              height={16}
-                              className="h-4 w-4 rounded-sm"
-                              alt={`${provider?.label} logo`}
-                            />
-                          )}
-                          {provider?.label
-                            ? t("join_event_location", { eventLocationType: provider?.label })
+                          <MeetingPlatformLogo platform={platform} />
+                          {platform?.label
+                            ? t("join_event_location", { eventLocationType: platform.label })
                             : t("join_meeting")}
                         </div>
                       </a>

@@ -1,12 +1,15 @@
 "use client";
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { bookingMetadataSchema } from "@calcom/prisma/zod-utils";
 import { trpc } from "@calcom/trpc/react";
 import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
 import { SkeletonText } from "@calcom/ui/components/skeleton";
 import type { ReactElement } from "react";
 import { useMemo } from "react";
+import { MeetingPlatformLogo } from "../bookings/components/MeetingPlatformLogo";
+import { getMeetingPlatform } from "../bookings/lib/meetingPlatform";
 
 const startOfToday = (): Date => {
   const today = new Date();
@@ -106,6 +109,11 @@ export const RecruitingDashboard = ({
       <ul className="divide-y divide-subtle">
         {interviews.map((interview) => {
           const candidate = interview.attendees[0];
+          const metadata = bookingMetadataSchema.safeParse(interview.metadata ?? null);
+          const platform = getMeetingPlatform({
+            location: interview.location,
+            videoCallUrl: metadata.success ? metadata.data?.videoCallUrl : undefined,
+          });
           return (
             <li key={interview.uid} className="flex items-center gap-4 px-5 py-4">
               <div className="flex w-14 shrink-0 flex-col rounded-lg bg-subtle px-2 py-2 text-center">
@@ -117,7 +125,10 @@ export const RecruitingDashboard = ({
                 </span>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-default text-sm">{interview.title}</p>
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate font-semibold text-default text-sm">{interview.title}</p>
+                  <MeetingPlatformLogo platform={platform} showLabel />
+                </div>
                 <p className="mt-1 truncate text-sm text-subtle">
                   {candidate?.name || candidate?.email || t("candidate")}
                 </p>
