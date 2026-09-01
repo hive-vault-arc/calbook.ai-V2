@@ -7,7 +7,6 @@ import { Avatar } from "@calcom/ui/components/avatar";
 import { Credits } from "@calcom/ui/components/credits";
 import { ButtonOrLink } from "@calcom/ui/components/dropdown";
 import { Icon } from "@calcom/ui/components/icon";
-import { Logo } from "@calcom/ui/components/logo";
 import { SkeletonText } from "@calcom/ui/components/skeleton";
 import { Tooltip } from "@calcom/ui/components/tooltip";
 import { ArrowLeftIcon, ArrowRightIcon } from "@coss/ui/icons";
@@ -60,11 +59,11 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
       <aside
         style={sidebarStylingAttributes}
         className={classNames(
-          "fixed left-0 hidden h-full w-14 flex-col overflow-y-auto overflow-x-hidden border-muted border-r bg-default md:sticky md:flex lg:w-60 lg:px-3",
+          "fixed left-0 hidden h-full w-60 flex-col overflow-y-auto overflow-x-hidden border-muted border-r bg-default md:sticky md:flex md:px-3",
           "max-h-screen"
         )}>
-        <div className="flex h-full flex-col justify-between py-3 lg:pt-4">
-          <header className="todesktop:-mt-3 todesktop:flex-col-reverse items-center justify-between todesktop:[-webkit-app-region:drag] md:hidden lg:flex">
+        <div className="flex h-full flex-col justify-between py-3 md:pt-4">
+          <header className="todesktop:-mt-3 todesktop:flex-col-reverse flex items-center justify-between todesktop:[-webkit-app-region:drag]">
             {user?.org ? (
               !ENABLE_PROFILE_SWITCHER ? (
                 <Link href="/settings/organizations/profile" className="w-full px-1.5">
@@ -84,11 +83,8 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
               )
             ) : (
               <div data-testid="user-dropdown-trigger" className="todesktop:mt-4 w-full">
-                <span className="hidden lg:inline">
+                <span className="inline">
                   <UserDropdown />
-                </span>
-                <span className="hidden md:inline lg:hidden">
-                  <UserDropdown small />
                 </span>
               </div>
             )}
@@ -113,16 +109,12 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
               <KBarTrigger />
             </div>
           </header>
-          {/* logo icon for tablet */}
-          <Link href="/home" className="text-center md:inline lg:hidden">
-            <Logo small icon />
-          </Link>
           <Navigation />
         </div>
 
-        <div className="md:px-2 md:pb-4 lg:p-0">
+        <div className="pb-4">
           {bottomNavItems.map((item, index) => (
-            <Tooltip side="right" content={t(item.name)} className="lg:hidden" key={item.name}>
+            <Tooltip side="right" content={t(item.name)} className="md:hidden" key={item.name}>
               <ButtonOrLink
                 id={item.name}
                 href={item.href || undefined}
@@ -141,14 +133,14 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
                     name={item.isLoading ? "rotate-cw" : item.icon}
                     className={classNames(
                       "h-4 w-4 shrink-0 aria-[aria-current='page']:text-inherit",
-                      "ml-3 md:mx-auto lg:ltr:mr-2 lg:rtl:ml-2",
+                      "ml-3 md:ltr:mr-2 md:rtl:ml-2",
                       item.isLoading && "animate-spin"
                     )}
                     aria-hidden="true"
                   />
                 )}
                 {isLocaleReady ? (
-                  <span className="hidden w-full justify-between lg:flex">
+                  <span className="hidden w-full justify-between md:flex">
                     <div className="flex">{t(item.name)}</div>
                   </span>
                 ) : (

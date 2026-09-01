@@ -96,11 +96,11 @@ export const Navigation = () => {
   const { desktopNavigationItems } = useNavigationItems();
 
   return (
-    <nav className="mt-2 flex-1 md:px-2 lg:mt-4 lg:px-0">
+    <nav className="mt-4 flex-1 md:px-0">
       {desktopNavigationItems.map((item) => (
         <NavigationItem key={item.name} item={item} />
       ))}
-      <div className="mt-0.5 text-subtle lg:hidden">
+      <div className="mt-0.5 text-subtle md:hidden">
         <KBarTrigger />
       </div>
     </nav>

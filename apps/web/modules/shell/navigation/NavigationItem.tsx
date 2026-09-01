@@ -143,7 +143,7 @@ export const NavigationItem: React.FC<{
               t(item.name)
             )
           }
-          className="lg:hidden">
+          className="md:hidden">
           <button
             data-test-id={item.name}
             aria-label={t(item.name)}
@@ -159,7 +159,7 @@ export const NavigationItem: React.FC<{
             className={classNames(
               "todesktop:py-[7px] text-default group relative flex w-full items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
               "[&[aria-current='page']]:bg-purple-100! [&[aria-current='page']]:text-purple-700 mt-0.5 text-sm dark:[&[aria-current='page']]:bg-purple-500/15! dark:[&[aria-current='page']]:text-purple-300",
-              "md:justify-center lg:justify-start",
+              "md:justify-start",
               isLocaleReady
                 ? "hover:bg-subtle todesktop:[&[aria-current='page']]:bg-purple-100 todesktop:hover:bg-transparent hover:text-emphasis dark:todesktop:[&[aria-current='page']]:bg-purple-500/15"
                 : ""
@@ -169,7 +169,7 @@ export const NavigationItem: React.FC<{
                 <Icon
                   name={item.isLoading ? "rotate-cw" : item.icon}
                   className={classNames(
-                    "todesktop:!text-blue-500 h-4 w-4 shrink-0 lg:ltr:mr-2 lg:rtl:ml-2",
+                    "todesktop:!text-blue-500 h-4 w-4 shrink-0 md:ltr:mr-2 md:rtl:ml-2",
                     item.isLoading && "animate-spin"
                   )}
                   aria-hidden="true"
@@ -177,14 +177,14 @@ export const NavigationItem: React.FC<{
                 {shouldShowChevron && (
                   <Icon
                     name={isExpanded ? "chevron-up" : "chevron-down"}
-                    className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-subtle p-0.5 lg:hidden"
+                    className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-subtle p-0.5 md:hidden"
                   />
                 )}
               </div>
             )}
             {isLocaleReady ? (
               <span
-                className="hidden w-full justify-between truncate text-ellipsis lg:flex"
+                className="hidden w-full justify-between truncate text-ellipsis md:flex"
                 data-testid={`${item.name}-test`}>
                 {t(item.name)}
                 {item.badge && item.badge}
@@ -195,13 +195,13 @@ export const NavigationItem: React.FC<{
             {shouldShowChevron && (
               <Icon
                 name={isExpanded ? "chevron-up" : "chevron-down"}
-                className="ml-auto hidden h-4 w-4 lg:block"
+                className="ml-auto hidden h-4 w-4 md:block"
               />
             )}
           </button>
         </Tooltip>
       ) : (
-        <Tooltip side="right" content={t(item.name)} className="lg:hidden">
+        <Tooltip side="right" content={t(item.name)} className="md:hidden">
           <Link
             data-test-id={item.name}
             onClick={() => trackNavigationClick(item.name)}
@@ -212,10 +212,10 @@ export const NavigationItem: React.FC<{
               "todesktop:py-[7px] text-default group flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
               `[&[aria-current='page']]:bg-purple-100 dark:[&[aria-current='page']]:bg-purple-500/15`,
               isChild
-                ? `[&[aria-current='page']]:bg-purple-100 [&[aria-current='page']]:text-purple-700 hidden h-8 pl-16 dark:[&[aria-current='page']]:bg-purple-500/15 dark:[&[aria-current='page']]:text-purple-300 lg:flex lg:pl-11 ${
+                ? `[&[aria-current='page']]:bg-purple-100 [&[aria-current='page']]:text-purple-700 hidden h-8 pl-16 dark:[&[aria-current='page']]:bg-purple-500/15 dark:[&[aria-current='page']]:text-purple-300 md:flex md:pl-11 ${
                     props.index === 0 ? "mt-0" : "mt-1  hover:mt-1 [&[aria-current='page']]:mt-1"
                   }`
-                : "[&[aria-current='page']]:text-purple-700 mt-0.5 text-sm dark:[&[aria-current='page']]:text-purple-300 md:justify-center lg:justify-start",
+                : "[&[aria-current='page']]:text-purple-700 mt-0.5 text-sm dark:[&[aria-current='page']]:text-purple-300 md:justify-start",
               isLocaleReady
                 ? "hover:bg-subtle todesktop:[&[aria-current='page']]:bg-purple-100 todesktop:hover:bg-transparent hover:text-emphasis dark:todesktop:[&[aria-current='page']]:bg-purple-500/15"
                 : ""
@@ -225,7 +225,7 @@ export const NavigationItem: React.FC<{
               <Icon
                 name={item.isLoading ? "rotate-cw" : item.icon}
                 className={classNames(
-                  "todesktop:!text-blue-500 h-4 w-4 shrink-0 aria-[aria-current='page']:text-inherit lg:ltr:mr-2 lg:rtl:ml-2",
+                  "todesktop:!text-blue-500 h-4 w-4 shrink-0 aria-[aria-current='page']:text-inherit md:ltr:mr-2 md:rtl:ml-2",
                   item.isLoading && "animate-spin"
                 )}
                 aria-hidden="true"
@@ -234,7 +234,7 @@ export const NavigationItem: React.FC<{
             )}
             {isLocaleReady ? (
               <span
-                className="hidden w-full justify-between truncate text-ellipsis lg:flex"
+                className="hidden w-full justify-between truncate text-ellipsis md:flex"
                 data-testid={`${item.name}-test`}>
                 {t(item.name)}
                 {item.badge && item.badge}
