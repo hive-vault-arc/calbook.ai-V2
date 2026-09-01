@@ -96,7 +96,7 @@ export const Navigation = () => {
   const { desktopNavigationItems } = useNavigationItems();
 
   return (
-    <nav className="mt-2 flex-1 md:px-2 lg:mt-4 lg:px-0">
+    <nav className="calbook-sidebar-navigation mt-2 flex-1 md:px-2 lg:mt-4 lg:px-0">
       {desktopNavigationItems.map((item) => (
         <NavigationItem key={item.name} item={item} />
       ))}

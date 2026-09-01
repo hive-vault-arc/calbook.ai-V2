@@ -19,6 +19,51 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Keep the tablet rail compact, but make the full workspace navigation available on standard desktops. */
+@media (min-width: 1024px) {
+  .calbook-sidebar {
+    width: 15rem;
+    padding-inline: 0.75rem;
+  }
+
+  .calbook-sidebar-compact-brand {
+    display: none;
+  }
+
+  .calbook-sidebar-desktop-brand,
+  .calbook-sidebar-header,
+  .calbook-sidebar-navigation-label,
+  .calbook-sidebar-footer-label {
+    display: flex;
+  }
+
+  .calbook-sidebar-navigation {
+    margin-top: 1rem;
+    padding-inline: 0;
+  }
+
+  .calbook-sidebar-navigation-item,
+  .calbook-sidebar-footer-item {
+    justify-content: flex-start;
+  }
+
+  .calbook-sidebar-user-dropdown-large {
+    display: inline;
+  }
+
+  .calbook-sidebar-user-dropdown-small {
+    display: none;
+  }
+
+  .calbook-sidebar-footer-item > svg {
+    margin-inline: 0;
+  }
+
+  .calbook-sidebar-footer {
+    padding: 0;
+  }
+}
+
 /*
   Desktop App specific CSS
     https://docs.todesktop.com/

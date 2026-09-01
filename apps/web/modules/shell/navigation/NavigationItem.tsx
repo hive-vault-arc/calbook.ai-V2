@@ -157,9 +157,9 @@ export const NavigationItem: React.FC<{
               }
             }}
             className={classNames(
-              "todesktop:py-[7px] text-default group relative flex w-full items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
+              "todesktop:py-[7px] text-default group relative flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
               "[&[aria-current='page']]:bg-purple-100! [&[aria-current='page']]:text-purple-700 mt-0.5 text-sm dark:[&[aria-current='page']]:bg-purple-500/15! dark:[&[aria-current='page']]:text-purple-300",
-              "md:justify-center lg:justify-start",
+              "calbook-sidebar-navigation-item md:justify-center lg:justify-start",
               isLocaleReady
                 ? "hover:bg-subtle todesktop:[&[aria-current='page']]:bg-purple-100 todesktop:hover:bg-transparent hover:text-emphasis dark:todesktop:[&[aria-current='page']]:bg-purple-500/15"
                 : ""
@@ -184,7 +184,7 @@ export const NavigationItem: React.FC<{
             )}
             {isLocaleReady ? (
               <span
-                className="hidden w-full justify-between truncate text-ellipsis lg:flex"
+                className="calbook-sidebar-navigation-label hidden w-full justify-between truncate text-ellipsis lg:flex"
                 data-testid={`${item.name}-test`}>
                 {t(item.name)}
                 {item.badge && item.badge}
@@ -209,13 +209,13 @@ export const NavigationItem: React.FC<{
             aria-label={t(item.name)}
             target={item.target}
             className={classNames(
-              "todesktop:py-[7px] text-default group flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
+              "todesktop:py-[7px] text-default group flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
               `[&[aria-current='page']]:bg-purple-100 dark:[&[aria-current='page']]:bg-purple-500/15`,
               isChild
                 ? `[&[aria-current='page']]:bg-purple-100 [&[aria-current='page']]:text-purple-700 hidden h-8 pl-16 dark:[&[aria-current='page']]:bg-purple-500/15 dark:[&[aria-current='page']]:text-purple-300 lg:flex lg:pl-11 ${
                     props.index === 0 ? "mt-0" : "mt-1  hover:mt-1 [&[aria-current='page']]:mt-1"
                   }`
-                : "[&[aria-current='page']]:text-purple-700 mt-0.5 text-sm dark:[&[aria-current='page']]:text-purple-300 md:justify-center lg:justify-start",
+                : "calbook-sidebar-navigation-item [&[aria-current='page']]:text-purple-700 mt-0.5 text-sm dark:[&[aria-current='page']]:text-purple-300 md:justify-center lg:justify-start",
               isLocaleReady
                 ? "hover:bg-subtle todesktop:[&[aria-current='page']]:bg-purple-100 todesktop:hover:bg-transparent hover:text-emphasis dark:todesktop:[&[aria-current='page']]:bg-purple-500/15"
                 : ""
@@ -234,7 +234,7 @@ export const NavigationItem: React.FC<{
             )}
             {isLocaleReady ? (
               <span
-                className="hidden w-full justify-between truncate text-ellipsis lg:flex"
+                className="calbook-sidebar-navigation-label hidden w-full justify-between truncate text-ellipsis lg:flex"
                 data-testid={`${item.name}-test`}>
                 {t(item.name)}
                 {item.badge && item.badge}

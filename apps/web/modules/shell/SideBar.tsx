@@ -61,10 +61,22 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
         style={sidebarStylingAttributes}
         className={classNames(
           "fixed left-0 hidden h-full w-14 flex-col overflow-y-auto overflow-x-hidden border-muted border-r bg-default md:sticky md:flex lg:w-60 lg:px-3",
-          "max-h-screen"
+          "calbook-sidebar max-h-screen"
         )}>
         <div className="flex h-full flex-col justify-between py-3 lg:pt-4">
-          <header className="todesktop:-mt-3 todesktop:flex-col-reverse items-center justify-between todesktop:[-webkit-app-region:drag] md:hidden lg:flex">
+          <Link
+            href="/home"
+            aria-label="CalBook.ai home"
+            className="calbook-sidebar-compact-brand flex h-10 items-center justify-center md:flex lg:hidden">
+            <img className="h-8 w-8" alt="" src="/calbook-icon.svg" />
+          </Link>
+          <Link
+            href="/home"
+            aria-label="CalBook.ai home"
+            className="calbook-sidebar-desktop-brand hidden items-center px-1 pb-5 lg:flex">
+            <Logo src="/calbook-logo.svg" className="leading-none" />
+          </Link>
+          <header className="calbook-sidebar-header todesktop:-mt-3 todesktop:flex-col-reverse items-center justify-between todesktop:[-webkit-app-region:drag] md:hidden lg:flex">
             {user?.org ? (
               !ENABLE_PROFILE_SWITCHER ? (
                 <Link href="/settings/organizations/profile" className="w-full px-1.5">
@@ -84,10 +96,10 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
               )
             ) : (
               <div data-testid="user-dropdown-trigger" className="todesktop:mt-4 w-full">
-                <span className="hidden lg:inline">
+                <span className="calbook-sidebar-user-dropdown-large hidden lg:inline">
                   <UserDropdown />
                 </span>
-                <span className="hidden md:inline lg:hidden">
+                <span className="calbook-sidebar-user-dropdown-small hidden md:inline lg:hidden">
                   <UserDropdown small />
                 </span>
               </div>
@@ -113,14 +125,10 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
               <KBarTrigger />
             </div>
           </header>
-          {/* logo icon for tablet */}
-          <Link href="/home" className="text-center md:inline lg:hidden">
-            <Logo small icon />
-          </Link>
           <Navigation />
         </div>
 
-        <div className="md:px-2 md:pb-4 lg:p-0">
+        <div className="calbook-sidebar-footer md:px-2 md:pb-4 lg:p-0">
           {bottomNavItems.map((item, index) => (
             <Tooltip side="right" content={t(item.name)} className="lg:hidden" key={item.name}>
               <ButtonOrLink
@@ -130,7 +138,7 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
                 target={item.target}
                 className={classNames(
                   "text-left",
-                  "group flex items-center justify-start rounded-lg px-2.5 py-2 font-medium text-default text-sm transition-colors [&[aria-current='page']]:bg-purple-100 [&[aria-current='page']]:text-purple-700",
+                  "calbook-sidebar-footer-item group flex items-center justify-start gap-2 rounded-lg px-2.5 py-2 font-medium text-default text-sm transition-colors [&[aria-current='page']]:bg-purple-100 [&[aria-current='page']]:text-purple-700",
                   "mt-0.5 w-full text-sm dark:[&[aria-current='page']]:bg-purple-500/15 dark:[&[aria-current='page']]:text-purple-300",
                   isLocaleReady ? "hover:bg-subtle hover:text-emphasis" : "",
                   index === 0 && "mt-3"
@@ -148,7 +156,7 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
                   />
                 )}
                 {isLocaleReady ? (
-                  <span className="hidden w-full justify-between lg:flex">
+                  <span className="calbook-sidebar-footer-label hidden w-full justify-between lg:flex">
                     <div className="flex">{t(item.name)}</div>
                   </span>
                 ) : (
