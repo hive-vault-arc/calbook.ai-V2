@@ -187,6 +187,7 @@ const Item = ({
     type.schedulingType === SchedulingType.ROUND_ROBIN || type.schedulingType === SchedulingType.COLLECTIVE;
   const isCurrentUserHost = "isCurrentUserHost" in type && type.isCurrentUserHost;
   const showAssignedBadge = isRoundRobinOrCollective && isCurrentUserHost;
+  const bookingPath = group.profile.slug ? `/${group.profile.slug}/${type.slug}` : `/${type.slug}`;
 
   const content = (): JSX.Element => (
     <div>
@@ -195,13 +196,6 @@ const Item = ({
         data-testid={`event-type-title-${type.id}`}>
         {type.title}
       </span>
-      {group.profile.slug && type.schedulingType !== SchedulingType.MANAGED ? (
-        <small
-          className="hidden font-normal text-subtle leading-4 sm:inline"
-          data-testid={`event-type-slug-${type.id}`}>
-          {`/${group.profile.slug}/${type.slug}`}
-        </small>
-      ) : null}
       {!isManagedEventType && type.hidden && (
         <span className="ml-2 text-gray-400 text-sm sm:hidden">{t("hidden")}</span>
       )}
@@ -236,39 +230,23 @@ const Item = ({
             <EventTypeDescription eventType={type} shortenDescription />
           </div>
         ) : (
-          <Link href={`/event-types/${type.id}?tabName=setup`} title={type.title}>
-            <div>
+          <Link href={`/event-types/${type.id}?tabName=setup`} title={type.title} draggable={false}>
+            <div className="flex flex-wrap items-center gap-2">
               <span
-                className="break-words font-semibold text-default ltr:mr-1 rtl:ml-1"
+                className="break-words font-semibold text-default text-base"
                 data-testid={`event-type-title-${type.id}`}>
                 {type.title}
               </span>
-              {isFeatured && (
-                <Badge variant="blue" className="ml-2">
-                  {t("featured")}
-                </Badge>
-              )}
-              {group.profile.slug && type.schedulingType !== SchedulingType.MANAGED ? (
-                <small
-                  className="hidden font-normal text-subtle leading-4 sm:inline"
-                  data-testid={`event-type-slug-${type.id}`}>
-                  {`/${group.profile.slug}/${type.slug}`}
-                </small>
-              ) : null}
-              <span className="ml-2 rounded-full bg-subtle px-2.5 py-1 font-medium text-xs text-subtle">
+              {isFeatured && <Badge variant="blue">{t("featured")}</Badge>}
+              <span className="rounded-full bg-subtle px-2.5 py-1 font-medium text-subtle text-xs">
                 {(type.price ?? 0) > 0 ? t("paid") : t("free")}
               </span>
               {!isManagedEventType && type.hidden && (
-                <span className="ml-2 text-gray-400 text-sm sm:hidden">{t("hidden")}</span>
-              )}
-              {readOnly && (
-                <Badge variant="gray" className="ml-2" data-testid="readonly-badge">
-                  {t("readonly")}
-                </Badge>
+                <span className="text-gray-400 text-sm sm:hidden">{t("hidden")}</span>
               )}
               {showAssignedBadge && (
                 <Tooltip content={t("you_are_assigned_to_this_event")}>
-                  <Badge variant="blue" className="ml-2" data-testid="assigned-badge">
+                  <Badge variant="blue" data-testid="assigned-badge">
                     {t("assigned")}
                   </Badge>
                 </Tooltip>
@@ -281,13 +259,11 @@ const Item = ({
               }}
               shortenDescription
             />
-            <div className="mt-3 flex min-w-0 items-center gap-2 rounded-md border border-subtle bg-subtle px-3 py-2 text-xs">
-              <span className="shrink-0 font-semibold uppercase tracking-wide text-muted">
+            <div className="mt-4 flex min-w-0 items-center gap-2 rounded-lg border border-subtle bg-subtle px-3 py-2.5 text-xs">
+              <span className="shrink-0 font-semibold text-muted uppercase tracking-wide">
                 {t("booking_link")}
               </span>
-              <span className="truncate font-mono text-subtle">
-                /{group.profile.slug}/{type.slug}
-              </span>
+              <span className="truncate font-mono text-default">{bookingPath}</span>
             </div>
           </Link>
         )}
@@ -607,6 +583,9 @@ export const InfiniteEventTypeList = ({
             return (
               <li
                 key={type.id}
+                draggable={!readOnly}
+                tabIndex={readOnly ? undefined : 0}
+                aria-label={!readOnly ? t("drag_booking_type", { title: type.title }) : undefined}
                 onDragOver={(event) => {
                   event.preventDefault();
                   event.dataTransfer.dropEffect = "move";
@@ -619,9 +598,29 @@ export const InfiniteEventTypeList = ({
                   setDraggedEventTypeId(null);
                   setDragOverEventTypeId(null);
                 }}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", String(type.id));
+                  setDraggedEventTypeId(type.id);
+                }}
+                onDragEnd={() => {
+                  setDraggedEventTypeId(null);
+                  setDragOverEventTypeId(null);
+                }}
+                onKeyDown={(event) => {
+                  if (readOnly || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+
+                  event.preventDefault();
+                  const increment = event.key === "ArrowUp" ? -1 : 1;
+                  const targetEventType = orderedEventTypes[flatIndex + increment];
+                  if (targetEventType) {
+                    void reorderEventTypes(type.id, targetEventType.id);
+                  }
+                }}
                 className={classNames(
-                  "relative h-full overflow-hidden rounded-xl border bg-default shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emphasis hover:shadow-md motion-reduce:transform-none",
+                  "relative h-full cursor-grab overflow-hidden rounded-xl border bg-default shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emphasis hover:shadow-md active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emphasis motion-reduce:transform-none",
                   isFeatured ? "border-emphasis" : "border-subtle",
+                  readOnly && "cursor-default",
                   draggedEventTypeId === type.id && "opacity-50",
                   dragOverEventTypeId === type.id && draggedEventTypeId !== type.id && "ring-2 ring-emphasis"
                 )}>
@@ -643,41 +642,7 @@ export const InfiniteEventTypeList = ({
                         {t(isFeatured ? "first_on_public_page" : "follows_template_above")}
                       </span>
                     </div>
-                    <div className="flex items-start gap-3">
-                      {!readOnly && (
-                        <button
-                          type="button"
-                          draggable
-                          aria-label={t("drag_booking_type", { title: type.title })}
-                          className="grid shrink-0 cursor-grab grid-cols-2 gap-1 rounded-md border border-subtle bg-subtle p-2 text-muted transition hover:border-emphasis hover:text-default active:cursor-grabbing"
-                          onDragStart={(event) => {
-                            event.dataTransfer.effectAllowed = "move";
-                            event.dataTransfer.setData("text/plain", String(type.id));
-                            setDraggedEventTypeId(type.id);
-                          }}
-                          onDragEnd={() => {
-                            setDraggedEventTypeId(null);
-                            setDragOverEventTypeId(null);
-                          }}
-                          onKeyDown={(event) => {
-                            if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
-                              return;
-                            }
-                            event.preventDefault();
-                            const increment = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
-                            const targetEventType = orderedEventTypes[flatIndex + increment];
-                            if (targetEventType) {
-                              void reorderEventTypes(type.id, targetEventType.id);
-                            }
-                          }}>
-                          {Array.from({ length: 6 }).map((_, dotIndex) => (
-                            <span
-                              key={dotIndex}
-                              className="h-1 w-1 rounded-full bg-black opacity-60 dark:bg-white"
-                            />
-                          ))}
-                        </button>
-                      )}
+                    <div className="flex items-start">
                       <MemoizedItem type={type} group={group} readOnly={readOnly} isFeatured={isFeatured} />
                     </div>
                     <div className="mt-auto hidden border-subtle border-t pt-4 sm:flex">

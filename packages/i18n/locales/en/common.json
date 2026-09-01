@@ -1162,7 +1162,7 @@
   "booking_link": "Booking link",
   "copy_booking_link": "Copy link",
   "public_page_order": "Candidate-facing order",
-  "public_page_order_description": "This list is the order candidates see. Drag a handle to place an interview template in the flow.",
+  "public_page_order_description": "This list is the order candidates see. Drag an interview template to place it in the flow.",
   "order_saves_automatically": "Saves automatically",
   "first_on_public_page": "Shown first to candidates",
   "follows_template_above": "Shown after the template above",
