@@ -1,15 +1,17 @@
 "use client";
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { trpc } from "@calcom/trpc/react";
 import classNames from "@calcom/ui/classNames";
 import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
 import type { IconName } from "@calcom/ui/components/icon";
 import { RadioAreaGroup } from "@calcom/ui/components/radio";
+import { showToast } from "@calcom/ui/components/toast";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
-import { useEffect, useRef, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { OnboardingCard } from "../components/OnboardingCard";
 import { OnboardingLayout } from "../components/OnboardingLayout";
 import { OnboardingContinuationPrompt } from "../components/onboarding-continuation-prompt";
@@ -24,8 +26,12 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
   const router = useRouter();
   const { t } = useLocale();
   const { selectedPlan, setSelectedPlan, resetOnboardingPreservingPlan } = useOnboardingStore();
+  const [workspaceType, setWorkspaceType] = useState<"recruiting" | "scheduling" | null>(null);
   const previousPlanRef = useRef<PlanType | null>(null);
   const [isPending, startTransition] = useTransition();
+  const updateProfile = trpc.viewer.me.updateProfile.useMutation({
+    onError: () => showToast(t("something_went_wrong"), "error"),
+  });
   const hasTeamMembership = false;
   const isPendingMembership = false;
 
@@ -68,10 +74,15 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
     previousPlanRef.current = selectedPlan;
   }, [selectedPlan]);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    if (!workspaceType) return;
+
+    await updateProfile.mutateAsync({ metadata: { workspaceType } });
+
     if (selectedPlan) {
       posthog.capture("onboarding_plan_continue_clicked", {
         plan_type: selectedPlan,
+        workspace_type: workspaceType,
       });
     }
     startTransition(() => {
@@ -152,13 +163,60 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
                 color="primary"
                 className="rounded-[10px]"
                 onClick={handleContinue}
-                disabled={isPending}>
-                {isPending ? t("loading") : t("continue")}
+                disabled={isPending || updateProfile.isPending || !workspaceType}>
+                {isPending || updateProfile.isPending ? t("loading") : t("continue")}
               </Button>
             </div>
           }>
-          {/* Card */}
-          <div className="relative flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-muted bg-cal-muted p-1">
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="font-semibold text-emphasis text-sm">{t("onboarding_workspace_title")}</p>
+              <p className="mt-1 text-sm text-subtle">{t("onboarding_workspace_description")}</p>
+            </div>
+            <RadioAreaGroup.Group
+              value={workspaceType ?? undefined}
+              onValueChange={(value) => {
+                const nextWorkspaceType = value as "recruiting" | "scheduling";
+                setWorkspaceType(nextWorkspaceType);
+                posthog.capture("onboarding_workspace_selected", { workspace_type: nextWorkspaceType });
+              }}
+              className="grid w-full gap-2 sm:grid-cols-2">
+              <RadioAreaGroup.Item
+                value="recruiting"
+                className={classNames(
+                  "relative overflow-hidden rounded-xl border bg-default transition",
+                  workspaceType === "recruiting" ? "border-emphasis shadow-sm" : "border-subtle",
+                  "[&>button]:right-4 [&>button]:top-4"
+                )}
+                classNames={{ container: "flex min-h-32 w-full flex-col gap-2 p-4 pr-10" }}>
+                <Badge variant="purple" size="sm" className="w-fit rounded-md">
+                  {t("onboarding_workspace_recruiting_badge")}
+                </Badge>
+                <p className="font-semibold text-emphasis text-sm">
+                  {t("onboarding_workspace_recruiting_title")}
+                </p>
+                <p className="text-sm text-subtle">{t("onboarding_workspace_recruiting_description")}</p>
+              </RadioAreaGroup.Item>
+              <RadioAreaGroup.Item
+                value="scheduling"
+                className={classNames(
+                  "relative overflow-hidden rounded-xl border bg-default transition",
+                  workspaceType === "scheduling" ? "border-emphasis shadow-sm" : "border-subtle",
+                  "[&>button]:right-4 [&>button]:top-4"
+                )}
+                classNames={{ container: "flex min-h-32 w-full flex-col gap-2 p-4 pr-10" }}>
+                <Badge variant="gray" size="sm" className="w-fit rounded-md">
+                  {t("onboarding_workspace_scheduling_badge")}
+                </Badge>
+                <p className="font-semibold text-emphasis text-sm">
+                  {t("onboarding_workspace_scheduling_title")}
+                </p>
+                <p className="text-sm text-subtle">{t("onboarding_workspace_scheduling_description")}</p>
+              </RadioAreaGroup.Item>
+            </RadioAreaGroup.Group>
+          </div>
+
+          <div className="relative mt-6 flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-muted bg-cal-muted p-1">
             <div className="flex w-full flex-col items-start overflow-clip rounded-inherit">
               {/* Plan options */}
               <RadioAreaGroup.Group

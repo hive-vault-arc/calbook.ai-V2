@@ -229,4 +229,18 @@ describe("getHandler - identity provider email lookup", () => {
 
     expect(result.identityProviderEmail).toBe("");
   });
+
+  it("returns the scheduling workspace type from user metadata", async () => {
+    const ctx = createCtx({ metadata: { workspaceType: "scheduling" } });
+
+    const result = await getHandler({ ctx, input: {} });
+
+    expect(result.workspaceType).toBe("scheduling");
+  });
+
+  it("defaults existing users to the recruiting workspace", async () => {
+    const result = await getHandler({ ctx: createCtx(), input: {} });
+
+    expect(result.workspaceType).toBe("recruiting");
+  });
 });

@@ -150,6 +150,7 @@ export const getHandler = async ({ ctx, input }: MeOptions) => {
     ...profileData,
     secondaryEmails,
     isPremium: userMetadataPrased?.isPremium,
+    workspaceType: userMetadataPrased?.workspaceType ?? "recruiting",
     ...(passwordAdded ? { passwordAdded } : {}),
     canUpdateTeams,
   };

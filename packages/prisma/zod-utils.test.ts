@@ -1,7 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import z from "zod";
-
-import { excludeOrRequireEmailSchema } from "./zod-utils";
+import { excludeOrRequireEmailSchema, userMetadata } from "./zod-utils";
 
 describe("excludeOrRequireEmailSchema", () => {
   const parse = (input: string) => z.object({ v: excludeOrRequireEmailSchema }).safeParse({ v: input });
@@ -87,5 +86,16 @@ describe("excludeOrRequireEmailSchema", () => {
     it("rejects Unicode domains (ASCII-only)", () => {
       expect(parse("münchen.de").success).toBe(false);
     });
+  });
+});
+
+describe("userMetadata workspace type", () => {
+  it("accepts supported workspace types", () => {
+    expect(userMetadata.safeParse({ workspaceType: "recruiting" }).success).toBe(true);
+    expect(userMetadata.safeParse({ workspaceType: "scheduling" }).success).toBe(true);
+  });
+
+  it("rejects unsupported workspace types", () => {
+    expect(userMetadata.safeParse({ workspaceType: "admin" }).success).toBe(false);
   });
 });

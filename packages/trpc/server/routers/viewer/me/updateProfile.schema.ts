@@ -6,11 +6,13 @@ import { z } from "zod";
 export type TUpdateUserMetadataAllowedKeys = {
   sessionTimeout?: number;
   defaultBookerLayouts?: z.infer<typeof bookerLayouts>;
+  workspaceType?: "recruiting" | "scheduling";
 };
 
 export const updateUserMetadataAllowedKeys: z.ZodType<TUpdateUserMetadataAllowedKeys> = z.object({
   sessionTimeout: z.number().optional(), // Minutes
   defaultBookerLayouts: bookerLayouts.optional(),
+  workspaceType: z.enum(["recruiting", "scheduling"]).optional(),
 });
 
 export type TUpdateProfileInputSchemaInput = {

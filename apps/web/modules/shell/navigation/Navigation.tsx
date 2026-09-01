@@ -1,5 +1,6 @@
 import { useIsEmbed } from "@calcom/embed-core/embed-iframe";
 import { useIsStandalone } from "@calcom/lib/hooks/useIsStandalone";
+import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 import classNames from "@calcom/ui/classNames";
 import { useSession } from "next-auth/react";
 import { useMemo } from "react";
@@ -11,14 +12,14 @@ import { useMobileMoreItems } from "./useMobileMoreItems";
 
 export const MORE_SEPARATOR_NAME = "more";
 
-const getNavigationItems = (): NavigationItemType[] => [
+const getNavigationItems = (workspaceType: "recruiting" | "scheduling"): NavigationItemType[] => [
   {
     name: "home",
     href: "/home",
     icon: "layout-dashboard",
   },
   {
-    name: "event_types_page_title",
+    name: workspaceType === "recruiting" ? "event_types_page_title" : "scheduling_event_types",
     href: "/event-types",
     icon: "link",
   },
@@ -69,8 +70,11 @@ const getNavigationItems = (): NavigationItemType[] => [
 ];
 
 const useNavigationItems = () => {
+  const { data: user } = useMeQuery();
+  const workspaceType = user?.workspaceType === "scheduling" ? "scheduling" : "recruiting";
+
   return useMemo(() => {
-    const items = getNavigationItems();
+    const items = getNavigationItems(workspaceType);
 
     const desktopNavigationItems = items.filter((item) => item.name !== MORE_SEPARATOR_NAME);
     const mobileNavigationBottomItems = items.filter(
@@ -85,7 +89,7 @@ const useNavigationItems = () => {
       mobileNavigationBottomItems,
       mobileNavigationMoreItems,
     };
-  }, []);
+  }, [workspaceType]);
 };
 
 export const Navigation = () => {

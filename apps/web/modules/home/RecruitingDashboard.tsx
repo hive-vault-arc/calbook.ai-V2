@@ -45,8 +45,15 @@ const DashboardMetric = ({
   );
 };
 
-export const RecruitingDashboard = ({ userName }: { userName: string }): ReactElement => {
+export const RecruitingDashboard = ({
+  userName,
+  workspaceType,
+}: {
+  userName: string;
+  workspaceType: "recruiting" | "scheduling";
+}): ReactElement => {
   const { t, i18n } = useLocale();
+  const isRecruitingWorkspace = workspaceType === "recruiting";
   const todayStart = startOfToday().toISOString();
   const todayEnd = endOfToday().toISOString();
   const now = new Date().toISOString();
@@ -107,8 +114,14 @@ export const RecruitingDashboard = ({ userName }: { userName: string }): ReactEl
   } else {
     interviewContent = (
       <div className="px-5 py-12 text-center">
-        <p className="font-semibold text-default">{t("no_upcoming_interviews")}</p>
-        <p className="mt-2 text-sm text-subtle">{t("no_upcoming_interviews_description")}</p>
+        <p className="font-semibold text-default">
+          {t(isRecruitingWorkspace ? "no_upcoming_interviews" : "no_upcoming_meetings")}
+        </p>
+        <p className="mt-2 text-sm text-subtle">
+          {t(
+            isRecruitingWorkspace ? "no_upcoming_interviews_description" : "no_upcoming_meetings_description"
+          )}
+        </p>
       </div>
     );
   }
@@ -118,27 +131,35 @@ export const RecruitingDashboard = ({ userName }: { userName: string }): ReactEl
       <section className="overflow-hidden rounded-2xl border border-subtle bg-default shadow-sm">
         <div className="border-subtle border-b bg-[radial-gradient(circle_at_top_right,_rgba(139,92,246,0.16),_transparent_42%)] px-6 py-7 md:px-8 md:py-9">
           <div className="max-w-2xl">
-            <Badge variant="purple" className="mb-4">
-              {t("recruiting_workspace")}
+            <Badge variant={isRecruitingWorkspace ? "purple" : "gray"} className="mb-4">
+              {t(isRecruitingWorkspace ? "recruiting_workspace" : "scheduling_workspace")}
             </Badge>
             <h1 className="font-cal font-semibold text-3xl text-emphasis tracking-tight md:text-4xl">
               {t("welcome_back_name", { name: userName })}
             </h1>
             <p className="mt-3 max-w-xl text-default text-sm leading-6 md:text-base">
-              {t("recruiting_dashboard_description")}
+              {t(
+                isRecruitingWorkspace
+                  ? "recruiting_dashboard_description"
+                  : "scheduling_dashboard_description"
+              )}
             </p>
           </div>
         </div>
         <div className="grid gap-4 bg-subtle p-4 md:grid-cols-3 md:p-6">
           <DashboardMetric
-            label={t("interviews_today")}
+            label={t(isRecruitingWorkspace ? "interviews_today" : "meetings_today")}
             value={todaysInterviews.data?.totalCount}
-            description={t("interviews_today_description")}
+            description={t(
+              isRecruitingWorkspace ? "interviews_today_description" : "meetings_today_description"
+            )}
           />
           <DashboardMetric
-            label={t("upcoming_interviews")}
+            label={t(isRecruitingWorkspace ? "upcoming_interviews" : "upcoming_meetings")}
             value={upcomingInterviews.data?.totalCount}
-            description={t("upcoming_interviews_description")}
+            description={t(
+              isRecruitingWorkspace ? "upcoming_interviews_description" : "upcoming_meetings_description"
+            )}
           />
           <DashboardMetric
             label={t("needs_confirmation")}
@@ -152,8 +173,12 @@ export const RecruitingDashboard = ({ userName }: { userName: string }): ReactEl
         <div>
           <div className="flex items-center justify-between border-subtle border-b px-5 py-4">
             <div>
-              <h2 className="font-cal font-semibold text-emphasis text-lg">{t("next_interviews")}</h2>
-              <p className="mt-1 text-sm text-subtle">{t("next_interviews_description")}</p>
+              <h2 className="font-cal font-semibold text-emphasis text-lg">
+                {t(isRecruitingWorkspace ? "next_interviews" : "next_meetings")}
+              </h2>
+              <p className="mt-1 text-sm text-subtle">
+                {t(isRecruitingWorkspace ? "next_interviews_description" : "next_meetings_description")}
+              </p>
             </div>
             <Button color="minimal" href="/bookings/upcoming">
               {t("view_all")}
