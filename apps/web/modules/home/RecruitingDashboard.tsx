@@ -117,24 +117,16 @@ export const RecruitingDashboard = ({ userName }: { userName: string }): ReactEl
     <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-10">
       <section className="overflow-hidden rounded-2xl border border-subtle bg-default shadow-sm">
         <div className="border-subtle border-b bg-[radial-gradient(circle_at_top_right,_rgba(139,92,246,0.16),_transparent_42%)] px-6 py-7 md:px-8 md:py-9">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-2xl">
-              <Badge variant="purple" className="mb-4">
-                {t("recruiting_workspace")}
-              </Badge>
-              <h1 className="font-cal font-semibold text-3xl text-emphasis tracking-tight md:text-4xl">
-                {t("welcome_back_name", { name: userName })}
-              </h1>
-              <p className="mt-3 max-w-xl text-default text-sm leading-6 md:text-base">
-                {t("recruiting_dashboard_description")}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button color="secondary" href="/event-types">
-                {t("view_interview_templates")}
-              </Button>
-              <Button href="/event-types?dialog=new">{t("create_interview_template")}</Button>
-            </div>
+          <div className="max-w-2xl">
+            <Badge variant="purple" className="mb-4">
+              {t("recruiting_workspace")}
+            </Badge>
+            <h1 className="font-cal font-semibold text-3xl text-emphasis tracking-tight md:text-4xl">
+              {t("welcome_back_name", { name: userName })}
+            </h1>
+            <p className="mt-3 max-w-xl text-default text-sm leading-6 md:text-base">
+              {t("recruiting_dashboard_description")}
+            </p>
           </div>
         </div>
         <div className="grid gap-4 bg-subtle p-4 md:grid-cols-3 md:p-6">
@@ -156,8 +148,8 @@ export const RecruitingDashboard = ({ userName }: { userName: string }): ReactEl
         </div>
       </section>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
-        <div className="rounded-xl border border-subtle bg-default shadow-sm">
+      <section className="mt-8 rounded-xl border border-subtle bg-default shadow-sm">
+        <div>
           <div className="flex items-center justify-between border-subtle border-b px-5 py-4">
             <div>
               <h2 className="font-cal font-semibold text-emphasis text-lg">{t("next_interviews")}</h2>
@@ -169,21 +161,6 @@ export const RecruitingDashboard = ({ userName }: { userName: string }): ReactEl
           </div>
           {interviewContent}
         </div>
-
-        <aside className="rounded-xl border border-subtle bg-default p-5 shadow-sm">
-          <p className="font-medium text-subtle text-xs uppercase tracking-[0.14em]">{t("quick_actions")}</p>
-          <div className="mt-4 space-y-3">
-            <Button className="w-full justify-start" href="/event-types?dialog=new" StartIcon="plus">
-              {t("create_interview_template")}
-            </Button>
-            <Button className="w-full justify-start" color="secondary" href="/apps" StartIcon="grid-3x3">
-              {t("manage_integrations")}
-            </Button>
-            <Button className="w-full justify-start" color="secondary" href="/availability" StartIcon="clock">
-              {t("set_interview_availability")}
-            </Button>
-          </div>
-        </aside>
       </section>
     </main>
   );

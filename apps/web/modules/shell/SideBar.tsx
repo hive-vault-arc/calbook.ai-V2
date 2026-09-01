@@ -60,7 +60,7 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
       <aside
         style={sidebarStylingAttributes}
         className={classNames(
-          "fixed left-0 hidden h-full w-14 flex-col overflow-y-auto overflow-x-hidden border-muted border-r bg-cal-muted md:sticky md:flex lg:w-56 lg:px-3",
+          "fixed left-0 hidden h-full w-14 flex-col overflow-y-auto overflow-x-hidden border-muted border-r bg-default md:sticky md:flex lg:w-60 lg:px-3",
           "max-h-screen"
         )}>
         <div className="flex h-full flex-col justify-between py-3 lg:pt-4">
@@ -130,8 +130,8 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
                 target={item.target}
                 className={classNames(
                   "text-left",
-                  "justify-right group flex items-center rounded-md px-2 py-1.5 font-medium text-default text-sm transition [&[aria-current='page']]:bg-emphasis",
-                  "mt-0.5 w-full text-sm [&[aria-current='page']]:text-emphasis",
+                  "group flex items-center justify-start rounded-lg px-2.5 py-2 font-medium text-default text-sm transition-colors [&[aria-current='page']]:bg-purple-100 [&[aria-current='page']]:text-purple-700",
+                  "mt-0.5 w-full text-sm dark:[&[aria-current='page']]:bg-purple-500/15 dark:[&[aria-current='page']]:text-purple-300",
                   isLocaleReady ? "hover:bg-subtle hover:text-emphasis" : "",
                   index === 0 && "mt-3"
                 )}
