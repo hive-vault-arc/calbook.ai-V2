@@ -6,6 +6,7 @@ import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
 import { SkeletonText } from "@calcom/ui/components/skeleton";
 import type { ReactElement } from "react";
+import { useMemo } from "react";
 
 const startOfToday = (): Date => {
   const today = new Date();
@@ -54,17 +55,26 @@ export const RecruitingDashboard = ({
 }): ReactElement => {
   const { t, i18n } = useLocale();
   const isRecruitingWorkspace = workspaceType === "recruiting";
-  const todayStart = startOfToday().toISOString();
-  const todayEnd = endOfToday().toISOString();
-  const now = new Date().toISOString();
+  const bookingWindow = useMemo(
+    () => ({
+      now: new Date().toISOString(),
+      todayStart: startOfToday().toISOString(),
+      todayEnd: endOfToday().toISOString(),
+    }),
+    []
+  );
 
   const upcomingInterviews = trpc.viewer.bookings.get.useQuery({
-    filters: { statuses: ["upcoming"], afterStartDate: now },
+    filters: { statuses: ["upcoming"], afterStartDate: bookingWindow.now },
     limit: 5,
     sort: { sortStart: "asc" },
   });
   const todaysInterviews = trpc.viewer.bookings.get.useQuery({
-    filters: { statuses: ["upcoming"], afterStartDate: todayStart, beforeEndDate: todayEnd },
+    filters: {
+      statuses: ["upcoming"],
+      afterStartDate: bookingWindow.todayStart,
+      beforeEndDate: bookingWindow.todayEnd,
+    },
     limit: 1,
   });
   const interviewsNeedingConfirmation = trpc.viewer.bookings.get.useQuery({
@@ -80,6 +90,15 @@ export const RecruitingDashboard = ({
         <SkeletonText className="h-5 w-2/3" />
         <SkeletonText className="h-5 w-1/2" />
         <SkeletonText className="h-5 w-3/4" />
+      </div>
+    );
+  } else if (upcomingInterviews.isError) {
+    interviewContent = (
+      <div className="px-5 py-12 text-center">
+        <p className="font-semibold text-default">{t("something_went_wrong")}</p>
+        <Button color="secondary" className="mt-4" onClick={() => upcomingInterviews.refetch()}>
+          {t("try_again")}
+        </Button>
       </div>
     );
   } else if (interviews.length) {

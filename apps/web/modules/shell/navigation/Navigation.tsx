@@ -12,6 +12,11 @@ import { useMobileMoreItems } from "./useMobileMoreItems";
 
 export const MORE_SEPARATOR_NAME = "more";
 
+const hasSchedulingWorkspace = (metadata: unknown): boolean => {
+  if (typeof metadata !== "object" || metadata === null || !("workspaceType" in metadata)) return false;
+  return metadata.workspaceType === "scheduling";
+};
+
 const getNavigationItems = (workspaceType: "recruiting" | "scheduling"): NavigationItemType[] => [
   {
     name: "home",
@@ -71,7 +76,7 @@ const getNavigationItems = (workspaceType: "recruiting" | "scheduling"): Navigat
 
 const useNavigationItems = () => {
   const { data: user } = useMeQuery();
-  const workspaceType = user?.workspaceType === "scheduling" ? "scheduling" : "recruiting";
+  const workspaceType = hasSchedulingWorkspace(user?.metadata) ? "scheduling" : "recruiting";
 
   return useMemo(() => {
     const items = getNavigationItems(workspaceType);
