@@ -326,8 +326,12 @@ export const InfiniteEventTypeList = ({
   const mutation = trpc.viewer.loggedInViewerRouter.eventTypeOrder.useMutation({
     onError: async (err) => {
       console.error(err.message);
-      // REVIEW: Should we invalidate the entire router or just the `getByViewer` query?
-      await utils.viewer.eventTypes.getEventTypesFromGroup.cancel();
+      await utils.viewer.eventTypes.getEventTypesFromGroup.invalidate({
+        limit: LIMIT,
+        searchQuery: debouncedSearchTerm,
+        group: { teamId: group?.teamId, parentId: group?.parentId },
+      });
+      showToast(t("event_type_order_failed"), "error");
     },
   });
 
@@ -577,7 +581,7 @@ export const InfiniteEventTypeList = ({
       </div>
       <ul
         ref={parent}
-        className="static! grid w-full grid-cols-1 gap-4 lg:grid-cols-2"
+        className="static! relative flex w-full flex-col gap-3 before:absolute before:top-7 before:bottom-7 before:left-7 before:w-px before:bg-subtle"
         data-testid="event-types">
         {pages.map((page) => {
           return page?.eventTypes?.map((type) => {
@@ -616,13 +620,29 @@ export const InfiniteEventTypeList = ({
                   setDragOverEventTypeId(null);
                 }}
                 className={classNames(
-                  "h-full overflow-hidden rounded-xl border bg-default shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emphasis hover:shadow-md motion-reduce:transform-none",
+                  "relative h-full overflow-hidden rounded-xl border bg-default shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emphasis hover:shadow-md motion-reduce:transform-none",
                   isFeatured ? "border-emphasis" : "border-subtle",
                   draggedEventTypeId === type.id && "opacity-50",
                   dragOverEventTypeId === type.id && draggedEventTypeId !== type.id && "ring-2 ring-emphasis"
                 )}>
                 <div className="relative flex h-full w-full flex-col transition hover:bg-cal-muted">
                   <div className="group relative flex h-full w-full max-w-full flex-col overflow-hidden px-5 py-5">
+                    <div className="relative z-10 mb-4 flex items-center gap-2">
+                      <span
+                        className={classNames(
+                          "h-3 w-3 shrink-0 rounded-full border-2 border-default ring-1",
+                          isFeatured ? "bg-emphasis ring-emphasis" : "bg-subtle ring-subtle"
+                        )}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className={classNames(
+                          "font-medium text-xs",
+                          isFeatured ? "text-emphasis" : "text-subtle"
+                        )}>
+                        {t(isFeatured ? "first_on_public_page" : "follows_template_above")}
+                      </span>
+                    </div>
                     <div className="flex items-start gap-3">
                       {!readOnly && (
                         <button
