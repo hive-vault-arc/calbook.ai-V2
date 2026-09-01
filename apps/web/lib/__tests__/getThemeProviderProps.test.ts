@@ -27,17 +27,20 @@ describe("getThemeProviderProps", () => {
       nonce: "test-nonce",
       enableColorScheme: false,
     };
+    const forcedLightAppThemeExpectedProps = {
+      ...appThemeExpectedProps,
+      storageKey: "forcedThemeKey",
+      key: "forcedThemeKey",
+      forcedTheme: "light",
+      enableSystem: false,
+    };
 
-    it("should return app theme configuration when not in booking page or embed mode", () => {
+    it("should force the app workspace to light mode when not in booking page or embed mode", () => {
       const result = getThemeProviderProps({
         ...fnArg,
         pathname: "/test",
       });
-      expect(result).toEqual({
-        forcedTheme: undefined,
-        enableSystem: true,
-        ...appThemeExpectedProps,
-      });
+      expect(result).toEqual(forcedLightAppThemeExpectedProps);
     });
 
     it("should force light theme and no storageKey and system theme support is required when isThemeSupported is false", () => {
@@ -50,16 +53,10 @@ describe("getThemeProviderProps", () => {
         },
       });
 
-      expect(result).toEqual({
-        ...appThemeExpectedProps,
-        storageKey: "forcedThemeKey",
-        key: "forcedThemeKey",
-        forcedTheme: "light",
-        enableSystem: false,
-      });
+      expect(result).toEqual(forcedLightAppThemeExpectedProps);
     });
 
-    it("should not force theme when isThemeSupported is not explicitly set", () => {
+    it("should keep the app workspace light when theme support is not explicitly set", () => {
       const result = getThemeProviderProps({
         ...fnArg,
         pathname: "/test",
@@ -69,11 +66,7 @@ describe("getThemeProviderProps", () => {
         },
       });
 
-      expect(result).toEqual({
-        ...appThemeExpectedProps,
-        forcedTheme: undefined,
-        enableSystem: true,
-      });
+      expect(result).toEqual(forcedLightAppThemeExpectedProps);
     });
   });
 

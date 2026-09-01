@@ -98,7 +98,12 @@ export function getThemeProviderProps({
   const themeQueryParam = searchParams?.get("theme") ?? "";
   const themeParsed = z.enum(["light", "dark", "system", "auto"]).safeParse(themeQueryParam);
   const isWrongThemeValue = themeQueryParam.length > 0 && !themeParsed.success;
-  const forcedTheme = themeSupport === ThemeSupport.None || isWrongThemeValue ? "light" : undefined;
+  const forcedTheme =
+    themeSupport === ThemeSupport.None ||
+    (themeSupport === ThemeSupport.App && !isEmbedMode) ||
+    isWrongThemeValue
+      ? "light"
+      : undefined;
   if (forcedTheme) {
     return {
       key: "forcedThemeKey",
@@ -107,7 +112,7 @@ export function getThemeProviderProps({
       attribute: "class",
       nonce: props.nonce,
       enableColorScheme: false,
-      enableSystem: themeSupport !== ThemeSupport.None,
+      enableSystem: false,
     };
   }
 
