@@ -1,8 +1,10 @@
 import { getLocale } from "@calcom/features/auth/lib/getLocale";
 import { loadTranslations } from "@calcom/i18n/server";
+import { WEBAPP_URL } from "@calcom/lib/constants";
 import { IconSprites } from "@calcom/ui/components/icon";
 import { buildLegacyRequest } from "@lib/buildLegacyCtx";
 import { dir } from "i18next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
@@ -42,7 +44,14 @@ export const viewport = {
   ],
 };
 
-export const metadata = {
+export const metadata: Metadata = {
+  metadataBase: new URL(WEBAPP_URL),
+  title: {
+    default: "CalBook.ai | Interview Scheduling for Recruitment Teams",
+    template: "%s | CalBook.ai",
+  },
+  description:
+    "Interview scheduling, calendar coordination, and candidate follow-through for recruitment teams.",
   icons: {
     icon: "/api/logo?type=favicon-32",
     apple: "/api/logo?type=apple-touch-icon",

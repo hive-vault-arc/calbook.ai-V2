@@ -1,7 +1,7 @@
 {
     "name": "CalBook.ai",
     "short_name": "CalBook",
-    "description": "Scheduling that helps professionals turn time into momentum.",
+    "description": "Interview scheduling for recruitment teams.",
     "icons": [
         {
             "src": "/api/logo?type=android-chrome-192",

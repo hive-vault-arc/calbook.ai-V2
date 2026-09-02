@@ -285,6 +285,8 @@ Ship CalBook.ai as a production SaaS for recruitment agencies: authenticated onb
 
 ## Work items
 
+- [~] **R0.9 Acquisition and SEO foundation** — The public root now has recruiter-first messaging, canonical and social metadata, a crawler policy, and a sitemap. Remaining: replace the intentional black product-media slots with real approved CalBook screenshots and publish legally reviewed Terms, Privacy, and support contact details before launch.
+
 - [x] **A5.6.1 Curate the integration catalog** — `/apps` is now labelled Integrations and only lists the five V1 calendar/video providers. Direct category listings apply the same allow-list. Navigation and command search use the new terminology. Focused catalog tests pass.
 - [x] **A5.6.2 Reframe booking types as interview templates** — Main navigation, metadata, creation flow, empty states, drag-and-drop ordering guidance, and the focused Playwright heading assertion now use recruiter-oriented copy without changing the underlying scheduling model.
 - [ ] **A5.6.3 Simplify the interview-template workspace** — Validate the list view with agency users; improve scanability of duration, interview format, hosts, and candidate-facing link; keep first/template ordering obvious.

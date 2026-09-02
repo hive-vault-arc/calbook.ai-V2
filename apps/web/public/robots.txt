@@ -1,6 +1,12 @@
 User-agent: *
 Disallow: /sandbox
 Disallow: /api
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /home
+Disallow: /event-types
+Disallow: /bookings
 Disallow: /settings
 Disallow: /settings/my-account
 
@@ -8,3 +14,5 @@ Disallow: /settings/my-account
 Allow: /api/social/og/image
 # Specifically allow access to api/app-store to allow search engines to fetch assets
 Allow: /api/app-store/
+
+Sitemap: /sitemap.xml

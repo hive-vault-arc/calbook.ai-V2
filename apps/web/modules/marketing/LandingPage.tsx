@@ -25,22 +25,22 @@ const landingStyle: LandingStyle = {
 
 const benefits = [
   {
-    title: "Sell time without chasing payment",
+    title: "Move interviews out of the inbox",
     description:
-      "Collect payment or a deposit as part of the booking, before the meeting reaches your calendar.",
-    detail: "Paid bookings",
+      "Give candidates a clear scheduling link instead of asking recruiters to coordinate every reply, reminder, and reschedule by hand.",
+    detail: "Candidate self-scheduling",
   },
   {
-    title: "Protect the hours you want to keep",
+    title: "Keep every interviewer in sync",
     description:
-      "Control schedules, buffers, notice periods, and booking limits without exposing your whole calendar.",
-    detail: "Availability rules",
+      "Check connected calendars before a time is offered, then carry the right meeting details into each confirmed interview.",
+    detail: "Calendar coordination",
   },
   {
-    title: "Make every confirmation feel complete",
+    title: "Make the next step obvious",
     description:
-      "Send calendar invitations, meeting details, and reminders from one dependable booking flow.",
-    detail: "Automatic follow-through",
+      "From the interview template to the confirmation email, candidates always know what they booked and what happens next.",
+    detail: "Reliable follow-through",
   },
 ];
 
@@ -50,24 +50,24 @@ const faqs = [
     "Yes. The Free plan lets you create a booking page and connect your calendar before choosing a paid plan.",
   ],
   [
-    "Can clients pay when they book?",
-    "Yes. Paid event types can collect a session fee or deposit during the booking flow.",
+    "Can candidates schedule their own interview?",
+    "Yes. Share an interview link or embed it on your site and candidates can choose from the times your team has made available.",
   ],
   [
     "Will CalBook prevent double bookings?",
-    "Connected calendars are checked before availability is shown, so occupied times are not offered to clients.",
+    "Connected calendars are checked before availability is shown, so occupied times are not offered to candidates.",
   ],
   [
     "Does it work with Google Calendar?",
     "Yes. Users connect their own Google account through OAuth; they do not need to provide an API key.",
   ],
   [
-    "Can I use my own video meeting link?",
-    "Yes. Calendar and conferencing integrations can add meeting details to the booking and invitation.",
+    "Can we use Google Meet, Microsoft Teams, or Zoom?",
+    "Yes. CalBook keeps the meeting experience consistent and carries the correct provider details into the candidate invitation.",
   ],
   [
-    "Can I cancel later?",
-    "Paid plans are intended to be flexible. Final billing and cancellation terms will be published before production launch.",
+    "Is CalBook built for recruitment teams?",
+    "Yes. The V1 workflow is intentionally focused on interview templates, candidate scheduling, recruiter operations, and the integrations teams use every day.",
   ],
 ] as const;
 
@@ -141,22 +141,22 @@ export function LandingPage(): ReactElement {
         <div>
           <p
             className={`${styles.heroEyebrow} text-xs font-bold uppercase tracking-widest text-brand-default`}>
-            Scheduling and paid bookings for independent work
+            Interview scheduling for recruitment teams
           </p>
           <h1
             className={`${styles.heroTitle} font-cal mt-6 max-w-2xl text-5xl leading-none tracking-tight text-slate-950 sm:text-6xl lg:text-7xl`}>
-            Turn available time into booked, paid work.
+            Let candidates schedule the next interview—without the back-and-forth.
           </h1>
           <p className={`${styles.heroCopy} mt-7 max-w-xl text-lg leading-8 text-slate-600`}>
-            Give clients one polished place to choose a service, find a time, and pay. CalBook protects your
-            calendar and keeps every meeting moving.
+            Build interview templates your team can trust, share a candidate-ready link, and keep calendars,
+            meeting details, and confirmations moving together.
           </p>
           <div
             className={`${styles.heroActions} mt-9 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center`}>
             <a
               href="/signup"
               className={`${styles.primaryButton} group inline-flex min-h-14 w-full items-center justify-center gap-3 whitespace-nowrap rounded-full bg-brand px-8 py-3.5 text-base font-semibold leading-6 text-white shadow-xl transition hover:-translate-y-1 hover:bg-brand-emphasis sm:w-auto`}>
-              Build your booking page{" "}
+              Create an interview template{" "}
               <Icon name="arrow-right" className="h-4 w-4 transition group-hover:translate-x-1" />
             </a>
             <a
@@ -166,28 +166,28 @@ export function LandingPage(): ReactElement {
             </a>
           </div>
           <p className={`${styles.heroActions} mt-5 text-sm text-slate-500`}>
-            Free to start · No credit card required
+            Free to start · Built for your first interview workflow
           </p>
           <div
             className={`${styles.heroProof} mt-9 grid max-w-xl grid-cols-3 border-y border-subtle py-5 text-sm`}>
             <div>
-              <p className="font-semibold text-slate-950">Google Calendar</p>
+              <p className="font-semibold text-slate-950">Candidate links</p>
+              <p className="mt-1 text-xs text-slate-500">Shareable</p>
+            </div>
+            <div>
+              <p className="font-semibold text-slate-950">Calendar checks</p>
               <p className="mt-1 text-xs text-slate-500">Connected</p>
             </div>
             <div>
-              <p className="font-semibold text-slate-950">Email invites</p>
-              <p className="mt-1 text-xs text-slate-500">Delivered</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-950">Open source</p>
-              <p className="mt-1 text-xs text-slate-500">Built to own</p>
+              <p className="font-semibold text-slate-950">Email follow-up</p>
+              <p className="mt-1 text-xs text-slate-500">Automated</p>
             </div>
           </div>
         </div>
         <div id="demo" className={`${styles.mediaFrame} relative p-3 shadow-2xl ring-1 ring-slate-200`}>
           <MediaPlaceholder label="Hero product demo / screenshot" tall />
           <span className="absolute -bottom-4 -left-4 rounded-full bg-brand px-4 py-2 text-xs font-bold text-white shadow-lg">
-            Replace with app demo
+            Add your product demo
           </span>
         </div>
       </section>
@@ -202,12 +202,12 @@ export function LandingPage(): ReactElement {
                 Built around the booking
               </p>
               <h2 className="font-cal mt-5 max-w-xl text-4xl leading-tight tracking-tight sm:text-5xl">
-                Your calendar, payment, and follow-up. One booking flow.
+                Your interview templates, calendars, and follow-up. One booking flow.
               </h2>
             </div>
             <p className="max-w-lg text-lg leading-8 text-slate-600 lg:justify-self-end">
-              Clients choose a service and a time. CalBook takes care of availability, payment, invitations,
-              and the details that usually become admin work.
+              Candidates choose a time. CalBook takes care of availability, invitations, meeting details, and
+              the scheduling admin that slows a hiring process down.
             </p>
           </div>
           <div
@@ -238,14 +238,14 @@ export function LandingPage(): ReactElement {
               See the product in context
             </p>
             <h2 className="font-cal mt-5 text-4xl leading-tight sm:text-5xl">
-              Show the real app. Let the product earn trust.
+              Show the real workflow. Let the product earn trust.
             </h2>
           </div>
           <div
             className={`${styles.scrollReveal} ${styles.scrollRevealDelay} mt-12 grid gap-6 lg:grid-cols-3`}
             data-calbook-reveal>
             <div className="lg:col-span-2">
-              <MediaPlaceholder label="Event types page screenshot" />
+              <MediaPlaceholder label="Interview templates screenshot" />
             </div>
             <MediaPlaceholder label="Mobile booking flow screenshot" />
           </div>
@@ -285,11 +285,11 @@ export function LandingPage(): ReactElement {
               Straightforward pricing
             </p>
             <h2 className="font-cal mt-5 max-w-xl text-4xl leading-tight sm:text-5xl">
-              Start free. Upgrade when bookings become business.
+              Start free. Upgrade when interview scheduling becomes a team workflow.
             </h2>
             <p className="mt-6 max-w-md leading-7 text-slate-300">
-              One clear paid plan for professionals who need payment, automation, and stronger control over
-              their booking experience.
+              Start with a dependable candidate scheduling workflow, then unlock the controls your recruitment
+              team needs as hiring volume grows.
             </p>
           </div>
           <div className="grid gap-px bg-slate-700 sm:grid-cols-2">
@@ -297,7 +297,7 @@ export function LandingPage(): ReactElement {
               <p className="text-sm font-semibold text-slate-400">Free</p>
               <p className="font-cal mt-5 text-5xl">$0</p>
               <p className="mt-5 text-sm leading-6 text-slate-300">
-                Booking page, event types, calendar connections, and email confirmations.
+                Interview templates, candidate links, calendar connections, and email confirmations.
               </p>
               <a
                 href="/signup"
@@ -311,12 +311,12 @@ export function LandingPage(): ReactElement {
                 $29<span className="font-sans text-sm">/month</span>
               </p>
               <p className="mt-5 text-sm leading-6 text-brand-muted">
-                Paid bookings, advanced availability, workflows, and custom branding.
+                Advanced availability, team workflows, custom branding, and recruitment-ready controls.
               </p>
               <a
                 href="/signup"
                 className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-semibold leading-5 text-brand-default shadow-lg transition hover:-translate-y-0.5">
-                Start Pro trial <Icon name="arrow-right" className="h-4 w-4" />
+                Explore Pro <Icon name="arrow-right" className="h-4 w-4" />
               </a>
             </article>
           </div>
@@ -355,15 +355,16 @@ export function LandingPage(): ReactElement {
           className={`${styles.finalCta} ${styles.scrollReveal} mx-auto max-w-7xl bg-brand px-6 py-20 text-center text-white sm:px-12`}
           data-calbook-reveal>
           <h2 className="font-cal mx-auto max-w-3xl text-4xl leading-tight sm:text-6xl">
-            Your next client should be able to book you.
+            Your next candidate should be able to book the interview.
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-brand-muted">
-            Create your page, connect your calendar, and share one link. Start without a credit card.
+            Create an interview template, connect your calendar, and share one candidate-ready link. Start
+            without a credit card.
           </p>
           <a
             href="/signup"
             className="mt-9 inline-flex min-h-14 w-full items-center justify-center gap-3 whitespace-nowrap rounded-full bg-white px-9 py-4 text-base font-bold leading-6 text-brand-default shadow-xl transition hover:-translate-y-1 sm:w-auto">
-            Build your booking page <Icon name="arrow-right" className="h-4 w-4" />
+            Create an interview template <Icon name="arrow-right" className="h-4 w-4" />
           </a>
         </div>
       </section>
@@ -374,7 +375,8 @@ export function LandingPage(): ReactElement {
             <div>
               <BrandLockup inverted />
               <p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">
-                Scheduling, payments, and follow-through for professionals who sell their time.
+                Interview scheduling, calendar coordination, and candidate follow-through for recruitment
+                teams.
               </p>
             </div>
             <div>
@@ -406,7 +408,7 @@ export function LandingPage(): ReactElement {
           </div>
           <div className="mt-6 flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <span>© {new Date().getFullYear()} CalBook.ai</span>
-            <span>Scheduling for independent work.</span>
+            <span>Scheduling for recruitment teams.</span>
           </div>
         </div>
       </footer>
