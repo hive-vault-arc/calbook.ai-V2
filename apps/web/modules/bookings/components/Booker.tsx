@@ -483,6 +483,9 @@ const BookerComponent = ({
                 {layout !== BookerLayouts.MONTH_VIEW &&
                   !(layout === "mobile" && bookerState === "booking") && (
                     <div className="mt-auto px-5 py-3">
+                      {!isEmbed && bookerState === "selecting_date" && (
+                        <CandidateBookingProgress {...candidateBookingProgressProps} />
+                      )}
                       <DatePicker
                         classNames={customClassNames?.datePickerCustomClassNames}
                         event={event}
@@ -661,6 +664,9 @@ const BookerComponent = ({
             timeZones={timeZones}
             selectedDate={selectedDate}
           />
+          {!isEmbed && bookerState === "selecting_time" && (
+            <CandidateBookingProgress {...candidateBookingProgressProps} />
+          )}
           <AvailableTimeSlots
             onAvailableTimeSlotSelect={onAvailableTimeSlotSelect}
             customClassNames={customClassNames?.availableTimeSlotsCustomClassNames}

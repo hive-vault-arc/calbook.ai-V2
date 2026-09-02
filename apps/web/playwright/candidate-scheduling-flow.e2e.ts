@@ -13,6 +13,16 @@ test.describe.configure({ mode: "parallel" });
 
 test.afterEach(({ users }) => users.deleteAll());
 
+test("candidate sees booking guidance on mobile", async ({ page, users }) => {
+  await users.create();
+  const [organizer] = users.get();
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto(`/${organizer.username}/30-min`);
+
+  await expect(page.getByTestId("candidate-booking-step")).toContainText("Choose a date");
+});
+
 test("candidate can book, reschedule, and cancel an interview in their timezone", async ({ page, users }) => {
   const candidateTimezone = "America/New_York";
   const candidateEmail = users.trackEmail({ username: "candidate-journey", domain: "example.com" });
