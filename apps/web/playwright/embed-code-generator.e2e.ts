@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { EMBED_LIB_URL, WEBAPP_URL } from "@calcom/lib/constants";
+import { APP_NAME, EMBED_LIB_URL, WEBAPP_URL } from "@calcom/lib/constants";
 import { MembershipRole } from "@calcom/prisma/enums";
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
@@ -342,6 +342,7 @@ async function expectToBeNavigatingToEmbedTypesDialog(
   if (!embedUrl) {
     throw new Error("Couldn't find embedUrl");
   }
+  await expect(page.getByRole("heading", { name: "Share & embed" })).toBeVisible();
   await page.waitForURL((url) => {
     return (
       url.pathname === basePage &&
@@ -400,7 +401,7 @@ async function expectValidHtmlEmbedSnippet(
 ) {
   const embedCode = await page.locator("[data-testid=embed-code]").inputValue();
   expect(embedCode).toContain("function (C, A, L)");
-  expect(embedCode).toContain(`Cal ${embedType} embed code begins`);
+  expect(embedCode).toContain(`${APP_NAME} ${embedType} embed code begins`);
   if (orgSlug) {
     expect(embedCode).toContain(orgSlug);
   }

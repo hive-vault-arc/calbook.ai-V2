@@ -1,21 +1,19 @@
-import type { MutableRefObject } from "react";
-import { forwardRef } from "react";
-
 import type { BookerLayout } from "@calcom/features/bookings/Booker/types";
 import { useEmbedBookerUrl } from "@calcom/features/bookings/hooks/useBookerUrl";
 import { APP_NAME } from "@calcom/lib/constants";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { TextArea } from "@calcom/ui/components/form";
-
+import type { MutableRefObject } from "react";
+import { forwardRef } from "react";
 import type { EmbedFramework, EmbedType, PreviewState } from "../types";
-import { Codes } from "./EmbedCodes";
 import { buildCssVarsPerTheme } from "./buildCssVarsPerTheme";
-import { embedLibUrl, EMBED_PREVIEW_HTML_URL } from "./constants";
+import { EMBED_PREVIEW_HTML_URL, embedLibUrl } from "./constants";
+import { Codes } from "./EmbedCodes";
 import { getApiNameForReactSnippet, getApiNameForVanillaJsSnippet } from "./getApiName";
 import { getDimension } from "./getDimension";
 import { useEmbedCalOrigin } from "./hooks";
 
-export const enum EmbedTabName {
+export enum EmbedTabName {
   HTML = "embed-code",
   IFRAME_REACT = "embed-react",
   ATOM_REACT = "embed-atom-react",
@@ -55,7 +53,7 @@ export const tabs = [
             className="text-default bg-default h-[calc(100%-50px)] font-mono"
             style={{ resize: "none", overflow: "auto" }}
             readOnly
-            value={`<!-- Cal ${embedType} embed code begins -->\n${
+            value={`<!-- ${APP_NAME} ${embedType} embed code begins -->\n${
               embedType === "inline"
                 ? `<div style="width:${getDimension(previewState.inline.width)};height:${getDimension(
                     previewState.inline.height
@@ -72,7 +70,7 @@ export const tabs = [
     namespace,
   })}
   </script>
-  <!-- Cal ${embedType} embed code ends -->`}
+  <!-- ${APP_NAME} ${embedType} embed code ends -->`}
           />
           <p className="text-subtle hidden text-sm">{t("need_help_embedding")}</p>
         </>

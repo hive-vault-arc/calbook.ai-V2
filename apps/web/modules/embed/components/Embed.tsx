@@ -202,19 +202,17 @@ const ChooseEmbedTypesDialogContent = ({
   const { t } = useLocale();
   const { gotoState } = useEmbedGoto(noQueryParamMode);
   return (
-    <DialogContent className="rounded-lg p-10" type="creation" size="lg">
-      <div className="mb-2">
+    <DialogContent className="rounded-lg p-8 sm:p-10" type="creation" size="lg">
+      <div className="mb-6 max-w-xl">
         <h3 className="font-cal text-emphasis mb-2 text-2xl font-semibold leading-none" id="modal-title">
-          {t("how_you_want_add_cal_site", { appName: APP_NAME })}
+          {t("share_and_embed")}
         </h3>
-        <div>
-          <p className="text-subtle text-sm">{t("choose_ways_put_cal_site", { appName: APP_NAME })}</p>
-        </div>
+        <p className="text-subtle text-sm">{t("share_and_embed_description", { appName: APP_NAME })}</p>
       </div>
-      <div className="items-start stack-y-2 md:flex md:stack-y-0">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {types.map((embed, index) => (
           <button
-            className="hover:bg-subtle bg-cal-muted	w-full self-stretch rounded-md border border-transparent p-6 text-left transition hover:rounded-md ltr:mr-4 ltr:last:mr-0 rtl:ml-4 rtl:last:ml-0 lg:w-1/3"
+            className="bg-cal-muted hover:bg-subtle w-full self-stretch rounded-lg border border-transparent p-5 text-left transition hover:border-emphasis"
             key={index}
             data-testid={embed.type}
             onClick={() => {

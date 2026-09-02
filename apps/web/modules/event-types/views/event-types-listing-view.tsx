@@ -786,7 +786,7 @@ export const InfiniteEventTypeList = ({
                                       className="w-full rounded-none"
                                       embedUrl={encodeURIComponent(embedLink)}
                                       eventId={type.id}>
-                                      {t("embed")}
+                                      {t("share_and_embed")}
                                     </EventTypeEmbedButton>
                                   </DropdownMenuItem>
                                 )}
