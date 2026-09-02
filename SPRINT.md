@@ -28,7 +28,7 @@ Ship CalBook.ai as a production SaaS for recruitment agencies: authenticated onb
 - [ ] **B0.1** The feature branches have unrelated Git history to `origin/main`; integrate only focused, reviewed cherry-picks.
 - [x] **B0.2** Resolved stale generated Prisma client types that caused false failures in `RegularBookingService.ts` and `duplicate.handler.ts`. `yarn prisma generate`, web type-check, and tRPC declaration generation now pass on the release branch.
 - [x] **B0.3** Monetization schema migration `20260820170008_add_paid_booking_foundation` created and applied to local PostgreSQL. Adds `BookingPackage` model, `BookingPackageStatus` enum, `DEPOSIT`/`TIP` values to `PaymentOption`, and `bookingPackageId` FK on `Booking`.
-- [ ] **B0.4** Waitlist promotion is not release-ready: exact-slot matching, signed two-hour links, email delivery, atomic claiming, and abuse controls are missing.
+- [x] **B0.4** Waitlist promotion now enforces exact event/slot/tier matching, signed two-hour single-use links, atomic redemption claims, deduplicated/rate-limited joins, and three-attempt promotion delivery. Focused service, metadata, cron, and database-backed concurrent-cancellation coverage passes. Remaining release validation is the end-to-end staging journey, tracked in R5.5.6.
 - [x] **B0.5** Resolved: the original `calbook` remote had a corrupted object store (`f004349...`). Created a new repository `calbook.ai-V2` at `https://github.com/hive-vault-arc/calbook.ai-V2.git` and pushed `release/saas-v1` and `main` branches successfully. The old `calbook` remote is deprecated.
 - [ ] **B0.6** The legacy `feat/billing-stripe` branch is not safe to cherry-pick: it creates a parallel billing system in user metadata instead of using the current `PlatformBilling` model, and replaces the webhook stub with a broad independent Stripe lifecycle. Reimplement platform billing against the canonical schema and existing Stripe abstractions.
 - [x] **B0.7** Paid-booking schema, enum, and lifecycle changes cherry-picked from `feat/monetization-paid-bookings` onto `release/saas-v1` with a reviewed migration. Deposit (`createDeposit`/`chargeRemaining`), package (`BookingPackageService` with redemption flow), and tip (`createTip`) backends are integrated. 18 focused unit tests pass for `BookingPackageService`.
@@ -153,15 +153,15 @@ Ship CalBook.ai as a production SaaS for recruitment agencies: authenticated onb
 
 - [x] Invitation token and expiry tests (4 tests: valid, expired, non-existent, unnotified).
 - [x] Atomic promotion tests (3 tests: promote with token, tier-filtered promote, empty waitlist).
-- [ ] Concurrent cancellation/promotion tests.
-- [ ] Email delivery/retry tests.
+- [x] Concurrent cancellation/promotion test: database-backed racing cancellations promote only the first matching-tier candidate.
+- [x] Email delivery/retry tests: transient delivery retries preserve the same invitation; terminal failure does not issue a second token.
 - [ ] E2E: full slot → waitlist → cancellation → invitation → booking.
 - [ ] E2E: expired invitation and duplicate waitlist request.
 
 ## Acceptance criteria
 
-- [ ] Cancellation promotes only the next person for the exact event, tier, and slot.
-- [ ] An invitation cannot be reused or used after expiry.
+- [x] Cancellation promotes only the next person for the exact event, tier, and slot.
+- [x] An invitation cannot be reused or used after expiry.
 - [ ] Failed notification delivery is visible and recoverable.
 
 ---
