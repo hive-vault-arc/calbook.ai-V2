@@ -21,7 +21,9 @@ test("candidate can book, reschedule, and cancel an interview in their timezone"
   const [organizer] = users.get();
 
   await page.goto(`/${organizer.username}/30-min?cal.tz=${candidateTimezone}`);
+  await expect(page.getByTestId("candidate-booking-step")).toContainText("Choose a date");
   await selectFirstAvailableTimeSlotNextMonth(page);
+  await expect(page.getByTestId("candidate-booking-step")).toContainText("Confirm your details");
   await bookTimeSlot(page, { email: candidateEmail, name: candidateName });
 
   await expect(page.getByTestId("success-page")).toBeVisible();

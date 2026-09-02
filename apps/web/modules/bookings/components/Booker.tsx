@@ -25,6 +25,7 @@ import {
   PUBLIC_INVALIDATE_AVAILABLE_SLOTS_ON_BOOKING_FORM,
 } from "@calcom/lib/constants";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
+import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { BookerLayouts } from "@calcom/prisma/zod-utils";
 import classNames from "@calcom/ui/classNames";
 import { DialogContent } from "@calcom/ui/components/dialog";
@@ -51,6 +52,44 @@ import { OverlayCalendar } from "./OverlayCalendar/OverlayCalendar";
 import { SlotSelectionModalHeader } from "./SlotSelectionModalHeader";
 import { NotFound } from "./Unavailable";
 import { VerifyCodeDialog } from "./VerifyCodeDialog";
+
+type CandidateBookingProgressProps = {
+  currentStep: number;
+  progressLabel: string;
+  title: string;
+};
+
+const CandidateBookingProgress = ({
+  currentStep,
+  progressLabel,
+  title,
+}: CandidateBookingProgressProps): JSX.Element => {
+  const steps = [1, 2, 3];
+
+  return (
+    <div
+      className="mb-5 border-subtle border-b pb-4"
+      data-testid="candidate-booking-step"
+      role="progressbar"
+      aria-label={progressLabel}
+      aria-valuemin={1}
+      aria-valuemax={3}
+      aria-valuenow={currentStep}>
+      <div className="mb-3 flex gap-1.5" aria-hidden="true">
+        {steps.map((step) => {
+          let progressColor = "bg-subtle";
+          if (step <= currentStep) {
+            progressColor = "bg-brand-default";
+          }
+
+          return <span className={classNames("h-1 flex-1 rounded-full", progressColor)} key={step} />;
+        })}
+      </div>
+      <p className="font-medium text-subtle text-xs">{progressLabel}</p>
+      <h2 className="mt-1 font-semibold text-base text-emphasis">{title}</h2>
+    </div>
+  );
+};
 
 const BookerComponent = ({
   username,
@@ -89,6 +128,7 @@ const BookerComponent = ({
   showNoAvailabilityDialog,
 }: BookerProps & WrappedBookerProps): JSX.Element | null => {
   const searchParams = useCompatSearchParams();
+  const { t } = useLocale();
   const isPlatformBookerEmbed = useIsPlatformBookerEmbed();
   const [bookerState, setBookerState] = useBookerStoreContext(
     (state) => [state.state, state.setState],
@@ -147,6 +187,18 @@ const BookerComponent = ({
     Math.abs(dayjs(selectedDate).diff(availableSlots[availableSlots.length - 1], "day")) + addonDays;
 
   const animationScope = useBookerResizeAnimation(layout, bookerState);
+
+  let candidateBookingStep = { currentStep: 3, title: t("confirm_your_details") };
+  if (bookerState === "selecting_date") {
+    candidateBookingStep = { currentStep: 1, title: t("choose_a_date") };
+  } else if (bookerState === "selecting_time") {
+    candidateBookingStep = { currentStep: 2, title: t("choose_a_time") };
+  }
+
+  const candidateBookingProgressProps = {
+    ...candidateBookingStep,
+    progressLabel: t("current_step_of_total", { currentStep: candidateBookingStep.currentStep, maxSteps: 3 }),
+  };
 
   const timeslotsRef = useRef<HTMLDivElement>(null);
   const isQuickAvailabilityCheckFeatureEnabled = useIsQuickAvailabilityCheckFeatureEnabled();
@@ -455,6 +507,7 @@ const BookerComponent = ({
               className="sticky top-0 -ml-px h-full p-6 md:w-(--booker-main-width) md:border-l"
               {...fadeInLeft}
               visible={bookerState === "booking" && !shouldShowFormInDialog}>
+              {!isEmbed && <CandidateBookingProgress {...candidateBookingProgressProps} />}
               {EventBooker}
             </BookerSection>
 
@@ -468,6 +521,9 @@ const BookerComponent = ({
                 "md:border-subtle -ml-px h-full shrink px-5 py-3  lg:w-(--booker-main-width)",
                 hideEventTypeDetails ? "" : "md:border-l"
               )}>
+              {!isEmbed && bookerState === "selecting_date" && (
+                <CandidateBookingProgress {...candidateBookingProgressProps} />
+              )}
               <DatePicker
                 classNames={customClassNames?.datePickerCustomClassNames}
                 event={event}
@@ -508,6 +564,9 @@ const BookerComponent = ({
               )}
               ref={timeslotsRef}
               {...fadeInLeft}>
+              {!isEmbed && bookerState === "selecting_time" && (
+                <CandidateBookingProgress {...candidateBookingProgressProps} />
+              )}
               <AvailableTimeSlots
                 onAvailableTimeSlotSelect={onAvailableTimeSlotSelect}
                 customClassNames={customClassNames?.availableTimeSlotsCustomClassNames}
@@ -585,7 +644,10 @@ const BookerComponent = ({
       <BookFormAsModal
         onCancel={() => setSelectedTimeslot(null)}
         visible={bookerState === "booking" && shouldShowFormInDialog}>
-        {EventBooker}
+        <>
+          {!isEmbed && <CandidateBookingProgress {...candidateBookingProgressProps} />}
+          {EventBooker}
+        </>
       </BookFormAsModal>
       <Dialog open={isMobile && isSlotSelectionModalVisible}>
         <DialogContent
