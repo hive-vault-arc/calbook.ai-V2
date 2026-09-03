@@ -59,7 +59,7 @@ Ship CalBook.ai as a production SaaS for recruitment agencies: authenticated onb
 - [x] **R0.4** Audit `feat/billing-stripe` against `origin/main`. Do not transplant it: it stores subscription state in user metadata instead of canonical `PlatformBilling`, introduces an independent webhook lifecycle, and exceeds the review-size limit. Rebuild its intended Free/Pro/Enterprise experience as a dedicated model-aligned billing workstream.
 - [x] **R0.5** Define integration order and split work into small PRs. Infrastructure and multi-tenancy were transplanted; auth was safely ported in part; platform billing, paid bookings, tiered availability, and waitlists require model-aligned reimplementation with migrations and focused tests.
 - [ ] **R0.6** Integrate infrastructure, multi-tenancy, auth, and platform billing into `release/saas-v1`.
-- [ ] **R0.7** Inventory staging and production environment variables, callback URLs, webhooks, email sender setup, Redis, and monitoring.
+- [~] **R0.7** Production configuration is now inventoried in the [environment checklist](docs/operations/production-environment-checklist.md), including core secrets, Resend, Google OAuth, Stripe, Redis, health checks, and release validation. Remaining: configure and verify the real staging and production environments without exposing secret values.
 - [ ] **R0.8** Confirm whether `ROADMAP.md` is product documentation to commit or a local-only planning artifact.
 
 ## Acceptance criteria
