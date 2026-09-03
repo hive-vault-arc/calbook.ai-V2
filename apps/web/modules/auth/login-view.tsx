@@ -57,10 +57,10 @@ function BackgroundGrid() {
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         fill="none"
-        className="[--grid-fill:#f7f7f7] [--grid-stroke:rgba(34,42,53,0.08)] dark:[--grid-fill:#1f1f1f] dark:[--grid-stroke:rgba(255,255,255,0.08)]">
+        className="[--grid-fill:#fff] [--grid-stroke:rgba(124,58,237,0.1)] dark:[--grid-fill:#1d1530] dark:[--grid-stroke:rgba(221,214,254,0.12)]">
         <defs>
           <radialGradient id="gridFade" cx="50%" cy="50%" rx="70%" ry="70%">
-            <stop offset="20%" stopColor="white" stopOpacity="1" />
+            <stop offset="20%" stopColor="#faf9ff" stopOpacity="1" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </radialGradient>
           <mask id="gridMask">
@@ -172,15 +172,17 @@ export default function Login({
     process.env.NEXT_PUBLIC_DISABLE_SIGNUP !== "true" && searchParams?.get("register") !== "false";
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-default/80 px-4 py-10">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#faf9ff] px-4 py-10 dark:bg-[#110d20]">
       <BackgroundGrid />
+      <div className="pointer-events-none absolute -top-36 right-[15%] h-80 w-80 rounded-full bg-violet-200/60 blur-3xl dark:bg-violet-700/20" />
+      <div className="pointer-events-none absolute -bottom-36 left-[15%] h-80 w-80 rounded-full bg-fuchsia-100/80 blur-3xl dark:bg-fuchsia-700/10" />
 
       <div className="relative z-10 flex w-full max-w-md flex-col items-center">
         {/* Main Card */}
-        <div className="w-full rounded-xl border border-subtle bg-default p-10 shadow-sm">
+        <div className="w-full rounded-2xl border border-violet-100 bg-default p-8 shadow-[0_24px_70px_-30px_rgba(91,33,182,0.35)] dark:border-violet-900/70 dark:bg-[#181126] sm:p-10">
           {/* Logo */}
-          <div className="mb-2 text-center">
-            <h1 className="font-cal text-xl font-bold text-emphasis">CalBook.ai</h1>
+          <div className="mb-4 text-center">
+            <img src="/calbook-logo.svg" alt="CalBook.ai" className="mx-auto h-9 w-auto" />
           </div>
 
           {/* Heading */}
@@ -195,6 +197,7 @@ export default function Login({
                 <div className="flex flex-col gap-2">
                   {isGoogleLoginEnabled && (
                     <Button
+                      variant="outline"
                       className="w-full py-1"
                       disabled={formState.isSubmitting}
                       data-testid="google"
@@ -308,8 +311,7 @@ export default function Login({
               {/* Submit Button */}
               <Button
                 type="submit"
-                variant="outline"
-                className="mt-8 w-full"
+                className="mt-8 w-full bg-violet-600 text-white hover:bg-violet-700"
                 disabled={formState.isSubmitting}>
                 {twoFactorRequired ? t("submit") : t("continue")}
               </Button>
