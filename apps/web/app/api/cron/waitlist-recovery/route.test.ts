@@ -68,7 +68,7 @@ describe("/api/cron/waitlist-recovery", () => {
     const recovery = { expired: 2, promoted: 1, failed: 0 };
     vi.mocked(waitlistService.recoverExpiredPromotions).mockResolvedValue(recovery);
     const request = new NextRequest("http://localhost/api/cron/waitlist-recovery");
-    request.headers.set("authorization", "Bearer test-cron-secret");
+    request.headers.set("authorization", "Bearer test-cron-key");
     const { GET } = await import("./route");
 
     const response = await GET(request, { params: Promise.resolve({}) });
@@ -85,6 +85,17 @@ describe("/api/cron/waitlist-recovery", () => {
       failed: 0,
     });
     const request = new NextRequest("http://localhost/api/cron/waitlist-recovery?apiKey=test-cron-key");
+    const { GET } = await import("./route");
+
+    const response = await GET(request, { params: Promise.resolve({}) });
+
+    expect(response.status).toBe(403);
+    expect(waitlistService.recoverExpiredPromotions).not.toHaveBeenCalled();
+  });
+
+  test("rejects a raw secret in the Authorization header", async () => {
+    const request = new NextRequest("http://localhost/api/cron/waitlist-recovery");
+    request.headers.set("authorization", "test-cron-key");
     const { GET } = await import("./route");
 
     const response = await GET(request, { params: Promise.resolve({}) });
