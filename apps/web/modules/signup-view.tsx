@@ -375,14 +375,18 @@ export default function Signup({
       ) : null}
       <div
         className={classNames(
-          "light flex min-h-screen w-full flex-col items-center justify-center bg-cal-muted [--cal-brand:#111827] 2xl:bg-default dark:[--cal-brand:#FFFFFF]",
+          "light flex min-h-screen w-full flex-col items-center justify-center bg-[#faf9ff] px-4 py-10 [--cal-brand:#6d28d9] dark:bg-[#110d20] dark:[--cal-brand:#c4b5fd]",
           "[--cal-brand-subtle:#9CA3AF]",
           "[--cal-brand-text:#FFFFFF] dark:[--cal-brand-text:#000000]",
           "[--cal-brand-emphasis:#101010] dark:[--cal-brand-emphasis:#e1e1e1]"
         )}>
-        <div className="grid w-full max-w-[1440px] grid-cols-1 grid-rows-1 overflow-hidden bg-cal-muted lg:grid-cols-2 2xl:rounded-[20px] 2xl:border 2xl:border-subtle 2xl:py-6">
+        <div className="grid w-full max-w-[1180px] grid-cols-1 overflow-hidden rounded-2xl border border-violet-100 bg-default shadow-[0_24px_70px_-30px_rgba(91,33,182,0.35)] lg:grid-cols-2 dark:border-violet-900/70 dark:bg-[#181126]">
           {/* Left side */}
-          <div className="mt-0 mr-auto ml-auto flex w-full max-w-xl flex-col px-4 pt-6 sm:px-16 md:px-20 lg:mt-24 2xl:px-28">
+          <div className="mt-0 mr-auto ml-auto flex w-full max-w-xl flex-col px-6 py-10 sm:px-12 lg:px-16 lg:py-14">
+            <Link href="/" className="mb-10 w-fit" aria-label="CalBook.ai home">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/calbook-logo.svg" alt="CalBook.ai" className="h-9 w-auto" />
+            </Link>
             {accountUnderReview ? (
               <div
                 className="flex flex-col items-center gap-4 py-10 text-center"
@@ -577,7 +581,7 @@ export default function Signup({
                       <Button
                         type="submit"
                         data-testid="signup-submit-button"
-                        className="my-2 w-full justify-center"
+                        className="my-2 w-full justify-center bg-violet-600 text-white hover:bg-violet-700"
                         loading={loadingSubmitState}
                         disabled={
                           !!formMethods.formState.errors.username ||
@@ -601,7 +605,7 @@ export default function Signup({
                     {isGoogleLoginEnabled && (
                       <div className="flex flex-col gap-2 md:flex-row">
                         <Button
-                          color="primary"
+                          color="secondary"
                           loading={isGoogleLoading}
                           disabled={isMicrosoftLoading}
                           CustomStartIcon={
@@ -617,7 +621,9 @@ export default function Signup({
                               />
                             </>
                           }
-                          className={classNames("w-full justify-center rounded-md text-center")}
+                          className={classNames(
+                            "w-full justify-center rounded-md border-violet-200 bg-default text-center hover:bg-violet-50 dark:border-violet-800 dark:hover:bg-violet-950/40"
+                          )}
                           data-testid="continue-with-google-button"
                           onClick={async () => {
                             posthog.capture("signup_google_button_clicked", {
@@ -668,7 +674,9 @@ export default function Signup({
                               />
                             </>
                           }
-                          className={classNames("w-full justify-center rounded-md text-center")}
+                          className={classNames(
+                            "w-full justify-center rounded-md border-violet-200 bg-default text-center hover:bg-violet-50 dark:border-violet-800 dark:hover:bg-violet-950/40"
+                          )}
                           data-testid="continue-with-microsoft-button"
                           onClick={async () => {
                             posthog.capture("signup_microsoft_button_clicked", {
@@ -717,7 +725,9 @@ export default function Signup({
                       <Button
                         color="secondary"
                         disabled={isGoogleLoading || isMicrosoftLoading}
-                        className={classNames("w-full justify-center rounded-md text-center")}
+                        className={classNames(
+                          "w-full justify-center rounded-md border-violet-200 bg-default text-center hover:bg-violet-50 dark:border-violet-800 dark:hover:bg-violet-950/40"
+                        )}
                         onClick={() => {
                           posthog.capture("signup_email_button_clicked", {
                             has_token: !!token,
@@ -770,7 +780,7 @@ export default function Signup({
               </>
             )}
           </div>
-          <div className="mx-auto mt-24 w-full max-w-2xl flex-col justify-between rounded-l-2xl border-subtle pl-4 lg:mt-0 lg:flex lg:max-w-full lg:border lg:bg-subtle lg:py-12 lg:pl-12 dark:bg-none">
+          <div className="mx-auto hidden w-full max-w-2xl flex-col justify-between border-violet-100 bg-violet-50/70 pl-4 lg:flex lg:max-w-full lg:py-12 lg:pl-12 dark:border-violet-900/70 dark:bg-violet-950/20">
             {IS_CALCOM && (
               <>
                 <div className="-mt-4 mr-12 mb-6 grid w-full grid-cols-3 gap-5 pr-4 sm:gap-3 lg:grid-cols-4">
@@ -828,12 +838,12 @@ export default function Signup({
               </>
             )}
             <div className="hidden rounded-tl-2xl rounded-br-none rounded-bl-2xl border border-default border-r-0 border-dashed bg-black/3 lg:block lg:py-[6px] lg:pl-[6px] dark:bg-white/5">
-              <img className="block dark:hidden" src="/mock-event-type-list.svg" alt="Cal.diy Booking Page" />
+              <img className="block dark:hidden" src="/mock-event-type-list.svg" alt="CalBook booking page" />
               {/* eslint-disable @next/next/no-img-element */}
               <img
                 className="hidden dark:block"
                 src="/mock-event-type-list-dark.svg"
-                alt="Cal.diy Booking Page"
+                alt="CalBook booking page"
               />
             </div>
             <div className="mt-8 mr-12 hidden h-full w-full grid-cols-3 gap-4 overflow-hidden lg:grid">
