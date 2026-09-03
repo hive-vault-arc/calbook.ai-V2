@@ -203,7 +203,7 @@ test.describe("Email Signup Flow Test", async () => {
     expect(receivedEmails?.total).toBe(1);
 
     const verifyEmail = receivedEmails?.items[0];
-    expect(verifyEmail?.subject).toBe(`${APP_NAME}: Verify your account`);
+    expect(verifyEmail?.subject).toBe(`${APP_NAME}: Confirm your email`);
   });
   test("Checkbox for cookie consent does not need to be checked", async ({ page, users: _users }) => {
     await page.goto("/signup");

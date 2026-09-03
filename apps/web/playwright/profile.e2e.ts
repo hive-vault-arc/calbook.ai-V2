@@ -213,7 +213,7 @@ test.describe("Update Profile", () => {
       const inviteLink = await expectInvitationEmailToBeReceived({
         emails,
         userEmail: secondaryEmail,
-        subject: "Verify your email address",
+        subject: "One more step: confirm your email",
         returnLink: "verify-email",
       });
       expect(inviteLink).toEqual(`${WEBAPP_URL}/api/auth/verify-email?token=${verificationToken?.token}`);
@@ -262,7 +262,7 @@ test.describe("Update Profile", () => {
       const inviteLink = await expectInvitationEmailToBeReceived({
         emails,
         userEmail: secondaryEmail,
-        subject: "Verify your email address",
+        subject: "One more step: confirm your email",
         returnLink: "verify-email",
       });
       expect(inviteLink?.endsWith(`/api/auth/verify-email?token=${verificationToken?.token}`)).toEqual(true);
