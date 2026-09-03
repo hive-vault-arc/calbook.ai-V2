@@ -36,7 +36,16 @@ test.describe("Signup Main Page Test", async () => {
     await button.click();
     await page.waitForURL("/auth/sso/google");
   });
+});
 
+test.describe("Email verification handoff", () => {
+  test("shows a sign-in action after an email is confirmed in another session", async ({ page }) => {
+    await page.goto("/auth/verify-email?verified=1");
+
+    await expect(page.getByTestId("verify-email-page")).toBeVisible();
+    await expect(page.getByText("Email confirmed")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign in to continue" })).toBeVisible();
+  });
 });
 
 test.describe("Email Signup Flow Test", async () => {

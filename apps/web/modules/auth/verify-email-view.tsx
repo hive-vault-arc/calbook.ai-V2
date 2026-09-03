@@ -9,7 +9,7 @@ import { Button } from "@calcom/ui/components/button";
 import { EmptyScreen } from "@calcom/ui/components/empty-screen";
 import { showToast } from "@calcom/ui/components/toast";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import posthog from "posthog-js";
 import { useEffect } from "react";
@@ -41,12 +41,14 @@ function VerifyEmailPage() {
   const { data } = useEmailVerifyCheck();
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, isLocaleReady } = useLocale();
   const mutation = trpc.viewer.auth.resendVerifyEmail.useMutation();
   const flags = useFlagMap();
+  const wasJustVerified = searchParams?.get("verified") === "1";
 
   useEffect(() => {
-    if (data?.isVerified) {
+    if (!wasJustVerified && data?.isVerified) {
       posthog.capture("verify_email_already_verified", {
         onboarding_v3_enabled: flags["onboarding-v3"],
       });
@@ -54,7 +56,7 @@ function VerifyEmailPage() {
       router.replace(gettingStartedPath);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.isVerified, flags]);
+  }, [data?.isVerified, flags, wasJustVerified]);
   if (!isLocaleReady) {
     return null;
   }
@@ -72,48 +74,62 @@ function VerifyEmailPage() {
           <EmptyScreen
             border
             dashedBorder={false}
-            Icon="mail-open"
-            headline={t("check_your_email")}
-            description={t("verify_email_page_body", { email: session?.user?.email, appName: APP_NAME })}
+            Icon={wasJustVerified ? "circle-check" : "mail-open"}
+            headline={wasJustVerified ? t("email_confirmed") : t("check_your_email")}
+            description={
+              wasJustVerified
+                ? t("email_confirmed_sign_in")
+                : t("verify_email_page_body", { email: session?.user?.email, appName: APP_NAME })
+            }
             className="rounded-2xl border-violet-100 bg-default p-8 shadow-[0_24px_70px_-30px_rgba(91,33,182,0.35)] dark:border-violet-900/70 dark:bg-[#181126] sm:p-12"
             iconWrapperClassName="bg-violet-600 shadow-[0_12px_28px_-12px_rgba(109,40,217,0.7)]"
             buttonRaw={
-              <>
-                <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
-                  {EMAIL_CLIENTS.map(({ name, icon, href }) => (
+              wasJustVerified ? (
+                <Button
+                  className="bg-violet-600 text-white hover:bg-violet-700"
+                  onClick={() => {
+                    signOut({ callbackUrl: "/auth/login" });
+                  }}>
+                  {t("sign_in_to_continue")}
+                </Button>
+              ) : (
+                <>
+                  <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
+                    {EMAIL_CLIENTS.map(({ name, icon, href }) => (
+                      <Button
+                        key={name}
+                        color="secondary"
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="border-violet-200 bg-default hover:bg-violet-50 dark:border-violet-800 dark:hover:bg-violet-950/40">
+                        <img src={icon} alt={name} className="me-1 h-4 w-4" /> {name}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="flex flex-col items-center gap-3">
                     <Button
-                      key={name}
-                      color="secondary"
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="border-violet-200 bg-default hover:bg-violet-50 dark:border-violet-800 dark:hover:bg-violet-950/40">
-                      <img src={icon} alt={name} className="me-1 h-4 w-4" /> {name}
+                      color="minimal"
+                      className="text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:text-violet-300 dark:hover:bg-violet-950/40 dark:hover:text-violet-200"
+                      loading={mutation.isPending}
+                      onClick={() => {
+                        posthog.capture("verify_email_resend_clicked");
+                        showToast(t("send_email"), "success");
+                        mutation.mutate();
+                      }}>
+                      {t("resend_email")}
                     </Button>
-                  ))}
-                </div>
-                <div className="flex flex-col items-center gap-3">
-                  <Button
-                    color="minimal"
-                    className="text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:text-violet-300 dark:hover:bg-violet-950/40 dark:hover:text-violet-200"
-                    loading={mutation.isPending}
-                    onClick={() => {
-                      posthog.capture("verify_email_resend_clicked");
-                      showToast(t("send_email"), "success");
-                      mutation.mutate();
-                    }}>
-                    {t("resend_email")}
-                  </Button>
-                  <Button
-                    color="minimal"
-                    className="text-subtle hover:bg-violet-50 hover:text-emphasis dark:hover:bg-violet-950/40"
-                    onClick={() => {
-                      signOut({ callbackUrl: "/signup" });
-                    }}>
-                    {t("use_different_email")}
-                  </Button>
-                </div>
-              </>
+                    <Button
+                      color="minimal"
+                      className="text-subtle hover:bg-violet-50 hover:text-emphasis dark:hover:bg-violet-950/40"
+                      onClick={() => {
+                        signOut({ callbackUrl: "/signup" });
+                      }}>
+                      {t("use_different_email")}
+                    </Button>
+                  </div>
+                </>
+              )
             }
           />
         </div>
