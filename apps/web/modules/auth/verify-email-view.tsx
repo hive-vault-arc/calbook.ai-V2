@@ -8,6 +8,7 @@ import useEmailVerifyCheck from "@calcom/trpc/react/hooks/useEmailVerifyCheck";
 import { Button } from "@calcom/ui/components/button";
 import { EmptyScreen } from "@calcom/ui/components/empty-screen";
 import { showToast } from "@calcom/ui/components/toast";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import posthog from "posthog-js";
@@ -58,33 +59,43 @@ function VerifyEmailPage() {
     return null;
   }
   return (
-    <div className="h-screen w-full ">
-      <div className="flex h-full w-full flex-col items-center justify-center">
-        <div className="max-w-3xl">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#faf9ff] px-4 py-10 dark:bg-[#110d20]">
+      <div className="pointer-events-none absolute -top-36 right-[15%] h-80 w-80 rounded-full bg-violet-200/60 blur-3xl dark:bg-violet-700/20" />
+      <div className="pointer-events-none absolute -bottom-36 left-[15%] h-80 w-80 rounded-full bg-fuchsia-100/80 blur-3xl dark:bg-fuchsia-700/10" />
+
+      <div className="relative z-10 flex w-full max-w-xl flex-col items-center">
+        <Link href="/" className="mb-8" aria-label="CalBook.ai home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/calbook-logo.svg" alt="CalBook.ai" className="h-9 w-auto" />
+        </Link>
+        <div data-testid="verify-email-page" className="w-full">
           <EmptyScreen
             border
             dashedBorder={false}
             Icon="mail-open"
             headline={t("check_your_email")}
             description={t("verify_email_page_body", { email: session?.user?.email, appName: APP_NAME })}
-            className="bg-default"
+            className="rounded-2xl border-violet-100 bg-default p-8 shadow-[0_24px_70px_-30px_rgba(91,33,182,0.35)] dark:border-violet-900/70 dark:bg-[#181126] sm:p-12"
+            iconWrapperClassName="bg-violet-600 shadow-[0_12px_28px_-12px_rgba(109,40,217,0.7)]"
             buttonRaw={
               <>
-                <div className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
                   {EMAIL_CLIENTS.map(({ name, icon, href }) => (
                     <Button
                       key={name}
                       color="secondary"
                       href={href}
                       target="_blank"
-                      rel="noopener noreferrer">
+                      rel="noopener noreferrer"
+                      className="border-violet-200 bg-default hover:bg-violet-50 dark:border-violet-800 dark:hover:bg-violet-950/40">
                       <img src={icon} alt={name} className="me-1 h-4 w-4" /> {name}
                     </Button>
                   ))}
                 </div>
-                <div className="flex flex-col items-center gap-2">
+                <div className="flex flex-col items-center gap-3">
                   <Button
                     color="minimal"
+                    className="text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:text-violet-300 dark:hover:bg-violet-950/40 dark:hover:text-violet-200"
                     loading={mutation.isPending}
                     onClick={() => {
                       posthog.capture("verify_email_resend_clicked");
@@ -95,6 +106,7 @@ function VerifyEmailPage() {
                   </Button>
                   <Button
                     color="minimal"
+                    className="text-subtle hover:bg-violet-50 hover:text-emphasis dark:hover:bg-violet-950/40"
                     onClick={() => {
                       signOut({ callbackUrl: "/signup" });
                     }}>

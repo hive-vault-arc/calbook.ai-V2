@@ -136,6 +136,8 @@ test.describe("Email Signup Flow Test", async () => {
 
     // Check that the URL matches the expected URL
     expect(page.url()).toContain("/auth/verify-email");
+    await expect(page.getByTestId("verify-email-page")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Resend email" })).toBeVisible();
     const dbUser = await prisma.user.findUnique({ where: { email: userToCreate.email } });
     // Verify that the username is the same as the one provided and isn't accidentally changed to email derived username - That happens only for organization member signup
     expect(dbUser?.username).toBe(userToCreate.username);
