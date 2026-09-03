@@ -752,64 +752,66 @@ export const InfiniteEventTypeList = ({
                                   className="ltr:radix-state-open:rounded-r-(--btn-group-radius) rtl:radix-state-open:rounded-l-(--btn-group-radius)"
                                 />
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                {!readOnly && (
-                                  <DropdownMenuItem>
-                                    <DropdownItem
-                                      type="button"
-                                      data-testid={`event-type-edit-${type.id}`}
-                                      StartIcon="pencil"
-                                      onClick={() => router.push(`/event-types/${type.id}`)}>
-                                      {t("edit")}
-                                    </DropdownItem>
-                                  </DropdownMenuItem>
-                                )}
-                                {/* readonly is only set when we are on a team - if we are on a user event type null will be the value. */}
-                                {!readOnly && !isManagedEventType && !isChildrenManagedEventType && (
-                                  <DropdownMenuItem className="outline-none">
-                                    <DropdownItem
-                                      type="button"
-                                      data-testid={`event-type-duplicate-${type.id}`}
-                                      StartIcon="copy"
-                                      onClick={() => openDuplicateModal(type, group)}>
-                                      {t("duplicate")}
-                                    </DropdownItem>
-                                  </DropdownMenuItem>
-                                )}
-                                {!isManagedEventType && (
-                                  <DropdownMenuItem className="outline-none">
-                                    <EventTypeEmbedButton
-                                      namespace={type.slug}
-                                      as={DropdownItem}
-                                      type="button"
-                                      StartIcon="code"
-                                      className="w-full rounded-none"
-                                      embedUrl={encodeURIComponent(embedLink)}
-                                      eventId={type.id}>
-                                      {t("share_and_embed")}
-                                    </EventTypeEmbedButton>
-                                  </DropdownMenuItem>
-                                )}
-                                {/* readonly is only set when we are on a team - if we are on a user event type null will be the value. */}
-                                {!readOnly && !isChildrenManagedEventType && (
-                                  <>
-                                    <DropdownMenuSeparator />
+                              <DropdownMenuPortal>
+                                <DropdownMenuContent>
+                                  {!readOnly && (
                                     <DropdownMenuItem>
                                       <DropdownItem
-                                        color="destructive"
-                                        onClick={() => {
-                                          setDeleteDialogOpen(true);
-                                          setDeleteDialogTypeId(type.id);
-                                          setDeleteDialogSchedulingType(type.schedulingType);
-                                        }}
-                                        StartIcon="trash"
-                                        className="w-full rounded-t-none">
-                                        {t("delete")}
+                                        type="button"
+                                        data-testid={`event-type-edit-${type.id}`}
+                                        StartIcon="pencil"
+                                        onClick={() => router.push(`/event-types/${type.id}`)}>
+                                        {t("edit")}
                                       </DropdownItem>
                                     </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
+                                  )}
+                                  {/* readonly is only set when we are on a team - if we are on a user event type null will be the value. */}
+                                  {!readOnly && !isManagedEventType && !isChildrenManagedEventType && (
+                                    <DropdownMenuItem className="outline-none">
+                                      <DropdownItem
+                                        type="button"
+                                        data-testid={`event-type-duplicate-${type.id}`}
+                                        StartIcon="copy"
+                                        onClick={() => openDuplicateModal(type, group)}>
+                                        {t("duplicate")}
+                                      </DropdownItem>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {!isManagedEventType && (
+                                    <DropdownMenuItem className="outline-none">
+                                      <EventTypeEmbedButton
+                                        namespace={type.slug}
+                                        as={DropdownItem}
+                                        type="button"
+                                        StartIcon="code"
+                                        className="w-full rounded-none"
+                                        embedUrl={encodeURIComponent(embedLink)}
+                                        eventId={type.id}>
+                                        {t("share_and_embed")}
+                                      </EventTypeEmbedButton>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {/* readonly is only set when we are on a team - if we are on a user event type null will be the value. */}
+                                  {!readOnly && !isChildrenManagedEventType && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem>
+                                        <DropdownItem
+                                          color="destructive"
+                                          onClick={() => {
+                                            setDeleteDialogOpen(true);
+                                            setDeleteDialogTypeId(type.id);
+                                            setDeleteDialogSchedulingType(type.schedulingType);
+                                          }}
+                                          StartIcon="trash"
+                                          className="w-full rounded-t-none">
+                                          {t("delete")}
+                                        </DropdownItem>
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenuPortal>
                             </Dropdown>
                           </ButtonGroup>
                         </div>
