@@ -52,11 +52,9 @@ function VerifyEmailPage() {
       posthog.capture("verify_email_already_verified", {
         onboarding_v3_enabled: flags["onboarding-v3"],
       });
-      const gettingStartedPath = flags["onboarding-v3"] ? "/onboarding/getting-started" : "/getting-started";
-      router.replace(gettingStartedPath);
+      router.replace("/");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.isVerified, flags, wasJustVerified]);
+  }, [data?.isVerified, flags, router, wasJustVerified]);
   if (!isLocaleReady) {
     return null;
   }

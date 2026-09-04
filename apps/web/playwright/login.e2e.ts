@@ -58,6 +58,20 @@ test.describe("Login and logout tests", () => {
   });
 
   test.describe("Login flow validations", async () => {
+    test("Verified users do not return to the email verification page", async ({ page, users }) => {
+      const user = await users.create({ username: "verified-user" });
+
+      await page.goto("/auth/login?callbackUrl=/auth/verify-email");
+      await page.locator("#email").fill(user.email);
+      await page.locator("#password").fill("Verified-user1");
+
+      const responsePromise = page.waitForResponse(/\/api\/auth\/callback\/credentials/);
+      await page.locator('[data-testid="login-form"] [type="submit"]').click();
+      await responsePromise;
+
+      await expect(page).toHaveURL(/\/home$/);
+    });
+
     test("Should warn when user does not exist", async ({ page }) => {
       const alertMessage = (await localize("en"))("incorrect_email_password");
 

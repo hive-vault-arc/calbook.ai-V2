@@ -145,7 +145,8 @@ export default function Login({
 
   const safeCallbackUrl = getSafeRedirectUrl(callbackUrl);
 
-  callbackUrl = safeCallbackUrl || "";
+  const isVerificationPage = safeCallbackUrl && new URL(safeCallbackUrl).pathname === "/auth/verify-email";
+  callbackUrl = isVerificationPage ? `${WEBAPP_URL}/` : safeCallbackUrl || "";
 
   const onSubmit = async (values: LoginValues) => {
     setErrorMessage(null);
