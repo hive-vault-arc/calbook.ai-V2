@@ -28,6 +28,19 @@ test.describe("Event Types tests", () => {
 
     await expect(locator).toBeVisible();
   });
+
+  test("shows candidate-facing template details", async ({ page, users }) => {
+    const user = await users.create();
+
+    await user.apiLogin();
+    await page.goto("/event-types");
+
+    const firstTemplate = page.locator('[data-testid="event-types"] > li').first();
+    await expect(firstTemplate.getByText("Duration", { exact: true })).toBeVisible();
+    await expect(firstTemplate.getByText("Interview format", { exact: true })).toBeVisible();
+    await expect(firstTemplate.getByText("Hosts", { exact: true })).toBeVisible();
+    await expect(firstTemplate.getByText("Candidate link", { exact: true })).toBeVisible();
+  });
 });
 
 test.describe("Event Types tests", () => {

@@ -188,6 +188,15 @@ const Item = ({
   const isCurrentUserHost = "isCurrentUserHost" in type && type.isCurrentUserHost;
   const showAssignedBadge = isRoundRobinOrCollective && isCurrentUserHost;
   const bookingPath = group.profile.slug ? `/${group.profile.slug}/${type.slug}` : `/${type.slug}`;
+  let interviewFormat = t("one_to_one");
+  if (type.schedulingType === SchedulingType.ROUND_ROBIN) {
+    interviewFormat = t("round_robin");
+  } else if (type.schedulingType === SchedulingType.COLLECTIVE) {
+    interviewFormat = t("collective");
+  } else if (type.schedulingType === SchedulingType.MANAGED) {
+    interviewFormat = t("managed");
+  }
+  const hostCount = "users" in type ? type.users.length : type.userIds.length;
 
   const content = (): JSX.Element => (
     <div>
@@ -259,9 +268,25 @@ const Item = ({
               }}
               shortenDescription
             />
-            <div className="mt-4 flex min-w-0 items-center gap-2 rounded-lg border border-subtle bg-subtle px-3 py-2.5 text-xs">
+            <div className="mt-5 grid divide-y divide-subtle overflow-hidden rounded-xl border border-subtle bg-subtle text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] sm:divide-x sm:divide-y-0">
+              <div className="flex items-center justify-between gap-4 px-3.5 py-3 sm:block">
+                <span className="block text-muted text-xs">{t("duration")}</span>
+                <span className="mt-0.5 block font-semibold text-default">
+                  {t("multiple_duration_mins", { count: type.length })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4 px-3.5 py-3 sm:block">
+                <span className="block text-muted text-xs">{t("interview_format")}</span>
+                <span className="mt-0.5 block font-semibold text-default">{interviewFormat}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4 px-3.5 py-3 sm:block">
+                <span className="block text-muted text-xs">{t("hosts")}</span>
+                <span className="mt-0.5 block font-semibold text-default">{t("host_count", { count: hostCount })}</span>
+              </div>
+            </div>
+            <div className="mt-3 flex min-w-0 items-center gap-2 rounded-lg border border-subtle bg-subtle px-3 py-2.5 text-xs">
               <span className="shrink-0 font-semibold text-muted uppercase tracking-wide">
-                {t("booking_link")}
+                {t("candidate_link")}
               </span>
               <span className="truncate font-mono text-default">{bookingPath}</span>
             </div>
