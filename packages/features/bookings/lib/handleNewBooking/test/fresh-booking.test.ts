@@ -1273,7 +1273,7 @@ describe("handleNewBooking", () => {
       );
 
       test(
-        `should fallback to Cal Video when organizer's default conferencing app is Google Meet but destination calendar is NOT Google Calendar`,
+        `should reject a Google Meet booking when the destination calendar is not Google Calendar`,
         async ({ emails }) => {
           const handleNewBooking = getNewBookingHandler();
           const booker = getBooker({
@@ -1330,15 +1330,6 @@ describe("handleNewBooking", () => {
             ],
           });
 
-          mockSuccessfulVideoMeetingCreation({
-            metadataLookupKey: "dailyvideo",
-            videoMeetingData: {
-              id: "MOCK_ID",
-              password: "MOCK_PASS",
-              url: "http://mock-dailyvideo.example.com/meeting-1",
-            },
-          });
-
           await createBookingScenario(scenarioData);
 
           const mockedBookingData = getMockRequestDataForBooking({
@@ -1351,15 +1342,8 @@ describe("handleNewBooking", () => {
             },
           });
 
-          const createdBooking = await handleNewBooking({
-            bookingData: mockedBookingData,
-          });
-
-          // Should fallback to Cal Video instead of Google Meet
-          expect(createdBooking).toEqual(
-            expect.objectContaining({
-              location: BookingLocations.CalVideo,
-            })
+          await expect(handleNewBooking({ bookingData: mockedBookingData })).rejects.toThrow(
+            "using_meet_requires_calendar"
           );
         },
         timeout

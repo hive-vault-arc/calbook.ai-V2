@@ -1252,16 +1252,17 @@ async function handler(
       locationBodyString = app?.appData?.location?.type || locationBodyString;
 
       const mainHostCalendar = eventType.destinationCalendar || organizerUser.destinationCalendar;
-
-      if (locationBodyString === MeetLocationType && mainHostCalendar?.integration !== "google_calendar") {
-        locationBodyString = "integrations:daily";
-        organizerOrFirstDynamicGroupMemberDefaultLocationUrl = undefined;
-      } else if (isManagedEventType || isTeamEventType) {
+      if (isManagedEventType || isTeamEventType) {
         organizerOrFirstDynamicGroupMemberDefaultLocationUrl = defaultApp?.appLink;
       }
     } else {
       locationBodyString = "integrations:daily";
     }
+  }
+
+  const mainHostCalendar = eventType.destinationCalendar || organizerUser.destinationCalendar;
+  if (locationBodyString === MeetLocationType && mainHostCalendar?.integration !== "google_calendar") {
+    throw new ErrorWithCode(ErrorCode.BadRequest, tOrganizer("using_meet_requires_calendar"));
   }
 
   const invitee: Invitee = [
