@@ -154,8 +154,8 @@ runs:
           kill $server_pid
           exit 1
       env:
-        NEXTAUTH_SECRET: "EI4qqDpcfdvf4A+0aQEEx8JjHxHSy4uWiZw/F32K+pA="
-        CALENDSO_ENCRYPTION_KEY: "0zfLtY99wjeLnsM7qsa8xsT+Q0oSgnOL"
+        NEXTAUTH_SECRET: ${{ github.sha }}
+        CALENDSO_ENCRYPTION_KEY: ${{ github.sha }}
 
     - name: Push image
       id: docker_push

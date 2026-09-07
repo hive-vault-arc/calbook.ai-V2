@@ -61,6 +61,7 @@
     "lint": "turbo lint",
     "postinstall": "husky install && turbo run post-install",
     "pre-commit": "lint-staged",
+    "security:scan-tracked": "node scripts/scan-tracked-secrets.mjs",
     "predev": "echo 'Checking env files'",
     "prisma": "yarn workspace @calcom/prisma prisma",
     "start": "turbo run start --filter=\"@calcom/web\"",
