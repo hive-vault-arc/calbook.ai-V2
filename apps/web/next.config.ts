@@ -1,5 +1,6 @@
 import process from "node:process";
 import i18nConfig from "@calcom/i18n/next-i18next.config";
+import { isGoogleCalendarOAuthConfigured } from "@calcom/lib/googleCalendarOAuth";
 import { withBotId } from "botid/next/config";
 import { config as dotenvConfig } from "dotenv";
 import type { NextConfig } from "next";
@@ -108,23 +109,14 @@ if (process.argv.includes("--experimental-https")) {
   env.NEXT_PUBLIC_EMBED_LIB_URL = getHttpsUrl(process.env.NEXT_PUBLIC_EMBED_LIB_URL);
 }
 
-function validJson(jsonString: string): object | false {
-  try {
-    const o = JSON.parse(jsonString);
-    if (o && typeof o === "object") {
-      return o;
-    }
-  } catch (e) {
-    console.error(e);
-  }
-  return false;
-}
-
-if (process.env.GOOGLE_API_CREDENTIALS && !validJson(process.env.GOOGLE_API_CREDENTIALS)) {
+if (
+  process.env.GOOGLE_API_CREDENTIALS &&
+  !isGoogleCalendarOAuthConfigured(process.env.GOOGLE_API_CREDENTIALS)
+) {
   console.warn(
     "\x1b[33mwarn",
     "\x1b[0m",
-    '- Disabled \'Google Calendar\' integration. Reason: Invalid value for GOOGLE_API_CREDENTIALS environment variable. When set, this value needs to contain valid JSON like {"web":{"client_id":"<clid>","client_secret":"<secret>","redirect_uris":["<yourhost>/api/integrations/googlecalendar/callback>"]}. You can download this JSON from your OAuth Client @ https://console.cloud.google.com/apis/credentials.'
+    '- Disabled \'Google Calendar\' integration. Reason: GOOGLE_API_CREDENTIALS must contain a web OAuth client ID, client secret, and at least one redirect URI. You can download this JSON from your OAuth Client @ https://console.cloud.google.com/apis/credentials.'
   );
 }
 

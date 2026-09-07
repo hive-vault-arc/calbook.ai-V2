@@ -1,12 +1,12 @@
 import process from "node:process";
-import { validJson } from "@calcom/lib/jsonUtils";
+import { isGoogleCalendarOAuthConfigured } from "@calcom/lib/googleCalendarOAuth";
 import type { AppMeta } from "@calcom/types/App";
 
 export const metadata = {
   name: "Google Calendar",
   description:
     "Google Calendar is a time management and scheduling service developed by Google. Allows users to create and edit events, with options available for type and time. Available to anyone that has a Gmail account on both mobile and web versions.",
-  installed: !!(process.env.GOOGLE_API_CREDENTIALS && validJson(process.env.GOOGLE_API_CREDENTIALS)),
+  installed: isGoogleCalendarOAuthConfigured(process.env.GOOGLE_API_CREDENTIALS),
   type: "google_calendar",
   title: "Google Calendar",
   variant: "calendar",
