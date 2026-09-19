@@ -227,6 +227,7 @@ const nextConfig = (phase: string): NextConfig => {
       "jose",
     ],
     experimental: {
+      cpus: 2,
       optimizePackageImports: ["@calcom/ui"],
     },
     productionBrowserSourceMaps: true,
