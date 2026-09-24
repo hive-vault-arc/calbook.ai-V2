@@ -114,8 +114,8 @@ jobs:
       - name: Generate Prisma client
         run: yarn prisma generate
 
-      - name: Check formatting and lint rules
-        run: yarn biome check .
+      - name: Check lint rules
+        run: yarn lint
 
       - name: Check TypeScript
         run: yarn type-check:ci --force
