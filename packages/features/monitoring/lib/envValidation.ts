@@ -57,6 +57,12 @@ const rules: Rule[] = [
     test: (v) => Boolean(v && urlPattern.test(v)),
   },
   {
+    key: "NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS",
+    severity: "error",
+    message: "A public support email is required for legal notices and customer support",
+    test: (v) => Boolean(v && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)),
+  },
+  {
     key: "STRIPE_PRIVATE_KEY",
     severity: "warning",
     message: "Stripe private key should start with sk_live_ or sk_test_",

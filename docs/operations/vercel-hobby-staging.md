@@ -24,6 +24,7 @@ Configure these for Production, Preview, and Development unless a narrower scope
 - `NEXTAUTH_SECRET`
 - `CALENDSO_ENCRYPTION_KEY`
 - `ALLOWED_HOSTNAMES`
+- `NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS`
 - `CALCOM_TELEMETRY_DISABLED=1`
 
 The initial deployment can derive its URL from Vercel. After Vercel assigns the stable staging domain, set both `NEXT_PUBLIC_WEBAPP_URL` and `NEXTAUTH_URL` to that exact HTTPS origin, update `ALLOWED_HOSTNAMES` to contain only its hostname, and redeploy.
