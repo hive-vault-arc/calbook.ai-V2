@@ -54,17 +54,18 @@ export class BookingPackageService {
     eventTypeId: number;
   }): Promise<BookingPackage | null> {
     const now = new Date();
-    return prisma.bookingPackage.findFirst({
+    const activePackages = await prisma.bookingPackage.findMany({
       where: {
         organizerId: params.organizerId,
         attendeeEmail: params.attendeeEmail,
         eventTypeId: params.eventTypeId,
         status: "ACTIVE",
-        usedSessions: { lt: prisma.bookingPackage.fields.totalSessions },
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
       orderBy: { createdAt: "desc" },
     });
+
+    return activePackages.find((pkg) => pkg.usedSessions < pkg.totalSessions) ?? null;
   }
 
   /**

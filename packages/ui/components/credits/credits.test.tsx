@@ -1,7 +1,6 @@
 /* eslint-disable playwright/missing-playwright-await */
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
-
 import Credits from "./Credits";
 
 vi.mock("@calcom/lib/constants", async () => {
@@ -9,6 +8,7 @@ vi.mock("@calcom/lib/constants", async () => {
   return {
     ...actual,
     CALCOM_VERSION: "mockedVersion",
+    COMPANY_NAME: "CalBook.ai",
   };
 });
 
@@ -16,7 +16,7 @@ describe("Tests for Credits component", () => {
   test("Should render credits section with links", () => {
     render(<Credits />);
 
-    const creditsLinkElement = screen.getByRole("link", { name: /Cal\.com, Inc\./i });
+    const creditsLinkElement = screen.getByRole("link", { name: "CalBook.ai" });
     expect(creditsLinkElement).toBeInTheDocument();
     expect(creditsLinkElement).toHaveAttribute("href", "https://go.cal.com/credits");
 

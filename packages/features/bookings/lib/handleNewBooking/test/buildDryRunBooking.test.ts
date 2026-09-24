@@ -94,6 +94,7 @@ describe("buildDryRunBooking", () => {
       responses: null,
       location: null,
       paid: false,
+      bookingPackageId: null,
       cancellationReason: null,
       rejectionReason: null,
       dynamicEventSlugRef: null,

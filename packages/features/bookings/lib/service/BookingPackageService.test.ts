@@ -129,7 +129,7 @@ describe("BookingPackageService", () => {
   describe("findActivePackage", () => {
     it("should find an active package with remaining sessions", async () => {
       const pkg = makePackage({ usedSessions: 2, totalSessions: 5 });
-      mockPrisma.bookingPackage.findFirst.mockResolvedValue(pkg);
+      mockPrisma.bookingPackage.findMany.mockResolvedValue([pkg]);
 
       const result = await service.findActivePackage({
         organizerId: 100,
@@ -138,7 +138,7 @@ describe("BookingPackageService", () => {
       });
 
       expect(result).toEqual(pkg);
-      expect(mockPrisma.bookingPackage.findFirst).toHaveBeenCalledWith(
+      expect(mockPrisma.bookingPackage.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             organizerId: 100,
@@ -151,7 +151,7 @@ describe("BookingPackageService", () => {
     });
 
     it("should return null when no active package exists", async () => {
-      mockPrisma.bookingPackage.findFirst.mockResolvedValue(null);
+      mockPrisma.bookingPackage.findMany.mockResolvedValue([]);
 
       const result = await service.findActivePackage({
         organizerId: 100,
@@ -160,6 +160,20 @@ describe("BookingPackageService", () => {
       });
 
       expect(result).toBeNull();
+    });
+
+    it("should skip exhausted packages and return the next package with remaining sessions", async () => {
+      const exhaustedPackage = makePackage({ id: 2, usedSessions: 5, totalSessions: 5 });
+      const availablePackage = makePackage({ id: 1, usedSessions: 2, totalSessions: 5 });
+      mockPrisma.bookingPackage.findMany.mockResolvedValue([exhaustedPackage, availablePackage]);
+
+      const result = await service.findActivePackage({
+        organizerId: 100,
+        attendeeEmail: "booker@example.com",
+        eventTypeId: 10,
+      });
+
+      expect(result).toEqual(availablePackage);
     });
   });
 
