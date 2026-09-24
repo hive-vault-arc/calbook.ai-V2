@@ -1,0 +1,67 @@
+name: Deployment smoke test
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      web_url:
+        description: HTTPS URL for the deployed web application
+        required: true
+        type: string
+      api_url:
+        description: Optional HTTPS URL for a separately deployed API
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployment-smoke-${{ github.event.deployment.id || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Public endpoints
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      WEB_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.web_url || github.event.deployment_status.environment_url }}
+      API_URL: ${{ inputs.api_url }}
+    steps:
+      - name: Verify public endpoints
+        shell: bash
+        run: |
+          check_url() {
+            local label="$1"
+            local target="$2"
+
+            if [[ ! "$target" =~ ^https://[^[:space:]]+$ ]]; then
+              echo "::error::$label must be a public HTTPS URL."
+              return 1
+            fi
+
+            echo "Checking $label"
+            curl \
+              --proto '=https' \
+              --fail \
+              --location \
+              --max-time 30 \
+              --retry 8 \
+              --retry-all-errors \
+              --retry-delay 10 \
+              --show-error \
+              --silent \
+              --output /dev/null \
+              "$target"
+          }
+
+          check_url "web deployment" "$WEB_URL"
+
+          if [[ -n "$API_URL" ]]; then
+            check_url "API deployment" "$API_URL"
+          fi
+
+          echo "### Deployment smoke test" >> "$GITHUB_STEP_SUMMARY"
+          echo "Public HTTPS endpoints responded successfully." >> "$GITHUB_STEP_SUMMARY"

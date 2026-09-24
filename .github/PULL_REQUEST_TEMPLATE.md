@@ -1,46 +1,33 @@
-## What does this PR do?
+## Outcome
 
-<!-- Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context. List any dependencies that are required for this change.
+Describe the user-visible or operational outcome of this change.
 
-Note: Cal.diy is a community-maintained open-source project. Contributions here do NOT flow to Cal.com's production service. -->
+## Scope
 
-- Fixes #XXXX (GitHub issue number)
+- What changed:
+- What intentionally did not change:
+- Sprint item or issue:
 
-## Visual Demo (For contributors especially)
+## Verification
 
-A visual demonstration is strongly recommended, for both the original and new change **(video / image - any one)**.
+- [ ] Relevant unit or integration tests pass
+- [ ] `yarn type-check:ci --force` passes
+- [ ] Biome checks pass
+- [ ] UI changes were checked at small, medium, and large widths, or are not applicable
+- [ ] No secrets, credentials, or real `.env` files are included
+- [ ] Database changes include a reviewed migration and rollback plan, or are not applicable
 
-#### Video Demo (if applicable):
+Testing notes:
 
-- Show screen recordings of the issue or feature.
-- Demonstrate how to reproduce the issue, the behavior before and after the change.
+## Release impact
 
-#### Image Demo (if applicable):
+- [ ] No new environment variables are required
+- [ ] No database migration is required
+- [ ] No background job or cron change is required
+- [ ] The change is backward compatible during deployment
 
-- Add side-by-side screenshots of the original and updated change.
-- Highlight any significant change(s).
+List exceptions and the required release steps here.
 
-## Mandatory Tasks (DO NOT REMOVE)
+## Visual evidence
 
-- [ ] I have self-reviewed the code (A decent size PR without self-review might be rejected).
-- [ ] I have updated the developer docs if this PR makes changes that would require a documentation change. If N/A, write N/A here and check the checkbox.
-- [ ] I confirm automated tests are in place that prove my fix is effective or that my feature works.
-
-## How should this be tested?
-
-<!-- Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration. Write details that help to start the tests -->
-
-- Are there environment variables that should be set?
-- What are the minimal test data to have?
-- What is expected (happy path) to have (input and output)?
-- Any other important info that could help to test that PR
-
-## Checklist
-
-<!-- Remove bullet points below that don't apply to you -->
-
-- I haven't read the [contributing guide](https://github.com/calcom/cal.diy/blob/main/CONTRIBUTING.md)
-- My code doesn't follow the style guidelines of this project
-- I haven't commented my code, particularly in hard-to-understand areas
-- I haven't checked if my changes generate no new warnings
-- My PR is too large (>500 lines or >10 files) and should be split into smaller PRs
+Add before/after screenshots or a short recording for meaningful UI changes.
