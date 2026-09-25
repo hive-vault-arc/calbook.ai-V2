@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 import type { RouteHas } from "next/dist/lib/load-custom-routes";
 import { withAxiom } from "next-axiom";
 import i18nConfig from "@calcom/i18n/next-i18next.config";
+import { resolveDeploymentUrls } from "./deploymentOrigin";
 import packageJson from "./package.json";
 import {
   nextJsOrgRewriteConfig,
@@ -62,17 +63,10 @@ if (process.env.NODE_ENV === "production" || process.env.CALCOM_ENV === "product
   env.TRIGGER_VERSION = TRIGGER_VERSION;
 }
 
-if (process.env.VERCEL_URL && !process.env.NEXT_PUBLIC_WEBAPP_URL) {
-  env.NEXT_PUBLIC_WEBAPP_URL = `https://${process.env.VERCEL_URL}`;
-}
-
-if (!process.env.NEXTAUTH_URL && process.env.NEXT_PUBLIC_WEBAPP_URL) {
-  env.NEXTAUTH_URL = `${process.env.NEXT_PUBLIC_WEBAPP_URL}/api/auth`;
-}
-
-if (!process.env.NEXT_PUBLIC_WEBSITE_URL) {
-  env.NEXT_PUBLIC_WEBSITE_URL = process.env.NEXT_PUBLIC_WEBAPP_URL;
-}
+const deploymentUrls = resolveDeploymentUrls(process.env);
+env.NEXT_PUBLIC_WEBAPP_URL = deploymentUrls.webappUrl;
+env.NEXTAUTH_URL = deploymentUrls.nextAuthUrl;
+env.NEXT_PUBLIC_WEBSITE_URL = deploymentUrls.websiteUrl;
 
 if (
   process.env.CSP_POLICY === "strict" &&
