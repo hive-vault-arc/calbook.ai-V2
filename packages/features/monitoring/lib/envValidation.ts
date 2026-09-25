@@ -31,6 +31,17 @@ type Rule = {
 
 const urlPattern = /^https?:\/\/.+/;
 
+function isPublicUrl(value: string | undefined): boolean {
+  if (!value || !urlPattern.test(value)) return false;
+
+  try {
+    const hostname = new URL(value).hostname;
+    return hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "[::1]";
+  } catch {
+    return false;
+  }
+}
+
 const rules: Rule[] = [
   {
     key: "DATABASE_URL",
@@ -47,14 +58,14 @@ const rules: Rule[] = [
   {
     key: "NEXTAUTH_URL",
     severity: "error",
-    message: "NextAuth URL must be a valid HTTP(S) URL",
-    test: (v) => Boolean(v && urlPattern.test(v)),
+    message: "NextAuth URL must be a public HTTP(S) URL, not localhost",
+    test: isPublicUrl,
   },
   {
     key: "NEXT_PUBLIC_WEBAPP_URL",
     severity: "error",
-    message: "Webapp URL must be a valid HTTP(S) URL",
-    test: (v) => Boolean(v && urlPattern.test(v)),
+    message: "Webapp URL must be a public HTTP(S) URL, not localhost",
+    test: isPublicUrl,
   },
   {
     key: "NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS",

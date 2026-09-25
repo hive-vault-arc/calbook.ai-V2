@@ -63,6 +63,18 @@ describe("envValidation", () => {
     expect(result.findings.some((f) => f.key === "NEXTAUTH_URL")).toBe(true);
   });
 
+  it("fails when production application URLs point to localhost", () => {
+    const result = validateProductionEnv({
+      ...validEnv,
+      NEXTAUTH_URL: "http://localhost:3000/api/auth",
+      NEXT_PUBLIC_WEBAPP_URL: "http://127.0.0.1:3000",
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.findings.some((finding) => finding.key === "NEXTAUTH_URL")).toBe(true);
+    expect(result.findings.some((finding) => finding.key === "NEXT_PUBLIC_WEBAPP_URL")).toBe(true);
+  });
+
   it("fails when the public support email is missing or invalid", () => {
     const result = validateProductionEnv({ ...validEnv, NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS: undefined });
 
