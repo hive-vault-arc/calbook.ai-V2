@@ -7,6 +7,7 @@ describe("envValidation", () => {
     NEXTAUTH_SECRET: "a".repeat(32),
     NEXTAUTH_URL: "https://calbook.test",
     NEXT_PUBLIC_WEBAPP_URL: "https://calbook.test",
+    NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS: "support@calbook.test",
     STRIPE_PRIVATE_KEY: "sk_live_abc123",
     NEXT_PUBLIC_STRIPE_PUBLIC_KEY: "pk_live_abc123",
     STRIPE_WEBHOOK_SECRET: "whsec_abc123",
@@ -60,6 +61,17 @@ describe("envValidation", () => {
     const result = validateProductionEnv({ ...validEnv, NEXTAUTH_URL: "not-a-url" });
     expect(result.valid).toBe(false);
     expect(result.findings.some((f) => f.key === "NEXTAUTH_URL")).toBe(true);
+  });
+
+  it("fails when the public support email is missing or invalid", () => {
+    const result = validateProductionEnv({ ...validEnv, NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS: undefined });
+
+    expect(result.valid).toBe(false);
+    expect(result.findings).toContainEqual({
+      key: "NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS",
+      severity: "error",
+      message: "A public support email is required for legal notices and customer support",
+    });
   });
 
   it("warns when Stripe key format is unrecognized", () => {
