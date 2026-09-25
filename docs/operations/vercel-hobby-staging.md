@@ -27,7 +27,13 @@ Configure these for Production, Preview, and Development unless a narrower scope
 - `NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS`
 - `CALCOM_TELEMETRY_DISABLED=1`
 
-The initial deployment can derive its URL from Vercel. After Vercel assigns the stable staging domain, set both `NEXT_PUBLIC_WEBAPP_URL` and `NEXTAUTH_URL` to that exact HTTPS origin, update `ALLOWED_HOSTNAMES` to contain only its hostname, and redeploy.
+The app derives its URL from Vercel system variables when these settings are absent. For a stable production domain, configure:
+
+- `NEXT_PUBLIC_WEBAPP_URL=https://calbook-ai-v2-web.vercel.app`
+- `NEXT_PUBLIC_WEBSITE_URL=https://calbook-ai-v2-web.vercel.app`
+- `NEXTAUTH_URL=https://calbook-ai-v2-web.vercel.app/api/auth`
+
+Replace that hostname after attaching a custom domain. Never use `localhost` for Production or Preview. Keep Vercel's automatic system environment variables enabled, update `ALLOWED_HOSTNAMES` to contain only the hosted hostname, and redeploy after changing any environment variable.
 
 Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` once the Upstash staging database exists. Email and calendar-provider variables can follow after the core deployment is healthy.
 
