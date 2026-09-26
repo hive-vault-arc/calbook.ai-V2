@@ -856,6 +856,7 @@ export const signupSchema = z.object({
   }),
   language: z.string().optional(),
   token: z.string().optional(),
+  workspaceType: z.enum(["recruiting", "scheduling"]).optional(),
 });
 
 export const ZVerifyCodeInputSchema = z.object({

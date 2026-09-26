@@ -6,6 +6,7 @@ type SignupData = {
   password: string;
   language: string;
   token?: string;
+  workspaceType?: "recruiting" | "scheduling";
 };
 
 type SignupSuccessResponse = {

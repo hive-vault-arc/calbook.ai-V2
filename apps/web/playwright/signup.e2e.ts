@@ -13,6 +13,11 @@ test.describe.configure({ mode: "parallel" });
 const preventFlakyTest = async (page: Page) => {
   await expect(page.locator("text=Create your account")).toBeVisible();
 };
+
+const selectRecruitingWorkspace = async (page: Page) => {
+  await page.getByTestId("signup-workspace-recruiting").click();
+};
+
 test.describe("Signup Main Page Test", async () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/signup");
@@ -25,6 +30,8 @@ test.describe("Signup Main Page Test", async () => {
     await expect(button).toBeEnabled();
     await button.click();
     await expect(page.getByTestId("signup-back-button")).toBeVisible();
+    await expect(page.getByTestId("signup-workspace-recruiting")).toBeVisible();
+    await expect(page.getByTestId("signup-workspace-scheduling")).toBeVisible();
   });
 
   test("Continue with google button must exist / work", async ({ page }) => {
@@ -67,6 +74,7 @@ test.describe("Email Signup Flow Test", async () => {
       const continueWithEmailButton = page.getByTestId("continue-with-email-button");
       await expect(continueWithEmailButton).toBeVisible();
       await continueWithEmailButton.click();
+      await selectRecruitingWorkspace(page);
 
       const alertMessage = "Username or email is already taken";
 
@@ -98,6 +106,7 @@ test.describe("Email Signup Flow Test", async () => {
       const continueWithEmailButton = page.getByTestId("continue-with-email-button");
       await expect(continueWithEmailButton).toBeVisible();
       await continueWithEmailButton.click();
+      await selectRecruitingWorkspace(page);
 
       const alertMessage = "Username or email is already taken";
 
@@ -131,6 +140,7 @@ test.describe("Email Signup Flow Test", async () => {
     const continueWithEmailButton = page.getByTestId("continue-with-email-button");
     await expect(continueWithEmailButton).toBeVisible();
     await continueWithEmailButton.click();
+    await selectRecruitingWorkspace(page);
 
     // Fill form
     await page.locator('input[name="username"]').fill(userToCreate.username);
@@ -150,6 +160,7 @@ test.describe("Email Signup Flow Test", async () => {
     const dbUser = await prisma.user.findUnique({ where: { email: userToCreate.email } });
     // Verify that the username is the same as the one provided and isn't accidentally changed to email derived username - That happens only for organization member signup
     expect(dbUser?.username).toBe(userToCreate.username);
+    expect(dbUser?.metadata).toMatchObject({ workspaceType: "recruiting" });
   });
 
   test("Signup fields prefilled with query params", async ({ page, users: _users }) => {
@@ -189,6 +200,7 @@ test.describe("Email Signup Flow Test", async () => {
     const continueWithEmailButton = page.getByTestId("continue-with-email-button");
     await expect(continueWithEmailButton).toBeVisible();
     await continueWithEmailButton.click();
+    await selectRecruitingWorkspace(page);
 
     // Fill form
     await page.locator('input[name="username"]').fill(userToCreate.username);
@@ -220,6 +232,7 @@ test.describe("Email Signup Flow Test", async () => {
 
     // Navigate to email form
     await page.getByTestId("continue-with-email-button").click();
+    await selectRecruitingWorkspace(page);
 
     // Fill form
     await page.locator('input[name="username"]').fill("pro");
@@ -236,5 +249,4 @@ test.describe("Email Signup Flow Test", async () => {
     await checkbox.uncheck();
     await expect(submitButton).toBeEnabled();
   });
-
 });

@@ -1,16 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
-
+import { beforeEach, describe, expect, it } from "vitest";
 import { SIGNUP_ERROR_CODES } from "../../constants";
 import type { MockResponse } from "./mocks/next.mocks";
 import {
-  prismaMock,
+  createGenericPrismaError,
   createP2002Error,
   createP2002ErrorWithoutTarget,
-  createGenericPrismaError,
+  prismaMock,
 } from "./mocks/prisma.mocks";
-import { createSignupBody, createMockUser } from "./mocks/signup.factories";
-
 import type { SignupBody } from "./mocks/signup.factories";
+import { createMockUser, createSignupBody } from "./mocks/signup.factories";
 
 type CallHandler = (body: SignupBody) => Promise<MockResponse>;
 
@@ -23,6 +21,13 @@ export function runP2002TestSuite(
   describe(`${handlerName} – signup P2002 contract`, () => {
     describe("P2002 Error Handling (non-token flow)", () => {
       beforeEach(setupMocks);
+
+      it("requires a workspace type", async () => {
+        const response = await callHandler(createSignupBody({ workspaceType: undefined }));
+
+        expect(response.status).toBe(422);
+        expect(await response.json()).toEqual({ message: "Workspace type is required" });
+      });
 
       it("returns 409 when target includes 'email'", async () => {
         prismaMock.user.create.mockRejectedValue(createP2002Error(["email"]));
@@ -96,6 +101,11 @@ export function runP2002TestSuite(
         const response = await callHandler(createSignupBody());
 
         expect(response.status).toBe(201);
+        expect(prismaMock.user.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            metadata: expect.objectContaining({ workspaceType: "recruiting" }),
+          }),
+        });
       });
 
       it("returns 201 when user is created via invite (token flow)", async () => {

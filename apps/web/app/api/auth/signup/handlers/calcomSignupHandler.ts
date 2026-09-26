@@ -45,9 +45,7 @@ const billingService = {
   async createCustomer(_args: Record<string, unknown>): Promise<{ stripeCustomerId: string }> {
     return { stripeCustomerId: "" };
   },
-  async createSubscriptionCheckout(
-    _args: Record<string, unknown>
-  ): Promise<{ sessionId: string }> {
+  async createSubscriptionCheckout(_args: Record<string, unknown>): Promise<{ sessionId: string }> {
     return { sessionId: "" };
   },
 };
@@ -57,13 +55,19 @@ const handler: CustomNextApiHandler = async (body, usernameStatus, query) => {
     email: _email,
     password,
     token,
+    workspaceType,
   } = signupSchema
     .pick({
       email: true,
       password: true,
       token: true,
+      workspaceType: true,
     })
     .parse(body);
+
+  if (!token && !workspaceType) {
+    return NextResponse.json({ message: "Workspace type is required" }, { status: 422 });
+  }
 
   const userRepository = getUserRepository();
 
@@ -105,7 +109,7 @@ const handler: CustomNextApiHandler = async (body, usernameStatus, query) => {
     });
 
     if (foundToken?.teamId) {
-      const existingUser = await userRepository.findByEmailWithInvitedTo({email})
+      const existingUser = await userRepository.findByEmailWithInvitedTo({ email });
 
       if (existingUser && existingUser.invitedTo !== foundToken.teamId) {
         return NextResponse.json({ message: SIGNUP_ERROR_CODES.USER_ALREADY_EXISTS }, { status: 409 });
@@ -200,8 +204,8 @@ const handler: CustomNextApiHandler = async (body, usernameStatus, query) => {
         const existingUserByUsername = await userRepository.findByUsernameAndOrganizationId({
           username,
           organizationId,
-          excludeEmail: email
-        })
+          excludeEmail: email,
+        });
         if (existingUserByUsername) {
           return NextResponse.json({ message: SIGNUP_ERROR_CODES.USER_ALREADY_EXISTS }, { status: 409 });
         }
@@ -215,8 +219,8 @@ const handler: CustomNextApiHandler = async (body, usernameStatus, query) => {
           hashedPassword,
           organizationId,
           emailVerified: new Date(),
-          identityProvider: IdentityProvider.CAL
-        })
+          identityProvider: IdentityProvider.CAL,
+        });
       } catch (error) {
         if (isPrismaError(error) && error.code === "P2002") {
           const target = String(error.meta?.target ?? "");
@@ -261,8 +265,9 @@ const handler: CustomNextApiHandler = async (body, usernameStatus, query) => {
         metadata: {
           stripeCustomerId: customer.stripeCustomerId,
           checkoutSessionId,
-        }
-      })
+          ...(workspaceType ? { workspaceType } : {}),
+        },
+      });
     } catch (error) {
       // Fallback for race conditions where user was created between our check and create
       if (isPrismaError(error) && error.code === "P2002") {
