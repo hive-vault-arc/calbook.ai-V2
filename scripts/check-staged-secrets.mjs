@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { exit } from "node:process";
+import { findSecretTypes, isProhibitedEnvFile } from "./secret-patterns.mjs";
 
 const stagedFiles = execFileSync("git", ["diff", "--cached", "--name-only", "-z"], {
   encoding: "utf8",
@@ -7,19 +8,10 @@ const stagedFiles = execFileSync("git", ["diff", "--cached", "--name-only", "-z"
   .split("\0")
   .filter(Boolean);
 
-const prohibitedEnvFile = /(^|\/)\.env(?:\.local|\.development\.local|\.test\.local|\.production\.local)?$/;
-const secretPatterns = [
-  { name: "Stripe live secret key", expression: /sk_live_[A-Za-z0-9]{16,}/ },
-  { name: "Stripe webhook secret", expression: /whsec_[A-Za-z0-9]{16,}/ },
-  { name: "Resend API key", expression: /re_[A-Za-z0-9]{16,}/ },
-  { name: "Google OAuth client secret", expression: /GOCSPX-[A-Za-z0-9_-]{16,}/ },
-  { name: "private key", expression: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
-];
-
 const errors = [];
 
 for (const file of stagedFiles) {
-  if (prohibitedEnvFile.test(file)) {
+  if (isProhibitedEnvFile(file)) {
     errors.push(`${file}: local environment files must not be committed`);
   }
 
@@ -30,10 +22,8 @@ for (const file of stagedFiles) {
   for (const line of diff.split("\n")) {
     if (!line.startsWith("+") || line.startsWith("+++")) continue;
 
-    for (const pattern of secretPatterns) {
-      if (pattern.expression.test(line)) {
-        errors.push(`${file}: possible ${pattern.name} in staged content`);
-      }
+    for (const secretType of findSecretTypes(line)) {
+      errors.push(`${file}: possible ${secretType} in staged content`);
     }
   }
 }
