@@ -177,10 +177,12 @@ export function UserDropdown({ small }: UserDropdownProps) {
             <MenuSeparator />
           </>
 
-          <MenuItem render={<a href={ROADMAP} target="_blank" rel="noreferrer" />}>
-            <MapIcon />
-            {t("visit_roadmap")}
-          </MenuItem>
+          {ROADMAP ? (
+            <MenuItem render={<a href={ROADMAP} target="_blank" rel="noreferrer" />}>
+              <MapIcon />
+              {t("visit_roadmap")}
+            </MenuItem>
+          ) : null}
           <MenuItem onClick={handleHelpClick}>
             <CircleHelpIcon />
             {t("help")}

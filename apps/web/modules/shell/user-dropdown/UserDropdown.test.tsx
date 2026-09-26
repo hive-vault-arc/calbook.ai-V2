@@ -1,6 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import React from "react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next-auth/react", () => ({
   signOut: vi.fn(),
@@ -18,6 +18,10 @@ vi.mock("@calcom/lib/hooks/useUserAgentData", () => ({
     browser: "chrome",
     isMobile: false,
   }),
+}));
+
+vi.mock("@calcom/lib/constants", () => ({
+  ROADMAP: "",
 }));
 
 const mockUseMeQuery = vi.fn();
@@ -234,9 +238,10 @@ describe("UserDropdown", () => {
       });
 
       const { UserDropdown } = await import("./UserDropdown");
-      const { getByTestId } = render(<UserDropdown />);
+      const { getByTestId, queryByText } = render(<UserDropdown />);
 
       expect(getByTestId("menu")).toBeInTheDocument();
+      expect(queryByText("visit_roadmap")).not.toBeInTheDocument();
     });
 
     it("should render dropdown when isPending is true (loading state)", async () => {
