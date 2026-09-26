@@ -21,6 +21,7 @@ export interface SignupBody {
   username: string;
   language: string;
   token?: string;
+  workspaceType?: "recruiting" | "scheduling";
 }
 
 export function createMockTeam(overrides: Partial<MockTeam> = {}): MockTeam {
@@ -55,6 +56,7 @@ export function createSignupBody(overrides: Partial<SignupBody> = {}): SignupBod
     password: "ValidPassword123!",
     username: "testuser",
     language: "en",
+    workspaceType: "recruiting",
     ...overrides,
   };
 }

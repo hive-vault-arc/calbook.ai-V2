@@ -32,9 +32,11 @@ import { signupSchema as apiSignupSchema } from "@calcom/prisma/zod-utils";
 import type { inferSSRProps } from "@calcom/types/inferSSRProps";
 import classNames from "@calcom/ui/classNames";
 import { Alert } from "@calcom/ui/components/alert";
+import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
 import { CheckboxField, Form, PasswordField, SelectField, TextField } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
+import { RadioAreaGroup } from "@calcom/ui/components/radio";
 import { showToast } from "@calcom/ui/components/toast";
 import { InfoIcon, ShieldCheckIcon, StarIcon } from "@coss/ui/icons";
 import { Analytics as DubAnalytics } from "@dub/analytics/react";
@@ -246,6 +248,7 @@ export default function Signup({
       org_slug: orgSlug,
       is_premium_username: premiumUsername,
       username_taken: usernameTaken,
+      workspace_type: data.workspaceType,
     });
 
     try {
@@ -501,6 +504,58 @@ export default function Signup({
                         }
                         await signUp(updatedValues);
                       }}>
+                      {!isOrgInviteByLink ? (
+                        <div className="flex flex-col gap-3" data-testid="signup-workspace-type">
+                          <div>
+                            <p className="font-medium text-emphasis text-sm">
+                              {t("onboarding_workspace_title")}
+                            </p>
+                            <p className="mt-1 text-sm text-subtle">
+                              {t("onboarding_workspace_description")}
+                            </p>
+                          </div>
+                          <RadioAreaGroup.Group
+                            value={watch("workspaceType")}
+                            onValueChange={(value) => {
+                              formMethods.setValue("workspaceType", value as "recruiting" | "scheduling", {
+                                shouldDirty: true,
+                                shouldValidate: true,
+                              });
+                            }}
+                            className="grid gap-2 sm:grid-cols-2">
+                            <RadioAreaGroup.Item
+                              value="recruiting"
+                              data-testid="signup-workspace-recruiting"
+                              className="rounded-xl border border-subtle bg-default transition hover:border-emphasis [&>button]:right-3 [&>button]:top-3"
+                              classNames={{ container: "flex min-h-28 w-full flex-col gap-2 p-3 pr-9" }}>
+                              <Badge variant="purple" size="sm" className="w-fit rounded-md">
+                                {t("onboarding_workspace_recruiting_badge")}
+                              </Badge>
+                              <p className="font-semibold text-emphasis text-sm">
+                                {t("onboarding_workspace_recruiting_title")}
+                              </p>
+                              <p className="text-sm text-subtle">
+                                {t("onboarding_workspace_recruiting_description")}
+                              </p>
+                            </RadioAreaGroup.Item>
+                            <RadioAreaGroup.Item
+                              value="scheduling"
+                              data-testid="signup-workspace-scheduling"
+                              className="rounded-xl border border-subtle bg-default transition hover:border-emphasis [&>button]:right-3 [&>button]:top-3"
+                              classNames={{ container: "flex min-h-28 w-full flex-col gap-2 p-3 pr-9" }}>
+                              <Badge variant="gray" size="sm" className="w-fit rounded-md">
+                                {t("onboarding_workspace_scheduling_badge")}
+                              </Badge>
+                              <p className="font-semibold text-emphasis text-sm">
+                                {t("onboarding_workspace_scheduling_title")}
+                              </p>
+                              <p className="text-sm text-subtle">
+                                {t("onboarding_workspace_scheduling_description")}
+                              </p>
+                            </RadioAreaGroup.Item>
+                          </RadioAreaGroup.Group>
+                        </div>
+                      ) : null}
                       {/* Username */}
                       {!isOrgInviteByLink ? (
                         <UsernameField
@@ -515,15 +570,8 @@ export default function Signup({
                           setPremium={(value) => setPremiumUsername(value)}
                           addOnLeading={
                             orgSlug
-                              ? truncateDomain(
-                                  `${WEBAPP_URL.replace(
-                                    URL_PROTOCOL_REGEX,
-                                    ""
-                                  )}/`
-                                )
-                              : truncateDomain(
-                                  `${WEBSITE_URL.replace(URL_PROTOCOL_REGEX, "")}/`
-                                )
+                              ? truncateDomain(`${WEBAPP_URL.replace(URL_PROTOCOL_REGEX, "")}/`)
+                              : truncateDomain(`${WEBSITE_URL.replace(URL_PROTOCOL_REGEX, "")}/`)
                           }
                         />
                       ) : null}
@@ -588,6 +636,7 @@ export default function Signup({
                           !!formMethods.formState.errors.email ||
                           !formMethods.getValues("email") ||
                           !formMethods.getValues("password") ||
+                          (!isOrgInviteByLink && !watch("workspaceType")) ||
                           (CLOUDFLARE_SITE_ID && !process.env.NEXT_PUBLIC_IS_E2E && !watch("cfToken")) ||
                           isSubmitting ||
                           usernameTaken

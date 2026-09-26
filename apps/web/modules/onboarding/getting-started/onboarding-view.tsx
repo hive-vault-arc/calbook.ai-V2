@@ -2,6 +2,7 @@
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
+import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 import classNames from "@calcom/ui/classNames";
 import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
@@ -27,6 +28,7 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
   const { t } = useLocale();
   const { selectedPlan, setSelectedPlan, resetOnboardingPreservingPlan } = useOnboardingStore();
   const [workspaceType, setWorkspaceType] = useState<"recruiting" | "scheduling" | null>(null);
+  const { data: user } = useMeQuery();
   const previousPlanRef = useRef<PlanType | null>(null);
   const [isPending, startTransition] = useTransition();
   const updateProfile = trpc.viewer.me.updateProfile.useMutation({
@@ -34,6 +36,10 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
   });
   const hasTeamMembership = false;
   const isPendingMembership = false;
+
+  useEffect(() => {
+    if (!workspaceType && user?.workspaceType) setWorkspaceType(user.workspaceType);
+  }, [user?.workspaceType, workspaceType]);
 
   // Reset onboarding data when visiting this page, but preserve the selected plan
   useEffect(() => {
@@ -186,7 +192,7 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
                 className={classNames(
                   "relative overflow-hidden rounded-xl border bg-default transition",
                   workspaceType === "recruiting" ? "border-emphasis shadow-sm" : "border-subtle",
-                  "[&>button]:right-4 [&>button]:top-4"
+                  "[&>button]:top-4 [&>button]:right-4"
                 )}
                 classNames={{ container: "flex min-h-32 w-full flex-col gap-2 p-4 pr-10" }}>
                 <Badge variant="purple" size="sm" className="w-fit rounded-md">
@@ -202,7 +208,7 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
                 className={classNames(
                   "relative overflow-hidden rounded-xl border bg-default transition",
                   workspaceType === "scheduling" ? "border-emphasis shadow-sm" : "border-subtle",
-                  "[&>button]:right-4 [&>button]:top-4"
+                  "[&>button]:top-4 [&>button]:right-4"
                 )}
                 classNames={{ container: "flex min-h-32 w-full flex-col gap-2 p-4 pr-10" }}>
                 <Badge variant="gray" size="sm" className="w-fit rounded-md">
