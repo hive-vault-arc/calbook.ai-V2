@@ -182,7 +182,7 @@ jobs:
         uses: ./.github/actions/cache-db-key
       - name: Check DB cache (lookup-only)
         id: cache-db-check
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: backups/backup.sql
           key: ${{ steps.cache-db-key.outputs.key }}
