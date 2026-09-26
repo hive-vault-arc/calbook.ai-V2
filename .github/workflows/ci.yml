@@ -82,7 +82,7 @@ jobs:
           fi
 
           node --test scripts/secret-patterns.test.mjs
-          yarn security:scan-tracked
+          node scripts/scan-tracked-secrets.mjs
 
           code_files=$(grep -Ec '\.(c|cc|cpp|css|go|graphql|html|js|jsx|json|mjs|prisma|py|rs|scss|ts|tsx)$' /tmp/changed-files.txt || true)
           changed_lines=$(awk '{ additions += ($1 ~ /^[0-9]+$/ ? $1 : 0); deletions += ($2 ~ /^[0-9]+$/ ? $2 : 0) } END { print additions + deletions + 0 }' /tmp/change-size.txt)
