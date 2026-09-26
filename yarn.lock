@@ -3307,6 +3307,7 @@ __metadata:
     "@calcom/app-store-cli": "workspace:*"
     "@calcom/config": "workspace:*"
     "@calcom/dayjs": "workspace:*"
+    "@calcom/emails": "workspace:*"
     "@calcom/embed-core": "workspace:*"
     "@calcom/embed-react": "workspace:*"
     "@calcom/embed-snippet": "workspace:*"

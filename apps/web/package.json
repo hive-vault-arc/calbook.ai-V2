@@ -35,6 +35,7 @@
     "@calcom/app-store": "workspace:*",
     "@calcom/app-store-cli": "workspace:*",
     "@calcom/dayjs": "workspace:*",
+    "@calcom/emails": "workspace:*",
     "@calcom/embed-core": "workspace:*",
     "@calcom/embed-react": "workspace:*",
     "@calcom/embed-snippet": "workspace:*",
