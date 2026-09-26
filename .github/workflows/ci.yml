@@ -68,7 +68,9 @@ jobs:
           protected_file_found=false
           while IFS= read -r file; do
             case "$file" in
-              .env|*/.env|*.pem|*.key|*id_rsa*)
+              *.env.example|*.env.*.example|*.env.template|*.env.*.template)
+                ;;
+              .env*|*/.env*|*.pem|*.key|*id_rsa*)
                 echo "::error file=$file::Secret-bearing files must never be committed. Use repository or hosting secrets."
                 protected_file_found=true
                 ;;
@@ -78,6 +80,9 @@ jobs:
           if [[ "$protected_file_found" == "true" ]]; then
             exit 1
           fi
+
+          node --test scripts/secret-patterns.test.mjs
+          yarn security:scan-tracked
 
           code_files=$(grep -Ec '\.(c|cc|cpp|css|go|graphql|html|js|jsx|json|mjs|prisma|py|rs|scss|ts|tsx)$' /tmp/changed-files.txt || true)
           changed_lines=$(awk '{ additions += ($1 ~ /^[0-9]+$/ ? $1 : 0); deletions += ($2 ~ /^[0-9]+$/ ? $2 : 0) } END { print additions + deletions + 0 }' /tmp/change-size.txt)
