@@ -36,3 +36,4 @@ describe("deployment secret patterns", () => {
     assert.equal(isProhibitedEnvFile("apps/web/.env.example"), false);
   });
 });
+

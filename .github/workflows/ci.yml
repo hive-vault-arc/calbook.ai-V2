@@ -81,7 +81,7 @@ jobs:
             exit 1
           fi
 
-          node --test scripts/secret-patterns.test.mjs
+          node --test scripts/secret-patterns.check.mjs
           node scripts/scan-tracked-secrets.mjs
 
           code_files=$(grep -Ec '\.(c|cc|cpp|css|go|graphql|html|js|jsx|json|mjs|prisma|py|rs|scss|ts|tsx)$' /tmp/changed-files.txt || true)
