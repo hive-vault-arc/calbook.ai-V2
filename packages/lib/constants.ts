@@ -109,11 +109,11 @@ export const APPLE_TOUCH_ICON = "/calbook-icon-180.png";
 export const MSTILE_ICON = "/calbook-icon-150.png";
 export const ANDROID_CHROME_ICON_192 = "/calbook-icon-192.png";
 export const ANDROID_CHROME_ICON_256 = "/calbook-icon-256.png";
-export const ROADMAP = "https://cal.com/roadmap";
+export const ROADMAP = ensureProtocol(process.env.NEXT_PUBLIC_ROADMAP_URL);
 export const DESKTOP_APP_LINK = "https://cal.com/download";
 export const JOIN_COMMUNITY = "https://github.com/calcom/cal.diy/discussions";
 export const POWERED_BY_URL = "https://go.cal.com/booking";
-export const DOCS_URL = "https://cal.com/docs";
+export const DOCS_URL = HELP_CENTER_URL || WEBAPP_URL;
 export const DEVELOPER_DOCS = "https://developer.cal.com";
 export const SEO_IMG_DEFAULT = `${CAL_URL}/og-image.png`;
 // The Dynamic OG Image is passed through Next's Image API to further optimize it.
