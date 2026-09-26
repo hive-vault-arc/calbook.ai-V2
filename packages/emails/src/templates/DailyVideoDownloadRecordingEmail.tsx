@@ -1,5 +1,4 @@
 import { APP_NAME, COMPANY_NAME, WEBAPP_URL } from "@calcom/lib/constants";
-import { getHelpCenterUrl } from "@calcom/lib/getHelpCenterUrl";
 import type { TFunction } from "i18next";
 import { CallToAction, V2BaseEmailHtml } from "../components";
 
@@ -15,6 +14,9 @@ export const DailyVideoDownloadRecordingEmail = (
   props: DailyVideoDownloadRecordingEmailProps & Partial<React.ComponentProps<typeof V2BaseEmailHtml>>
 ) => {
   const image = `${WEBAPP_URL}/emails/logo.png`;
+  const recordingHelpUrl = process.env.NEXT_PUBLIC_HELP_CENTER_URL
+    ? new URL("video/recordings", `${process.env.NEXT_PUBLIC_HELP_CENTER_URL.replace(/\/$/, "")}/`).toString()
+    : WEBAPP_URL;
   return (
     <V2BaseEmailHtml
       subject={props.language("download_your_recording", {
@@ -88,7 +90,7 @@ export const DailyVideoDownloadRecordingEmail = (
 
       <p style={{ fontWeight: 500, lineHeight: "20px", marginTop: "8px" }}>
         {props.language("link_valid_for_12_hrs_description")}{" "}
-        <a href={getHelpCenterUrl("video/recordings")}>{props.language("here")}</a>
+        <a href={recordingHelpUrl}>{props.language("here")}</a>
       </p>
 
       <p style={{ fontWeight: 400, lineHeight: "24px", marginTop: "32px", marginBottom: "8px" }}>
