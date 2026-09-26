@@ -9,10 +9,11 @@ import { Button } from "@calcom/ui/components/button";
 import { EmptyScreen } from "@calcom/ui/components/empty-screen";
 import { showToast } from "@calcom/ui/components/toast";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import posthog from "posthog-js";
 import { useEffect } from "react";
+import { navigateAfterEmailVerification } from "./lib/postAuthNavigation";
 
 const EMAIL_CLIENTS = [
   {
@@ -40,7 +41,6 @@ const EMAIL_CLIENTS = [
 function VerifyEmailPage() {
   const { data } = useEmailVerifyCheck();
   const { data: session } = useSession();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { t, isLocaleReady } = useLocale();
   const mutation = trpc.viewer.auth.resendVerifyEmail.useMutation();
@@ -52,9 +52,9 @@ function VerifyEmailPage() {
       posthog.capture("verify_email_already_verified", {
         onboarding_v3_enabled: flags["onboarding-v3"],
       });
-      router.replace("/");
+      navigateAfterEmailVerification();
     }
-  }, [data?.isVerified, flags, router, wasJustVerified]);
+  }, [data?.isVerified, flags, wasJustVerified]);
   if (!isLocaleReady) {
     return null;
   }
