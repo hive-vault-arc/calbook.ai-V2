@@ -39,8 +39,8 @@ const EMAIL_CLIENTS = [
 ] as const;
 
 function VerifyEmailPage() {
-  const { data } = useEmailVerifyCheck();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
+  const { data } = useEmailVerifyCheck({ enabled: sessionStatus === "authenticated" });
   const searchParams = useSearchParams();
   const { t, isLocaleReady } = useLocale();
   const mutation = trpc.viewer.auth.resendVerifyEmail.useMutation();
@@ -48,13 +48,13 @@ function VerifyEmailPage() {
   const wasJustVerified = searchParams?.get("verified") === "1";
 
   useEffect(() => {
-    if (!wasJustVerified && data?.isVerified) {
+    if (data?.isVerified) {
       posthog.capture("verify_email_already_verified", {
         onboarding_v3_enabled: flags["onboarding-v3"],
       });
       navigateAfterEmailVerification();
     }
-  }, [data?.isVerified, flags, wasJustVerified]);
+  }, [data?.isVerified, flags]);
   if (!isLocaleReady) {
     return null;
   }

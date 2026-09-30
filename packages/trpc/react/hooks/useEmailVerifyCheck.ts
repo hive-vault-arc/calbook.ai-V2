@@ -1,7 +1,15 @@
 import { trpc } from "../trpc";
 
-export function useEmailVerifyCheck() {
+type UseEmailVerifyCheckOptions = {
+  enabled?: boolean;
+};
+
+export function useEmailVerifyCheck({ enabled = true }: UseEmailVerifyCheckOptions = {}) {
   const emailCheck = trpc.viewer.me.shouldVerifyEmail.useQuery(undefined, {
+    enabled,
+    refetchInterval: enabled ? 4000 : false,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
     retry(failureCount) {
       return failureCount < 3;
     },

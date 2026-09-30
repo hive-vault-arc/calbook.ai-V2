@@ -1,3 +1,4 @@
+import prisma from "@calcom/prisma";
 import type { TrpcSessionUser } from "@calcom/trpc/server/types";
 
 type ShouldVerifyEmailType = {
@@ -8,12 +9,21 @@ type ShouldVerifyEmailType = {
 
 export const shouldVerifyEmailHandler = async ({ ctx }: ShouldVerifyEmailType) => {
   const { user } = ctx;
-  const isVerified = !!user.emailVerified;
-  const isCalProvider = user.identityProvider === "CAL"; // We dont need to verify on OAUTH providers as they are already verified by the provider
+  const currentUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      email: true,
+      emailVerified: true,
+      identityProvider: true,
+    },
+  });
+
+  const isVerified = Boolean(currentUser?.emailVerified);
+  const isCalProvider = (currentUser?.identityProvider ?? user.identityProvider) === "CAL";
 
   const obj = {
     id: user.id,
-    email: user.email,
+    email: currentUser?.email ?? user.email,
     isVerified: isVerified || !isCalProvider,
   };
 
