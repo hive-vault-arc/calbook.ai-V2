@@ -46,7 +46,7 @@ import {
 } from "@calcom/web/modules/event-types/components/CreateEventTypeDialog";
 import { DuplicateDialog } from "@calcom/web/modules/event-types/components/DuplicateDialog";
 import { InfiniteSkeletonLoader } from "@calcom/web/modules/event-types/components/SkeletonLoader";
-import { SearchIcon } from "@coss/ui/icons";
+import { ClockIcon, SearchIcon } from "@coss/ui/icons";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { TRPCClientError } from "@trpc/client";
 import Link from "next/link";
@@ -170,12 +170,10 @@ const Item = ({
   type,
   group,
   readOnly,
-  isFeatured,
 }: {
   type: EventType | InfiniteEventType;
   group: EventTypeGroup | InfiniteEventTypeGroup;
   readOnly: boolean;
-  isFeatured: boolean;
 }): JSX.Element => {
   const { t } = useLocale();
   const { resolvedTheme, forcedTheme } = useGetTheme();
@@ -224,11 +222,7 @@ const Item = ({
   );
 
   return (
-    <div
-      className={classNames(
-        eventTypeColor && "-ml-3",
-        "relative min-w-0 flex-1 overflow-hidden pr-10 text-sm sm:pr-0"
-      )}>
+    <div className={classNames(eventTypeColor && "-ml-3", "relative min-w-0 flex-1 text-sm")}>
       {eventTypeColor && (
         <div className="absolute h-full w-1 rounded-full" style={{ backgroundColor: eventTypeColor }} />
       )}
@@ -239,52 +233,54 @@ const Item = ({
             <EventTypeDescription eventType={type} shortenDescription />
           </div>
         ) : (
-          <Link href={`/event-types/${type.id}?tabName=setup`} title={type.title} draggable={false}>
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className="break-words font-semibold text-default text-base"
-                data-testid={`event-type-title-${type.id}`}>
-                {type.title}
-              </span>
-              {isFeatured && <Badge variant="blue">{t("featured")}</Badge>}
-              <span className="rounded-full bg-subtle px-2.5 py-1 font-medium text-subtle text-xs">
+          <Link
+            className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emphasis"
+            href={`/event-types/${type.id}?tabName=setup`}
+            title={type.title}
+            draggable={false}>
+            <div className="flex items-start justify-between gap-4 pr-10 sm:pr-0">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className="font-cal break-words font-semibold text-emphasis text-lg leading-6"
+                    data-testid={`event-type-title-${type.id}`}>
+                    {type.title}
+                  </span>
+                  {!isManagedEventType && type.hidden && (
+                    <span className="text-gray-400 text-sm sm:hidden">{t("hidden")}</span>
+                  )}
+                  {showAssignedBadge && (
+                    <Tooltip content={t("you_are_assigned_to_this_event")}>
+                      <Badge variant="blue" data-testid="assigned-badge">
+                        {t("assigned")}
+                      </Badge>
+                    </Tooltip>
+                  )}
+                </div>
+                <EventTypeDescription
+                  eventType={{
+                    ...type,
+                    descriptionAsSafeHTML: type.safeDescription,
+                  }}
+                  className="mt-1 [&_ul]:hidden"
+                  shortenDescription
+                />
+              </div>
+              <span className="shrink-0 rounded-full border border-subtle bg-subtle px-2.5 py-1 font-medium text-subtle text-xs">
                 {(type.price ?? 0) > 0 ? t("paid") : t("free")}
               </span>
-              {!isManagedEventType && type.hidden && (
-                <span className="text-gray-400 text-sm sm:hidden">{t("hidden")}</span>
-              )}
-              {showAssignedBadge && (
-                <Tooltip content={t("you_are_assigned_to_this_event")}>
-                  <Badge variant="blue" data-testid="assigned-badge">
-                    {t("assigned")}
-                  </Badge>
-                </Tooltip>
-              )}
             </div>
-            <EventTypeDescription
-              eventType={{
-                ...type,
-                descriptionAsSafeHTML: type.safeDescription,
-              }}
-              shortenDescription
-            />
-            <div className="mt-5 grid divide-y divide-subtle overflow-hidden rounded-xl border border-subtle bg-subtle text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] sm:divide-x sm:divide-y-0">
-              <div className="flex items-center justify-between gap-4 px-3.5 py-3 sm:block">
-                <span className="block text-muted text-xs">{t("duration")}</span>
-                <span className="mt-0.5 block font-semibold text-default">
-                  {t("multiple_duration_mins", { count: type.length })}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4 px-3.5 py-3 sm:block">
-                <span className="block text-muted text-xs">{t("interview_format")}</span>
-                <span className="mt-0.5 block font-semibold text-default">{interviewFormat}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 px-3.5 py-3 sm:block">
-                <span className="block text-muted text-xs">{t("hosts")}</span>
-                <span className="mt-0.5 block font-semibold text-default">{t("host_count", { count: hostCount })}</span>
-              </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              <span className="inline-flex items-center gap-2 rounded-full border border-subtle bg-subtle px-3 py-1.5">
+                <span className="font-medium text-muted">{t("interview_format")}</span>
+                <span className="font-semibold text-default">{interviewFormat}</span>
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-subtle bg-subtle px-3 py-1.5">
+                <span className="font-medium text-muted">{t("hosts")}</span>
+                <span className="font-semibold text-default">{t("host_count", { count: hostCount })}</span>
+              </span>
             </div>
-            <div className="mt-3 flex min-w-0 items-center gap-2 rounded-lg border border-subtle bg-subtle px-3 py-2.5 text-xs">
+            <div className="mt-3 flex min-w-0 items-center gap-2 border-subtle border-t pt-3 text-xs">
               <span className="shrink-0 font-semibold text-muted uppercase tracking-wide">
                 {t("candidate_link")}
               </span>
@@ -561,28 +557,26 @@ export const InfiniteEventTypeList = ({
   });
 
   return (
-    <div className="flex flex-col overflow-hidden">
-      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-subtle bg-subtle px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col overflow-hidden pb-6">
+      <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span
-            className="grid shrink-0 grid-cols-2 gap-1 rounded-md border border-subtle bg-default p-2"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-default text-brand-default shadow-sm"
             aria-hidden="true">
-            {Array.from({ length: 6 }).map((_, dotIndex) => (
-              <span key={dotIndex} className="h-1 w-1 rounded-full bg-black opacity-60 dark:bg-white" />
-            ))}
+            <ClockIcon className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-semibold text-default text-sm">{t("public_page_order")}</p>
-            <p className="text-subtle text-xs">{t("public_page_order_description")}</p>
+            <p className="font-semibold text-emphasis text-sm">{t("public_page_order")}</p>
+            <p className="mt-0.5 text-subtle text-xs">{t("public_page_order_description")}</p>
           </div>
         </div>
-        <span className="w-fit shrink-0 rounded-full border border-subtle bg-default px-2.5 py-1 font-medium text-subtle text-xs">
+        <span className="w-fit shrink-0 rounded-full border border-brand-subtle bg-default px-3 py-1.5 font-medium text-brand-default text-xs shadow-sm">
           {t("order_saves_automatically")}
         </span>
       </div>
       <ul
         ref={parent}
-        className="static! relative flex w-full flex-col gap-3 before:absolute before:top-7 before:bottom-7 before:left-7 before:w-px before:bg-subtle"
+        className="static! relative flex w-full flex-col gap-4 before:absolute before:top-9 before:bottom-9 before:left-8 before:w-px before:bg-brand-subtle sm:before:left-10"
         data-testid="event-types">
         {pages.map((page) => {
           return page?.eventTypes?.map((type) => {
@@ -643,32 +637,56 @@ export const InfiniteEventTypeList = ({
                   }
                 }}
                 className={classNames(
-                  "relative h-full cursor-grab overflow-hidden rounded-xl border bg-default shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emphasis hover:shadow-md active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emphasis motion-reduce:transform-none",
-                  isFeatured ? "border-emphasis" : "border-subtle",
+                  "group relative grid h-full cursor-grab grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 active:cursor-grabbing focus-visible:outline-none sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-4",
                   readOnly && "cursor-default",
                   draggedEventTypeId === type.id && "opacity-50",
-                  dragOverEventTypeId === type.id && draggedEventTypeId !== type.id && "ring-2 ring-emphasis"
+                  dragOverEventTypeId === type.id &&
+                    draggedEventTypeId !== type.id &&
+                    "[&>div:last-child]:ring-2 [&>div:last-child]:ring-brand-default"
                 )}>
-                <div className="relative flex h-full w-full flex-col transition hover:bg-cal-muted">
-                  <div className="group relative flex h-full w-full max-w-full flex-col overflow-hidden px-5 py-5">
-                    <div className="relative z-10 mb-4 flex items-center gap-2">
+                <div className="relative z-10 flex justify-center pt-4 sm:pt-5">
+                  <div
+                    data-testid={`event-type-duration-${type.id}`}
+                    className={classNames(
+                      "relative flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 bg-default shadow-[0_8px_24px_-16px_rgba(124,58,237,0.85)] transition duration-200 before:absolute before:top-1.5 before:h-1 before:w-1 before:rounded-full before:content-[''] group-hover:-translate-y-0.5 motion-reduce:transform-none sm:h-[4.5rem] sm:w-[4.5rem]",
+                      isFeatured
+                        ? "border-brand-default bg-brand-default text-brand before:bg-brand-accent"
+                        : "border-brand-subtle text-brand-default before:bg-brand-default"
+                    )}>
+                    <span className="font-cal text-xl font-semibold leading-none">{type.length}</span>
+                    <span
+                      className={classNames(
+                        "mt-1 text-[9px] font-bold uppercase tracking-[0.18em]",
+                        isFeatured ? "text-brand" : "text-brand-default"
+                      )}>
+                      {t("minute_timeUnit")}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className={classNames(
+                    "relative flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-default shadow-sm transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:transform-none",
+                    isFeatured ? "border-brand-default" : "border-subtle group-hover:border-brand-subtle"
+                  )}>
+                  <div className="relative flex h-full w-full max-w-full flex-col overflow-hidden px-4 py-4 sm:px-5 sm:py-5">
+                    <div className="relative z-10 mb-3 flex items-center gap-2">
                       <span
                         className={classNames(
-                          "h-3 w-3 shrink-0 rounded-full border-2 border-default ring-1",
-                          isFeatured ? "bg-emphasis ring-emphasis" : "bg-subtle ring-subtle"
+                          "h-1.5 w-1.5 shrink-0 rounded-full",
+                          isFeatured ? "bg-brand-default" : "bg-muted"
                         )}
                         aria-hidden="true"
                       />
                       <span
                         className={classNames(
                           "font-medium text-xs",
-                          isFeatured ? "text-emphasis" : "text-subtle"
+                          isFeatured ? "text-brand-default" : "text-subtle"
                         )}>
                         {t(isFeatured ? "first_on_public_page" : "follows_template_above")}
                       </span>
                     </div>
                     <div className="flex items-start">
-                      <MemoizedItem type={type} group={group} readOnly={readOnly} isFeatured={isFeatured} />
+                      <MemoizedItem type={type} group={group} readOnly={readOnly} />
                     </div>
                     <div className="mt-auto hidden border-subtle border-t pt-4 sm:flex">
                       <div className="flex w-full items-center justify-between gap-3">
@@ -690,7 +708,7 @@ export const InfiniteEventTypeList = ({
                             users={type?.children.flatMap((ch) => ch.users) ?? []}
                           />
                         )}
-                        <div className="flex items-center justify-between space-x-2 rtl:space-x-reverse">
+                        <div className="ml-auto flex items-center justify-between space-x-2 rtl:space-x-reverse">
                           {!isManagedEventType && (
                             <>
                               <span className="text-sm font-medium text-subtle">

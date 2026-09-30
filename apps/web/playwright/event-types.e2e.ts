@@ -36,7 +36,7 @@ test.describe("Event Types tests", () => {
     await page.goto("/event-types");
 
     const firstTemplate = page.locator('[data-testid="event-types"] > li').first();
-    await expect(firstTemplate.getByText("Duration", { exact: true })).toBeVisible();
+    await expect(firstTemplate.locator('[data-testid^="event-type-duration-"]')).toContainText(/\d+\s*mins/i);
     await expect(firstTemplate.getByText("Interview format", { exact: true })).toBeVisible();
     await expect(firstTemplate.getByText("Hosts", { exact: true })).toBeVisible();
     await expect(firstTemplate.getByText("Candidate link", { exact: true })).toBeVisible();

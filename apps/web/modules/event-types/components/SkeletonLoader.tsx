@@ -32,7 +32,7 @@ export function InfiniteSkeletonLoader() {
           <SkeletonText className="h-3 w-72 max-w-full" />
         </div>
       </div>
-      <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <ul className="relative flex flex-col gap-4 before:absolute before:top-9 before:bottom-9 before:left-8 before:w-px before:bg-brand-subtle sm:before:left-10">
         <BookingTypeSkeletonCard />
         <BookingTypeSkeletonCard />
         <BookingTypeSkeletonCard />
@@ -44,24 +44,27 @@ export function InfiniteSkeletonLoader() {
 
 function BookingTypeSkeletonCard() {
   return (
-    <li className="min-h-48 rounded-xl border border-subtle bg-default p-5 shadow-sm">
-      <div className="flex items-start gap-3">
-        <SkeletonAvatar className="h-9 w-8 shrink-0 rounded-md" />
-        <div className="min-w-0 flex-1">
+    <li className="relative grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-4">
+      <div className="relative z-10 flex justify-center pt-4 sm:pt-5">
+        <SkeletonAvatar className="h-16 w-16 shrink-0 rounded-full sm:h-[4.5rem] sm:w-[4.5rem]" />
+      </div>
+      <div className="min-h-48 rounded-2xl border border-subtle bg-default p-4 shadow-sm sm:p-5">
+        <div className="min-w-0">
+          <SkeletonText className="mb-4 h-3 w-36" />
           <div className="flex items-center gap-2">
             <SkeletonText className="h-5 w-36" />
             <SkeletonText className="h-5 w-12 rounded-full" />
           </div>
-          <div className="mt-2 flex gap-2">
-            <SkeletonText className="h-4 w-12" />
-            <SkeletonText className="h-4 w-24" />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <SkeletonText className="h-7 w-36 rounded-full" />
+            <SkeletonText className="h-7 w-24 rounded-full" />
           </div>
-          <SkeletonText className="mt-4 h-9 w-full rounded-md" />
+          <SkeletonText className="mt-4 h-8 w-full rounded-md" />
         </div>
-      </div>
-      <div className="mt-4 flex items-center justify-between border-subtle border-t pt-4">
-        <SkeletonText className="h-6 w-20" />
-        <SkeletonText className="h-8 w-52 max-w-1/2 rounded-md" />
+        <div className="mt-4 flex items-center justify-between border-subtle border-t pt-4">
+          <SkeletonText className="h-6 w-20" />
+          <SkeletonText className="h-8 w-52 max-w-1/2 rounded-md" />
+        </div>
       </div>
     </li>
   );
@@ -109,7 +112,7 @@ export function EventTypesSkeletonLoader() {
           <SkeletonText className="h-3 w-72 max-w-full" />
         </div>
       </div>
-      <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <ul className="relative flex flex-col gap-4 before:absolute before:top-9 before:bottom-9 before:left-8 before:w-px before:bg-brand-subtle sm:before:left-10">
         <BookingTypeSkeletonCard />
         <BookingTypeSkeletonCard />
         <BookingTypeSkeletonCard />
