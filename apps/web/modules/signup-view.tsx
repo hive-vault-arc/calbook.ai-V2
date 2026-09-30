@@ -32,12 +32,14 @@ import { signupSchema as apiSignupSchema } from "@calcom/prisma/zod-utils";
 import type { inferSSRProps } from "@calcom/types/inferSSRProps";
 import classNames from "@calcom/ui/classNames";
 import { Alert } from "@calcom/ui/components/alert";
-import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
-import { CheckboxField, Form, PasswordField, SelectField, TextField } from "@calcom/ui/components/form";
+import { CheckboxField, Form, PasswordField, TextField } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
-import { RadioAreaGroup } from "@calcom/ui/components/radio";
 import { showToast } from "@calcom/ui/components/toast";
+import {
+  type WorkspaceType,
+  WorkspaceTypeSelector,
+} from "@calcom/web/modules/onboarding/components/WorkspaceTypeSelector";
 import { InfoIcon, ShieldCheckIcon, StarIcon } from "@coss/ui/icons";
 import { Analytics as DubAnalytics } from "@dub/analytics/react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -422,70 +424,10 @@ export default function Signup({
                   </div>
                 )}
                 <div className="flex flex-col gap-2">
-                  <h1 className="font-cal text-[28px] leading-none">
-                    {IS_CALCOM ? t("create_your_calcom_account") : t("create_your_account")}
-                  </h1>
-                  {IS_CALCOM ? (
-                    <p className="font-medium text-base text-subtle leading-5">
-                      {t("cal_signup_description")}
-                    </p>
-                  ) : (
-                    <p className="font-medium text-base text-subtle leading-5">
-                      {t("calcom_explained", {
-                        appName: APP_NAME,
-                      })}
-                    </p>
-                  )}
-                  {IS_CALCOM && (
-                    <div className="mt-12">
-                      <SelectField
-                        label={t("data_region")}
-                        value={{
-                          label: t(
-                            // Use WEBAPP_URL for SSR-safe region detection
-                            WEBAPP_URL.includes("cal.eu") ||
-                              (typeof window !== "undefined" &&
-                                window.location.hostname === "localhost" &&
-                                new URL(window.location.href).searchParams.get("region") === "eu")
-                              ? "european_union"
-                              : "united_states"
-                          ),
-                          value:
-                            // Use WEBAPP_URL for SSR-safe region detection
-                            WEBAPP_URL.includes("cal.eu") ||
-                            (typeof window !== "undefined" &&
-                              window.location.hostname === "localhost" &&
-                              new URL(window.location.href).searchParams.get("region") === "eu")
-                              ? "eu"
-                              : "us",
-                        }}
-                        options={[
-                          { label: t("united_states"), value: "us" },
-                          { label: t("european_union"), value: "eu" },
-                        ]}
-                        onChange={(option) => {
-                          if (option && "value" in option) {
-                            const currentUrl = new URL(window.location.href);
-
-                            // Handle localhost - add region as URL parameter
-                            if (currentUrl.hostname === "localhost") {
-                              currentUrl.searchParams.set("region", option.value);
-                              window.location.href = currentUrl.toString();
-                              return;
-                            }
-
-                            // Handle production domains - modify hostname only to preserve query params
-                            if (option.value === "eu") {
-                              currentUrl.hostname = currentUrl.hostname.replace("cal.com", "cal.eu");
-                            } else {
-                              currentUrl.hostname = currentUrl.hostname.replace("cal.eu", "cal.com");
-                            }
-                            window.location.href = currentUrl.toString();
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
+                  <h1 className="font-cal text-[28px] leading-none">{t("create_your_calcom_account")}</h1>
+                  <p className="font-medium text-base text-subtle leading-5">
+                    {t("signup_calbook_description")}
+                  </p>
                 </div>
 
                 {/* Form Container */}
@@ -514,46 +456,16 @@ export default function Signup({
                               {t("onboarding_workspace_description")}
                             </p>
                           </div>
-                          <RadioAreaGroup.Group
+                          <WorkspaceTypeSelector
                             value={watch("workspaceType")}
-                            onValueChange={(value) => {
-                              formMethods.setValue("workspaceType", value as "recruiting" | "scheduling", {
+                            onValueChange={(value: WorkspaceType) => {
+                              formMethods.setValue("workspaceType", value, {
                                 shouldDirty: true,
                                 shouldValidate: true,
                               });
                             }}
-                            className="grid gap-2 sm:grid-cols-2">
-                            <RadioAreaGroup.Item
-                              value="recruiting"
-                              data-testid="signup-workspace-recruiting"
-                              className="rounded-xl border border-subtle bg-default transition hover:border-emphasis [&>button]:right-3 [&>button]:top-3"
-                              classNames={{ container: "flex min-h-28 w-full flex-col gap-2 p-3 pr-9" }}>
-                              <Badge variant="purple" size="sm" className="w-fit rounded-md">
-                                {t("onboarding_workspace_recruiting_badge")}
-                              </Badge>
-                              <p className="font-semibold text-emphasis text-sm">
-                                {t("onboarding_workspace_recruiting_title")}
-                              </p>
-                              <p className="text-sm text-subtle">
-                                {t("onboarding_workspace_recruiting_description")}
-                              </p>
-                            </RadioAreaGroup.Item>
-                            <RadioAreaGroup.Item
-                              value="scheduling"
-                              data-testid="signup-workspace-scheduling"
-                              className="rounded-xl border border-subtle bg-default transition hover:border-emphasis [&>button]:right-3 [&>button]:top-3"
-                              classNames={{ container: "flex min-h-28 w-full flex-col gap-2 p-3 pr-9" }}>
-                              <Badge variant="gray" size="sm" className="w-fit rounded-md">
-                                {t("onboarding_workspace_scheduling_badge")}
-                              </Badge>
-                              <p className="font-semibold text-emphasis text-sm">
-                                {t("onboarding_workspace_scheduling_title")}
-                              </p>
-                              <p className="text-sm text-subtle">
-                                {t("onboarding_workspace_scheduling_description")}
-                              </p>
-                            </RadioAreaGroup.Item>
-                          </RadioAreaGroup.Group>
+                            testIdPrefix="signup-workspace"
+                          />
                         </div>
                       ) : null}
                       {/* Username */}
@@ -830,62 +742,6 @@ export default function Signup({
             )}
           </div>
           <div className="mx-auto hidden w-full max-w-2xl flex-col justify-between border-violet-100 bg-violet-50/70 pl-4 lg:flex lg:max-w-full lg:py-12 lg:pl-12 dark:border-violet-900/70 dark:bg-violet-950/20">
-            {IS_CALCOM && (
-              <>
-                <div className="-mt-4 mr-12 mb-6 grid w-full grid-cols-3 gap-5 pr-4 sm:gap-3 lg:grid-cols-4">
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/product-of-the-day.svg"
-                      className="h-[34px] w-full dark:invert"
-                      alt="Cal.diy was Product of the Day at ProductHunt"
-                    />
-                  </div>
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/product-of-the-week.svg"
-                      className="h-[34px] w-full dark:invert"
-                      alt="Cal.diy was Product of the Week at ProductHunt"
-                    />
-                  </div>
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/product-of-the-month.svg"
-                      className="h-[34px] w-full dark:invert"
-                      alt="Cal.diy was Product of the Month at ProductHunt"
-                    />
-                  </div>
-                </div>
-                <div className="mr-12 mb-6 grid w-full grid-cols-3 gap-5 pr-4 sm:gap-3 lg:grid-cols-4">
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/producthunt.svg"
-                      className="h-[54px] w-full"
-                      alt="ProductHunt Rating of 5 Stars"
-                    />
-                  </div>
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/google-reviews.svg"
-                      className="h-[54px] w-full"
-                      alt="Google Reviews Rating of 4.7 Stars"
-                    />
-                  </div>
-                  <div>
-                    {/* eslint-disable @next/next/no-img-element */}
-                    <img
-                      src="/product-cards/g2.svg"
-                      className="h-[54px] w-full"
-                      alt="G2 Rating of 4.7 Stars"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
             <div className="hidden rounded-tl-2xl rounded-br-none rounded-bl-2xl border border-default border-r-0 border-dashed bg-black/3 lg:block lg:py-[6px] lg:pl-[6px] dark:bg-white/5">
               <img className="block dark:hidden" src="/mock-event-type-list.svg" alt="CalBook booking page" />
               {/* eslint-disable @next/next/no-img-element */}

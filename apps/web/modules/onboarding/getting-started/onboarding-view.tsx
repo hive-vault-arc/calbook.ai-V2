@@ -17,6 +17,7 @@ import { OnboardingCard } from "../components/OnboardingCard";
 import { OnboardingLayout } from "../components/OnboardingLayout";
 import { OnboardingContinuationPrompt } from "../components/onboarding-continuation-prompt";
 import { PlanIcon } from "../components/plan-icon";
+import { type WorkspaceType, WorkspaceTypeSelector } from "../components/WorkspaceTypeSelector";
 import { type PlanType, useOnboardingStore } from "../store/onboarding-store";
 
 type OnboardingViewProps = {
@@ -27,7 +28,7 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
   const router = useRouter();
   const { t } = useLocale();
   const { selectedPlan, setSelectedPlan, resetOnboardingPreservingPlan } = useOnboardingStore();
-  const [workspaceType, setWorkspaceType] = useState<"recruiting" | "scheduling" | null>(null);
+  const [workspaceType, setWorkspaceType] = useState<WorkspaceType | null>(null);
   const { data: user } = useMeQuery();
   const previousPlanRef = useRef<PlanType | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -167,9 +168,9 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
               <Button
                 data-testid="onboarding-continue-btn"
                 color="primary"
-                className="rounded-[10px]"
+                className="min-w-28 justify-center rounded-[10px] bg-violet-600 text-white hover:bg-violet-700"
                 onClick={handleContinue}
-                disabled={isPending || updateProfile.isPending || !workspaceType}>
+                disabled={isPending || updateProfile.isPending || !workspaceType || !selectedPlan}>
                 {isPending || updateProfile.isPending ? t("loading") : t("continue")}
               </Button>
             </div>
@@ -179,50 +180,22 @@ export const OnboardingView = ({ userEmail }: OnboardingViewProps) => {
               <p className="font-semibold text-emphasis text-sm">{t("onboarding_workspace_title")}</p>
               <p className="mt-1 text-sm text-subtle">{t("onboarding_workspace_description")}</p>
             </div>
-            <RadioAreaGroup.Group
-              value={workspaceType ?? undefined}
-              onValueChange={(value) => {
-                const nextWorkspaceType = value as "recruiting" | "scheduling";
+            <WorkspaceTypeSelector
+              value={workspaceType}
+              onValueChange={(nextWorkspaceType) => {
                 setWorkspaceType(nextWorkspaceType);
                 posthog.capture("onboarding_workspace_selected", { workspace_type: nextWorkspaceType });
               }}
-              className="grid w-full gap-2 sm:grid-cols-2">
-              <RadioAreaGroup.Item
-                value="recruiting"
-                className={classNames(
-                  "relative overflow-hidden rounded-xl border bg-default transition",
-                  workspaceType === "recruiting" ? "border-emphasis shadow-sm" : "border-subtle",
-                  "[&>button]:top-4 [&>button]:right-4"
-                )}
-                classNames={{ container: "flex min-h-32 w-full flex-col gap-2 p-4 pr-10" }}>
-                <Badge variant="purple" size="sm" className="w-fit rounded-md">
-                  {t("onboarding_workspace_recruiting_badge")}
-                </Badge>
-                <p className="font-semibold text-emphasis text-sm">
-                  {t("onboarding_workspace_recruiting_title")}
-                </p>
-                <p className="text-sm text-subtle">{t("onboarding_workspace_recruiting_description")}</p>
-              </RadioAreaGroup.Item>
-              <RadioAreaGroup.Item
-                value="scheduling"
-                className={classNames(
-                  "relative overflow-hidden rounded-xl border bg-default transition",
-                  workspaceType === "scheduling" ? "border-emphasis shadow-sm" : "border-subtle",
-                  "[&>button]:top-4 [&>button]:right-4"
-                )}
-                classNames={{ container: "flex min-h-32 w-full flex-col gap-2 p-4 pr-10" }}>
-                <Badge variant="gray" size="sm" className="w-fit rounded-md">
-                  {t("onboarding_workspace_scheduling_badge")}
-                </Badge>
-                <p className="font-semibold text-emphasis text-sm">
-                  {t("onboarding_workspace_scheduling_title")}
-                </p>
-                <p className="text-sm text-subtle">{t("onboarding_workspace_scheduling_description")}</p>
-              </RadioAreaGroup.Item>
-            </RadioAreaGroup.Group>
+              testIdPrefix="onboarding-workspace"
+            />
           </div>
 
-          <div className="relative mt-6 flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-muted bg-cal-muted p-1">
+          <div className="mt-8">
+            <p className="font-semibold text-emphasis text-sm">{t("onboarding_plan_audience_title")}</p>
+            <p className="mt-1 text-sm text-subtle">{t("onboarding_plan_audience_description")}</p>
+          </div>
+
+          <div className="relative mt-3 flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-muted bg-cal-muted p-1">
             <div className="flex w-full flex-col items-start overflow-clip rounded-inherit">
               {/* Plan options */}
               <RadioAreaGroup.Group

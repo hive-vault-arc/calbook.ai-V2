@@ -1,10 +1,9 @@
 "use client";
 
+import { SkeletonText } from "@calcom/ui/components/skeleton";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-
-import { SkeletonText } from "@calcom/ui/components/skeleton";
 
 type OnboardingCardProps = {
   title: string;
@@ -42,11 +41,11 @@ export const OnboardingCard = ({
   };
 
   return (
-    <div className="relative flex h-full min-h-0 w-full flex-col">
+    <div className="relative flex min-h-0 w-full flex-col">
       <AnimatePresence mode="wait">
         <motion.div
           key={pathname}
-          className="flex h-full min-h-0 w-full flex-col"
+          className="flex min-h-0 w-full flex-col"
           variants={containerVariants}
           initial="initial"
           animate="animate"
@@ -64,10 +63,7 @@ export const OnboardingCard = ({
           </div>
 
           {/* Content */}
-          <div
-            className={`flex h-full min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto [container-type:size] ${
-              floatingFooter ? "pb-16" : ""
-            }`}>
+          <div className={`flex min-h-0 w-full flex-col gap-4 ${floatingFooter ? "pb-16" : ""}`}>
             {isLoading ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <SkeletonText className="h-40 w-full" />

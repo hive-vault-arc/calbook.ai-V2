@@ -1,11 +1,11 @@
 "use client";
 
-import { signOut } from "next-auth/react";
-import type { ReactNode } from "react";
-
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import classNames from "@calcom/ui/classNames";
 import { Button } from "@calcom/ui/components/button";
 import { Logo } from "@calcom/ui/components/logo";
+import { signOut } from "next-auth/react";
+import type { ReactNode } from "react";
 
 type OnboardingLayoutProps = {
   userEmail: string;
@@ -21,9 +21,9 @@ export const OnboardingLayout = ({ userEmail, currentStep, children }: Onboardin
   };
 
   return (
-    <div className="bg-default flex min-h-screen w-full flex-col items-start overflow-clip rounded-xl">
+    <div className="flex min-h-screen w-full flex-col items-start overflow-x-hidden bg-[#faf9ff]">
       {/* Header */}
-      <div className="flex w-full items-center justify-between px-6 py-4">
+      <div className="relative flex w-full items-center justify-between border-violet-100 border-b bg-white/85 px-4 py-4 backdrop-blur sm:px-6">
         <Logo className="h-5 w-auto" />
 
         {/* Progress dots - centered */}
@@ -31,21 +31,23 @@ export const OnboardingLayout = ({ userEmail, currentStep, children }: Onboardin
           {[1, 2, 3, 4].map((step) => (
             <div
               key={step}
-              className={`bg-${step <= currentStep ? "emphasis" : "subtle"} ${
-                step === currentStep ? "h-1.5 w-1.5" : "h-1 w-1"
-              } rounded-full`}
+              className={classNames("rounded-full transition-all", {
+                "h-1.5 w-1.5 bg-violet-600": step === currentStep,
+                "h-1 w-1 bg-violet-400": step < currentStep,
+                "h-1 w-1 bg-violet-200": step > currentStep,
+              })}
             />
           ))}
         </div>
 
-        <div className="bg-cal-muted flex items-center gap-2 rounded-full px-3 py-2">
-          <p className="text-emphasis text-sm font-medium leading-none">{userEmail}</p>
+        <div className="hidden items-center gap-2 rounded-full border border-violet-100 bg-violet-50 px-3 py-2 sm:flex">
+          <p className="max-w-52 truncate text-sm font-medium leading-none text-violet-900">{userEmail}</p>
         </div>
       </div>
 
       {/* Main content */}
       <div className="flex w-full flex-1 items-start justify-center px-6 py-8">
-        <div className="flex w-full max-w-[600px] flex-col gap-4">{children}</div>
+        <div className="flex w-full max-w-[640px] flex-col gap-4">{children}</div>
       </div>
 
       {/* Footer with signout button */}
