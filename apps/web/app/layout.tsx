@@ -53,21 +53,21 @@ export const metadata: Metadata = {
   description:
     "Interview scheduling, calendar coordination, and candidate follow-through for recruitment teams.",
   icons: {
-    icon: "/api/logo?type=favicon-32",
-    apple: "/api/logo?type=apple-touch-icon",
+    icon: "/api/logo?type=favicon-32&v=2",
+    apple: "/api/logo?type=apple-touch-icon&v=2",
     other: [
       {
-        rel: "icon-mask",
+        rel: "mask-icon",
         url: "/safari-pinned-tab.svg",
         color: "#7C3AED",
       },
       {
-        url: "/api/logo?type=favicon-16",
+        url: "/api/logo?type=favicon-16&v=2",
         sizes: "16x16",
         type: "image/png",
       },
       {
-        url: "/api/logo?type=favicon-32",
+        url: "/api/logo?type=favicon-32&v=2",
         sizes: "32x32",
         type: "image/png",
       },

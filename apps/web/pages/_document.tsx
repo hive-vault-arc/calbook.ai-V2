@@ -1,11 +1,10 @@
-import { platform } from "@todesktop/client-core";
 import type { IncomingMessage } from "node:http";
+import process from "node:process";
+import { IS_PRODUCTION } from "@calcom/lib/constants";
+import { platform } from "@todesktop/client-core";
 import { dir } from "i18next";
 import type { DocumentContext, DocumentProps } from "next/document";
 import Document, { Head, Html, Main, NextScript } from "next/document";
-
-import { IS_PRODUCTION } from "@calcom/lib/constants";
-
 import { applyTheme, applyToDesktopClass } from "./../lib/pages/document/_applyThemeForDocument";
 
 type Props = Record<string, unknown> & DocumentProps & { newLocale: string };
@@ -65,12 +64,12 @@ class MyDocument extends Document<Props> {
             `,
             }}
           />
-          <link rel="apple-touch-icon" sizes="180x180" href="/api/logo?type=apple-touch-icon" />
-          <link rel="icon" type="image/png" sizes="32x32" href="/api/logo?type=favicon-32" />
-          <link rel="icon" type="image/png" sizes="16x16" href="/api/logo?type=favicon-16" />
+          <link rel="apple-touch-icon" sizes="180x180" href="/api/logo?type=apple-touch-icon&v=2" />
+          <link rel="icon" type="image/png" sizes="32x32" href="/api/logo?type=favicon-32&v=2" />
+          <link rel="icon" type="image/png" sizes="16x16" href="/api/logo?type=favicon-16&v=2" />
           <link rel="manifest" href="/site.webmanifest" />
-          <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#000000" />
-          <meta name="msapplication-TileColor" content="#ff0000" />
+          <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#7C3AED" />
+          <meta name="msapplication-TileColor" content="#7C3AED" />
           <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F9FAFC" />
           <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1F1F1F" />
           {!IS_PRODUCTION && process.env.VERCEL_ENV === "preview" && (

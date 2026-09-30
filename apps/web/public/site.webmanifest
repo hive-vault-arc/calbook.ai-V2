@@ -4,12 +4,12 @@
     "description": "Interview scheduling for recruitment teams.",
     "icons": [
         {
-            "src": "/api/logo?type=android-chrome-192",
+            "src": "/api/logo?type=android-chrome-192&v=2",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/api/logo?type=android-chrome-256",
+            "src": "/api/logo?type=android-chrome-256&v=2",
             "sizes": "256x256",
             "type": "image/png"
         }
