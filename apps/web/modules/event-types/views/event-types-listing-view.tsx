@@ -238,7 +238,7 @@ const Item = ({
             href={`/event-types/${type.id}?tabName=setup`}
             title={type.title}
             draggable={false}>
-            <div className="flex items-start justify-between gap-4 pr-10 sm:pr-0">
+            <div className="flex min-w-0 items-start justify-between gap-4 pr-10 sm:pr-0">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -637,8 +637,9 @@ export const InfiniteEventTypeList = ({
                   }
                 }}
                 className={classNames(
-                  "group relative grid h-full cursor-grab grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 active:cursor-grabbing focus-visible:outline-none sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-4",
+                  "group relative grid h-full cursor-grab grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emphasis active:cursor-grabbing sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-4",
                   readOnly && "cursor-default",
+                  !readOnly && "touch-manipulation select-none",
                   draggedEventTypeId === type.id && "opacity-50",
                   dragOverEventTypeId === type.id &&
                     draggedEventTypeId !== type.id &&
@@ -653,7 +654,9 @@ export const InfiniteEventTypeList = ({
                         ? "border-brand-default bg-brand-default text-brand before:bg-brand-accent"
                         : "border-brand-subtle text-brand-default before:bg-brand-default"
                     )}>
-                    <span className="font-cal text-xl font-semibold leading-none">{type.length}</span>
+                    <span className="font-cal font-semibold text-xl leading-none tabular-nums">
+                      {type.length}
+                    </span>
                     <span
                       className={classNames(
                         "mt-1 text-[9px] font-bold uppercase tracking-[0.18em]",
@@ -665,7 +668,7 @@ export const InfiniteEventTypeList = ({
                 </div>
                 <div
                   className={classNames(
-                    "relative flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-default shadow-sm transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:transform-none",
+                    "relative flex h-full min-w-0 w-full flex-col overflow-hidden rounded-2xl border bg-default shadow-sm transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:transform-none",
                     isFeatured ? "border-brand-default" : "border-subtle group-hover:border-brand-subtle"
                   )}>
                   <div className="relative flex h-full w-full max-w-full flex-col overflow-hidden px-4 py-4 sm:px-5 sm:py-5">
@@ -688,7 +691,7 @@ export const InfiniteEventTypeList = ({
                     <div className="flex items-start">
                       <MemoizedItem type={type} group={group} readOnly={readOnly} />
                     </div>
-                    <div className="mt-auto hidden border-subtle border-t pt-4 sm:flex">
+                    <div className="mt-auto hidden min-h-14 items-end border-subtle border-t pt-4 sm:flex">
                       <div className="flex w-full items-center justify-between gap-3">
                         {!!type.teamId && !isManagedEventType && (
                           <UserAvatarGroup
@@ -787,6 +790,7 @@ export const InfiniteEventTypeList = ({
                             <Dropdown modal={false}>
                               <DropdownMenuTrigger asChild data-testid={`event-type-options-${type.id}`}>
                                 <Button
+                                  aria-label={t("more")}
                                   type="button"
                                   variant="icon"
                                   color="secondary"
@@ -864,7 +868,13 @@ export const InfiniteEventTypeList = ({
                   <div className="absolute top-4 right-4 flex min-w-9 sm:hidden">
                     <Dropdown>
                       <DropdownMenuTrigger asChild data-testid={`event-type-options-${type.id}`}>
-                        <Button type="button" variant="icon" color="secondary" StartIcon="ellipsis" />
+                        <Button
+                          aria-label={t("more")}
+                          type="button"
+                          variant="icon"
+                          color="secondary"
+                          StartIcon="ellipsis"
+                        />
                       </DropdownMenuTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuContent>
