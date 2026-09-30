@@ -93,7 +93,7 @@ jobs:
         run: yarn e2e:embed --workers=4
       - name: Upload Test Results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: blob-report-embed-core
           path: blob-report
