@@ -46,7 +46,7 @@ import {
 } from "@calcom/web/modules/event-types/components/CreateEventTypeDialog";
 import { DuplicateDialog } from "@calcom/web/modules/event-types/components/DuplicateDialog";
 import { InfiniteSkeletonLoader } from "@calcom/web/modules/event-types/components/SkeletonLoader";
-import { ClockIcon, SearchIcon } from "@coss/ui/icons";
+import { InfoIcon, SearchIcon, XIcon } from "@coss/ui/icons";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { TRPCClientError } from "@trpc/client";
 import Link from "next/link";
@@ -318,6 +318,7 @@ export const InfiniteEventTypeList = ({
   const [privateLinkCopyIndices, setPrivateLinkCopyIndices] = useState<Record<string, number>>({});
   const [draggedEventTypeId, setDraggedEventTypeId] = useState<number | null>(null);
   const [dragOverEventTypeId, setDragOverEventTypeId] = useState<number | null>(null);
+  const [showDragTip, setShowDragTip] = useState(false);
 
   const utils = trpc.useUtils();
   const mutation = trpc.viewer.loggedInViewerRouter.eventTypeOrder.useMutation({
@@ -530,6 +531,10 @@ export const InfiniteEventTypeList = ({
     }
   }, []);
 
+  useEffect(() => {
+    setShowDragTip(!readOnly && localStorage.getItem("event-types-drag-tip-dismissed") !== "true");
+  }, [readOnly]);
+
   if (!pages?.[0]?.eventTypes?.length) {
     if (isPending) return <InfiniteSkeletonLoader />;
 
@@ -558,25 +563,29 @@ export const InfiniteEventTypeList = ({
 
   return (
     <div className="flex flex-col overflow-hidden pb-6">
-      <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-default text-brand-default shadow-sm"
-            aria-hidden="true">
-            <ClockIcon className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="font-semibold text-emphasis text-sm">{t("public_page_order")}</p>
-            <p className="mt-0.5 text-subtle text-xs">{t("public_page_order_description")}</p>
+      {showDragTip && orderedEventTypes.length > 1 && (
+        <div className="mb-3 flex justify-end">
+          <div
+            role="note"
+            className="flex max-w-xs items-center gap-2 rounded-lg border border-subtle bg-default px-3 py-2 text-xs shadow-sm">
+            <InfoIcon className="h-4 w-4 shrink-0 text-brand-default" aria-hidden="true" />
+            <p className="text-subtle">{t("event_type_drag_priority_tip")}</p>
+            <button
+              type="button"
+              aria-label={t("dismiss_drag_tip")}
+              className="shrink-0 rounded-md p-1 text-subtle hover:bg-subtle hover:text-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emphasis"
+              onClick={() => {
+                localStorage.setItem("event-types-drag-tip-dismissed", "true");
+                setShowDragTip(false);
+              }}>
+              <XIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
           </div>
         </div>
-        <span className="w-fit shrink-0 rounded-full border border-brand-subtle bg-default px-3 py-1.5 font-medium text-brand-default text-xs shadow-sm">
-          {t("order_saves_automatically")}
-        </span>
-      </div>
+      )}
       <ul
         ref={parent}
-        className="static! relative flex w-full flex-col gap-4 before:absolute before:top-9 before:bottom-9 before:left-8 before:w-px before:bg-brand-subtle sm:before:left-10"
+        className="static! relative flex w-full flex-col gap-4"
         data-testid="event-types">
         {pages.map((page) => {
           return page?.eventTypes?.map((type) => {
