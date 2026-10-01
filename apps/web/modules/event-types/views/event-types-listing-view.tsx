@@ -99,6 +99,8 @@ interface InfiniteEventTypeListProps {
     | undefined;
   lockedByOrg?: boolean;
   isPending?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   debouncedSearchTerm?: string;
 }
 
@@ -114,6 +116,10 @@ const InfiniteTeamsTab: FC<InfiniteTeamsTabProps> = (props: InfiniteTeamsTabProp
   const { activeEventTypeGroup } = props;
   const { debouncedSearchTerm } = useSearchContext();
   const { t } = useLocale();
+  const utils = trpc.useUtils();
+  const [timedOutQueryKey, setTimedOutQueryKey] = useState<string | null>(null);
+  const queryKey = `${activeEventTypeGroup.teamId ?? "personal"}:${activeEventTypeGroup.parentId ?? ""}:${debouncedSearchTerm}`;
+  const loadingTimedOut = timedOutQueryKey === queryKey;
 
   const query = trpc.viewer.eventTypes.getEventTypesFromGroup.useInfiniteQuery(
     {
@@ -132,6 +138,26 @@ const InfiniteTeamsTab: FC<InfiniteTeamsTabProps> = (props: InfiniteTeamsTabProp
     }
   );
 
+  useEffect(() => {
+    if (!query.isPending) {
+      if (loadingTimedOut) setTimedOutQueryKey(null);
+      return;
+    }
+
+    if (loadingTimedOut) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setTimedOutQueryKey(queryKey), 15000);
+    return (): void => window.clearTimeout(timeout);
+  }, [query.isPending, loadingTimedOut, queryKey]);
+
+  const retryQuery = async (): Promise<void> => {
+    setTimedOutQueryKey(null);
+    await utils.viewer.eventTypes.getEventTypesFromGroup.cancel();
+    await query.refetch();
+  };
+
   const buttonInView = useInViewObserver(() => {
     if (!query.isFetching && query.hasNextPage && query.status === "success") {
       query.fetchNextPage();
@@ -146,7 +172,9 @@ const InfiniteTeamsTab: FC<InfiniteTeamsTabProps> = (props: InfiniteTeamsTabProp
           group={activeEventTypeGroup}
           bookerUrl={activeEventTypeGroup.bookerUrl}
           readOnly={activeEventTypeGroup.metadata.readOnly}
-          isPending={query.isPending}
+          isPending={query.isPending && !loadingTimedOut}
+          isError={query.isError || loadingTimedOut}
+          onRetry={retryQuery}
           debouncedSearchTerm={debouncedSearchTerm}
         />
       )}
@@ -302,6 +330,8 @@ export const InfiniteEventTypeList = ({
   bookerUrl,
   lockedByOrg,
   isPending,
+  isError,
+  onRetry,
   debouncedSearchTerm,
 }: InfiniteEventTypeListProps): JSX.Element => {
   const { t } = useLocale();
@@ -536,6 +566,17 @@ export const InfiniteEventTypeList = ({
   }, [readOnly]);
 
   if (!pages?.[0]?.eventTypes?.length) {
+    if (isError) {
+      return (
+        <div role="alert" className="rounded-xl border border-subtle bg-default p-5 text-center">
+          <p className="text-sm text-subtle">{t("error_loading_event_types")}</p>
+          <Button className="mt-3" color="secondary" onClick={onRetry}>
+            {t("retry")}
+          </Button>
+        </div>
+      );
+    }
+
     if (isPending) return <InfiniteSkeletonLoader />;
 
     return group.teamId ? (
@@ -583,10 +624,7 @@ export const InfiniteEventTypeList = ({
           </div>
         </div>
       )}
-      <ul
-        ref={parent}
-        className="static! relative flex w-full flex-col gap-4"
-        data-testid="event-types">
+      <ul ref={parent} className="static! relative flex w-full flex-col gap-4" data-testid="event-types">
         {pages.map((page) => {
           return page?.eventTypes?.map((type) => {
             const flatIndex = orderedEventTypes.findIndex((eventType) => eventType.id === type.id);
@@ -1055,11 +1093,11 @@ const CTA = ({ profileOptions }: { profileOptions: ProfileOption[] }) => {
   if (!profileOptions.length) return null;
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
       <TextField
-        className="max-w-64"
+        className="w-full sm:max-w-64"
         addOnLeading={<SearchIcon className="h-4 w-4 text-subtle" />}
-        containerClassName="max-w-64 focus:ring-offset-0! *:mb-0"
+        containerClassName="w-full sm:max-w-64 focus:ring-offset-0! *:mb-0"
         type="search"
         value={searchTerm}
         autoComplete="false"
@@ -1068,7 +1106,10 @@ const CTA = ({ profileOptions }: { profileOptions: ProfileOption[] }) => {
         }}
         placeholder={t("search_booking_types")}
       />
-      <Button data-testid="new-event-type" href={`?dialog=new&eventPage=${profileOptions[0]?.slug ?? ""}`}>
+      <Button
+        className="w-full shrink-0 sm:w-auto"
+        data-testid="new-event-type"
+        href={`?dialog=new&eventPage=${profileOptions[0]?.slug ?? ""}`}>
         {t("create_booking_type")}
       </Button>
       <CreateEventTypeDialog profileOptions={profileOptions} />
