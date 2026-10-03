@@ -9,6 +9,7 @@ import { teamMetadataSchema } from "@calcom/prisma/zod-utils";
 import { IS_GOOGLE_LOGIN_ENABLED } from "@server/lib/constants";
 import type { GetServerSidePropsContext } from "next";
 import { z } from "zod";
+import { BETA_WAITLIST_URL } from "~/marketing/constants";
 
 const checkValidEmail = (email: string) => emailSchema.safeParse(email).success;
 
@@ -62,7 +63,16 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
     onboardingV3Enabled,
   };
 
-  if ((process.env.NEXT_PUBLIC_DISABLE_SIGNUP === "true" && !token) || signupDisabled) {
+  if (process.env.NEXT_PUBLIC_DISABLE_SIGNUP === "true" && !token) {
+    return {
+      redirect: {
+        permanent: false,
+        destination: BETA_WAITLIST_URL,
+      },
+    } as const;
+  }
+
+  if (signupDisabled) {
     return {
       redirect: {
         permanent: false,

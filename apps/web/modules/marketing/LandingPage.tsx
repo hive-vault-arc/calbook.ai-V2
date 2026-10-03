@@ -1,6 +1,7 @@
 import { Icon } from "@calcom/ui/components/icon";
 import Image from "next/image";
 import type { CSSProperties, ReactElement } from "react";
+import { BETA_WAITLIST_URL } from "./constants";
 import styles from "./LandingPage.module.css";
 import { LandingScrollMotion } from "./LandingScrollMotion";
 
@@ -46,8 +47,12 @@ const benefits = [
 
 const faqs = [
   [
-    "Can I start without paying?",
-    "Yes. The Free plan lets you create a booking page and connect your calendar before choosing a paid plan.",
+    "How do I get beta access?",
+    "Join the free waitlist. Beta access is invite-only, and we’ll contact you if a place becomes available.",
+  ],
+  [
+    "Will I be charged?",
+    "No. Joining the waitlist does not create an account or charge you. Paid plans are planned for public launch, with details shared before checkout opens.",
   ],
   [
     "Can candidates schedule their own interview?",
@@ -129,9 +134,9 @@ export function LandingPage(): ReactElement {
               Sign in
             </a>
             <a
-              href="/signup"
+              href={BETA_WAITLIST_URL}
               className={`${styles.primaryButton} inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full bg-brand px-6 py-2.5 font-semibold leading-5 text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-brand-emphasis`}>
-              Start free
+              Join beta waitlist
             </a>
           </nav>
         </div>
@@ -154,9 +159,9 @@ export function LandingPage(): ReactElement {
           <div
             className={`${styles.heroActions} mt-9 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center`}>
             <a
-              href="/signup"
+              href={BETA_WAITLIST_URL}
               className={`${styles.primaryButton} group inline-flex min-h-14 w-full items-center justify-center gap-3 whitespace-nowrap rounded-full bg-brand px-8 py-3.5 text-base font-semibold leading-6 text-white shadow-xl transition hover:-translate-y-1 hover:bg-brand-emphasis sm:w-auto`}>
-              Create an interview template{" "}
+              Join the beta waitlist{" "}
               <Icon name="arrow-right" className="h-4 w-4 transition group-hover:translate-x-1" />
             </a>
             <a
@@ -166,7 +171,7 @@ export function LandingPage(): ReactElement {
             </a>
           </div>
           <p className={`${styles.heroActions} mt-5 text-sm text-slate-500`}>
-            Free to start · Built for your first interview workflow
+            Invite-only beta · No charge to join the waitlist
           </p>
           <div
             className={`${styles.heroProof} mt-9 grid max-w-xl grid-cols-3 border-y border-subtle py-5 text-sm`}>
@@ -282,41 +287,41 @@ export function LandingPage(): ReactElement {
           data-calbook-reveal>
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-brand-muted">
-              Straightforward pricing
+              Beta access now · Paid plans at launch
             </p>
             <h2 className="font-cal mt-5 max-w-xl text-4xl leading-tight sm:text-5xl">
-              Start free. Upgrade when interview scheduling becomes a team workflow.
+              Try CalBook.ai during the invite-only beta.
             </h2>
             <p className="mt-6 max-w-md leading-7 text-slate-300">
-              Start with a dependable candidate scheduling workflow, then unlock the controls your recruitment
-              team needs as hiring volume grows.
+              Joining the waitlist is free. Paid plans are planned for public launch; we’ll share pricing
+              before checkout opens.
             </p>
           </div>
           <div className="grid gap-px bg-slate-700 sm:grid-cols-2">
             <article className="bg-inverted p-7">
-              <p className="text-sm font-semibold text-slate-400">Free</p>
-              <p className="font-cal mt-5 text-5xl">$0</p>
+              <p className="text-sm font-semibold text-slate-400">Private beta</p>
+              <p className="font-cal mt-5 text-4xl">Invite-only</p>
               <p className="mt-5 text-sm leading-6 text-slate-300">
-                Interview templates, candidate links, calendar connections, and email confirmations.
+                Request early access to interview templates, candidate links, and recruiter scheduling
+                workflows.
               </p>
               <a
-                href="/signup"
+                href={BETA_WAITLIST_URL}
                 className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-slate-600 px-5 py-3 font-semibold leading-5 text-white transition hover:border-white hover:bg-white hover:text-slate-950">
-                Start free <Icon name="arrow-right" className="h-4 w-4" />
+                Join beta waitlist <Icon name="arrow-right" className="h-4 w-4" />
               </a>
             </article>
             <article className="bg-brand p-7">
-              <p className="text-sm font-semibold text-brand-muted">Pro</p>
-              <p className="font-cal mt-5 text-5xl">
-                $29<span className="font-sans text-sm">/month</span>
-              </p>
+              <p className="text-sm font-semibold text-brand-muted">Public launch</p>
+              <p className="font-cal mt-5 text-4xl">Paid plans</p>
               <p className="mt-5 text-sm leading-6 text-brand-muted">
-                Advanced availability, team workflows, custom branding, and recruitment-ready controls.
+                Subscription plans will open when CalBook.ai launches publicly. No payment is taken during the
+                beta.
               </p>
               <a
-                href="/signup"
+                href={BETA_WAITLIST_URL}
                 className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-semibold leading-5 text-brand-default shadow-lg transition hover:-translate-y-0.5">
-                Explore Pro <Icon name="arrow-right" className="h-4 w-4" />
+                Request early access <Icon name="arrow-right" className="h-4 w-4" />
               </a>
             </article>
           </div>
@@ -358,13 +363,13 @@ export function LandingPage(): ReactElement {
             Your next candidate should be able to book the interview.
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-brand-muted">
-            Create an interview template, connect your calendar, and share one candidate-ready link. Start
-            without a credit card.
+            Join the invite-only beta waitlist. There’s no charge to request access; paid plans are planned
+            for public launch.
           </p>
           <a
-            href="/signup"
+            href={BETA_WAITLIST_URL}
             className="mt-9 inline-flex min-h-14 w-full items-center justify-center gap-3 whitespace-nowrap rounded-full bg-white px-9 py-4 text-base font-bold leading-6 text-brand-default shadow-xl transition hover:-translate-y-1 sm:w-auto">
-            Create an interview template <Icon name="arrow-right" className="h-4 w-4" />
+            Join beta waitlist <Icon name="arrow-right" className="h-4 w-4" />
           </a>
         </div>
       </section>
@@ -388,8 +393,8 @@ export function LandingPage(): ReactElement {
                 <a href="#pricing" className="hover:text-white">
                   Pricing
                 </a>
-                <a href="/signup" className="hover:text-white">
-                  Create account
+                <a href={BETA_WAITLIST_URL} className="hover:text-white">
+                  Join beta waitlist
                 </a>
               </div>
             </div>
