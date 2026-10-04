@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import process from "node:process";
+import { getTeamBetaAccess } from "@calcom/features/auth/beta/beta-access";
 import { ErrorWithCode } from "@calcom/lib/errors";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
@@ -168,16 +169,17 @@ export class PlatformBillingService {
     userId: number
   ): Promise<{ planId: PlatformPlanId; features: PlatformFeatureDefinition[] }> {
     await assertTeamMember(teamId, userId);
-    const [billing, trialEndsAt] = await Promise.all([
+    const [billing, trialEndsAt, betaAccess] = await Promise.all([
       prisma.platformBilling.findUnique({
         where: { id: teamId },
         select: { plan: true },
       }),
       getActiveTeamTrialEnd(teamId),
+      getTeamBetaAccess(teamId),
     ]);
     const hasActiveTrial = Boolean(trialEndsAt);
     const storedPlan = normalizePlatformPlanId(billing?.plan);
-    const planId = storedPlan === "free" && hasActiveTrial ? "pro" : storedPlan;
+    const planId = storedPlan === "free" && (hasActiveTrial || betaAccess) ? "pro" : storedPlan;
     return { planId, features: getFeaturesForPlan(planId) };
   }
 
@@ -194,7 +196,7 @@ export class PlatformBillingService {
 
   async getCurrentPlan(teamId: number, userId: number) {
     await assertBillingAdmin(teamId, userId);
-    const [billing, trialEndsAt] = await Promise.all([
+    const [billing, trialEndsAt, betaAccess] = await Promise.all([
       prisma.platformBilling.findUnique({
         where: { id: teamId },
         select: {
@@ -208,6 +210,7 @@ export class PlatformBillingService {
         },
       }),
       getActiveTeamTrialEnd(teamId),
+      getTeamBetaAccess(teamId),
     ]);
     const hasActiveTrial = Boolean(trialEndsAt);
     const current =
@@ -225,8 +228,11 @@ export class PlatformBillingService {
 
     return {
       ...current,
-      plan: storedPlan === "free" && hasActiveTrial ? "pro" : storedPlan,
-      isTrial: storedPlan === "free" && hasActiveTrial,
+      plan: storedPlan === "free" && (hasActiveTrial || betaAccess) ? "pro" : storedPlan,
+      isTrial: storedPlan === "free" && !betaAccess && hasActiveTrial,
+      isBeta: storedPlan === "free" && Boolean(betaAccess),
+      betaExpiresAt: betaAccess?.expiresAt ?? null,
+      betaCohort: betaAccess?.invitation.cohort ?? null,
       trialEndsAt,
     };
   }

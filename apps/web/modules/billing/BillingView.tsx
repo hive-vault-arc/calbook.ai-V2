@@ -94,15 +94,21 @@ export function BillingView({ teamId, teamName }: BillingViewProps): JSX.Element
                   ) : null}
                 </div>
                 <p className="mt-2 text-sm text-subtle">
-                  {currentPlanQuery.data?.isTrial
-                    ? t("billing_trial_status", {
-                        date: currentPlanQuery.data.trialEndsAt
-                          ? new Date(currentPlanQuery.data.trialEndsAt).toLocaleDateString()
+                  {currentPlanQuery.data?.isBeta
+                    ? t("beta_access_until", {
+                        date: currentPlanQuery.data.betaExpiresAt
+                          ? new Date(currentPlanQuery.data.betaExpiresAt).toLocaleDateString()
                           : "",
                       })
-                    : hasPaidAccess
-                      ? t("billing_paid_plan_status")
-                      : t("billing_free_plan_status")}
+                    : currentPlanQuery.data?.isTrial
+                      ? t("billing_trial_status", {
+                          date: currentPlanQuery.data.trialEndsAt
+                            ? new Date(currentPlanQuery.data.trialEndsAt).toLocaleDateString()
+                            : "",
+                        })
+                      : hasPaidAccess
+                        ? t("billing_paid_plan_status")
+                        : t("billing_free_plan_status")}
                 </p>
               </div>
               {hasSubscription ? (
@@ -147,7 +153,10 @@ export function BillingView({ teamId, teamName }: BillingViewProps): JSX.Element
               <div className="grid items-stretch gap-4 lg:grid-cols-3">
                 {plansQuery.data?.map((plan) => {
                   const isPro = plan.id === "pro";
-                  const isCurrent = currentPlanId === plan.id && !currentPlanQuery.data?.isTrial;
+                  const isCurrent =
+                    currentPlanId === plan.id &&
+                    !currentPlanQuery.data?.isTrial &&
+                    !currentPlanQuery.data?.isBeta;
                   const priceCents = interval === "month" ? plan.monthlyPriceCents : plan.annualPriceCents;
                   const checkoutAvailable =
                     interval === "month" ? plan.monthlyAvailable : plan.annualAvailable;
