@@ -1,5 +1,6 @@
 "use client";
 
+import process from "node:process";
 import getStripe from "@calcom/app-store/stripepayment/lib/client";
 import { getPremiumPlanPriceValue } from "@calcom/app-store/stripepayment/lib/utils";
 import {
@@ -196,6 +197,7 @@ function addOrUpdateQueryParam(url: string, key: string, value: string) {
 export default function Signup({
   prepopulateFormValues,
   token,
+  betaToken,
   orgSlug,
   isGoogleLoginEnabled,
   isOutlookLoginEnabled,
@@ -210,7 +212,7 @@ export default function Signup({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
   const [accountUnderReview, setAccountUnderReview] = useState(false);
-  const [displayEmailForm, setDisplayEmailForm] = useState(token);
+  const [displayEmailForm, setDisplayEmailForm] = useState(token || betaToken);
   const [turnstileKey, setTurnstileKey] = useState(0);
   const searchParams = useCompatSearchParams();
   const { t, i18n } = useLocale();
@@ -239,19 +241,20 @@ export default function Signup({
   }
 
   const loadingSubmitState = isSubmitSuccessful || isSubmitting;
-  const displayBackButton = token ? false : displayEmailForm;
+  const displayBackButton = token || betaToken ? false : displayEmailForm;
 
   const signUp: SubmitHandler<FormValues> = async (_data) => {
     const { cfToken, ...data } = _data;
 
-    posthog.capture("signup_form_submitted", {
-      has_token: !!token,
-      is_org_invite: isOrgInviteByLink,
-      org_slug: orgSlug,
-      is_premium_username: premiumUsername,
-      username_taken: usernameTaken,
-      workspace_type: data.workspaceType,
-    });
+    if (!betaToken)
+      posthog.capture("signup_form_submitted", {
+        has_token: !!token,
+        is_org_invite: isOrgInviteByLink,
+        org_slug: orgSlug,
+        is_premium_username: premiumUsername,
+        username_taken: usernameTaken,
+        workspace_type: data.workspaceType,
+      });
 
     try {
       const result = await fetchSignup(
@@ -259,6 +262,7 @@ export default function Signup({
           ...data,
           language: i18n.language,
           token,
+          betaToken,
         },
         cfToken
       );
@@ -292,12 +296,13 @@ export default function Signup({
         return;
       }
 
-      if (process.env.NEXT_PUBLIC_GTM_ID) {
+      if (!betaToken && process.env.NEXT_PUBLIC_GTM_ID) {
         pushGTMEvent("create_account", { email: data.email, user: data.username, lang: data.language });
       }
 
       const gettingStartedPath = onboardingV3Enabled ? "onboarding/getting-started" : "getting-started";
-      const verifyOrGettingStarted = emailVerificationEnabled ? "auth/verify-email" : gettingStartedPath;
+      const verifyOrGettingStarted =
+        emailVerificationEnabled && !betaToken ? "auth/verify-email" : gettingStartedPath;
       const constructCallBackIfUrlPresent = () => {
         if (isOrgInviteByLink) {
           return `${WEBAPP_URL}/${searchParams.get("callbackUrl")}`;
@@ -328,20 +333,21 @@ export default function Signup({
         return;
       }
 
-      posthog.capture("signup_form_submit_error", {
-        has_token: !!token,
-        is_org_invite: isOrgInviteByLink,
-        org_slug: orgSlug,
-        is_premium_username: premiumUsername,
-        error_message: errorMessage,
-      });
+      if (!betaToken)
+        posthog.capture("signup_form_submit_error", {
+          has_token: !!token,
+          is_org_invite: isOrgInviteByLink,
+          org_slug: orgSlug,
+          is_premium_username: premiumUsername,
+          error_message: errorMessage,
+        });
       formMethods.setError("apiError", { message: errorMessage });
     }
   };
 
   return (
     <>
-      {IS_CALCOM && (!IS_EUROPE || userConsentToCookie) ? (
+      {!betaToken && IS_CALCOM && (!IS_EUROPE || userConsentToCookie) ? (
         <>
           {process.env.NEXT_PUBLIC_GTM_ID && (
             <>
@@ -433,6 +439,11 @@ export default function Signup({
                 {/* Form Container */}
                 {displayEmailForm && (
                   <div className="mt-6">
+                    {betaToken ? (
+                      <p className="mb-4 rounded-lg bg-brand-subtle p-4 text-sm text-emphasis">
+                        {t("beta_signup_notice")}
+                      </p>
+                    ) : null}
                     <Form
                       className="flex flex-col gap-4"
                       form={formMethods}
@@ -495,7 +506,7 @@ export default function Signup({
                         placeholder="john@doe.com"
                         type="email"
                         autoComplete="email"
-                        disabled={prepopulateFormValues?.email}
+                        readOnly={Boolean(prepopulateFormValues?.email)}
                         data-testid="signup-emailfield"
                       />
 

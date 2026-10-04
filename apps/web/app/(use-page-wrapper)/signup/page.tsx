@@ -1,22 +1,23 @@
-import { withAppDirSsr } from "app/WithAppDirSsr";
-import type { PageProps } from "app/_types";
-import { _generateMetadata } from "app/_utils";
-import { cookies, headers } from "next/headers";
-
 import { buildLegacyCtx } from "@lib/buildLegacyCtx";
 import { getServerSideProps } from "@lib/signup/getServerSideProps";
-
+import type { PageProps } from "app/_types";
+import { _generateMetadata } from "app/_utils";
+import { withAppDirSsr } from "app/WithAppDirSsr";
+import { cookies, headers } from "next/headers";
 import type { SignupProps } from "~/signup-view";
 import Signup from "~/signup-view";
 
-export const generateMetadata = async () =>
-  await _generateMetadata(
+export const generateMetadata = async () => ({
+  ...(await _generateMetadata(
     (t) => t("sign_up"),
     (t) => t("sign_up"),
     undefined,
     undefined,
     "/signup"
-  );
+  )),
+  referrer: "no-referrer" as const,
+  robots: { index: false, follow: false },
+});
 
 const getData = withAppDirSsr<SignupProps>(getServerSideProps);
 
