@@ -520,6 +520,8 @@ model User {
   agents                         Agent[]
   oAuthClients                   OAuthClient[]
   holidaySettings                UserHolidaySettings?
+  issuedBetaInvitations          BetaInvitation[]              @relation("BetaInviter")
+  betaAccess                     BetaAccessGrant?
 
   autoOptInFeatures Boolean @default(false)
 
@@ -794,6 +796,35 @@ model VerificationToken {
   @@index([token])
   @@index([teamId])
   @@index([secondaryEmailId])
+}
+
+model BetaInvitation {
+  id          String           @id @default(cuid())
+  email       String           @unique
+  tokenHash   String           @unique
+  cohort      String           @default("private-beta")
+  invitedById Int
+  invitedBy   User             @relation("BetaInviter", fields: [invitedById], references: [id])
+  createdAt   DateTime         @default(now())
+  expiresAt   DateTime
+  accessDays  Int              @default(90)
+  sentAt      DateTime?
+  redeemedAt  DateTime?
+  revokedAt   DateTime?
+  grant       BetaAccessGrant?
+}
+
+model BetaAccessGrant {
+  id           String         @id @default(cuid())
+  userId       Int            @unique
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitationId String         @unique
+  invitation   BetaInvitation @relation(fields: [invitationId], references: [id])
+  startsAt     DateTime       @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+
+  @@index([expiresAt])
 }
 
 model InstantMeetingToken {
