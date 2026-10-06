@@ -1,5 +1,4 @@
 import { _generateMetadata } from "app/_utils";
-import { unstable_cache } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -20,15 +19,6 @@ export const generateMetadata = async () =>
     "/settings/developer/api-keys"
   );
 
-const getCachedApiKeys = unstable_cache(
-  async (userId: number) => {
-    const apiKeyRepository = await PrismaApiKeyRepository.withGlobalPrisma();
-    return await apiKeyRepository.findApiKeysFromUserId({ userId });
-  },
-  undefined,
-  { revalidate: 3600, tags: ["viewer.apiKeys.list"] } // Cache for 1 hour
-);
-
 const Page = async () => {
   const session = await getServerSession({ req: buildLegacyRequest(await headers(), await cookies()) });
 
@@ -37,7 +27,8 @@ const Page = async () => {
   }
 
   const userId = session.user.id;
-  const apiKeys = await getCachedApiKeys(userId);
+  const apiKeyRepository = await PrismaApiKeyRepository.withGlobalPrisma();
+  const apiKeys = await apiKeyRepository.findApiKeysFromUserId({ userId });
 
   return <ApiKeysView apiKeys={apiKeys} />;
 };
