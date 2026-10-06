@@ -59,13 +59,14 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
             BASE_SHA="${HEAD_SHA}^"
           fi
 
           git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" > /tmp/changed-files.txt
-          git diff --numstat "$BASE_SHA" "$HEAD_SHA" > /tmp/change-size.txt
+          git diff --numstat "$BASE_SHA" "$HEAD_SHA" -- . ':(exclude)yarn.lock' ':(exclude)**/yarn.lock' ':(exclude)package-lock.json' ':(exclude)**/package-lock.json' > /tmp/change-size.txt
 
           protected_file_found=false
           while IFS= read -r file; do
@@ -95,7 +96,7 @@ jobs:
             echo "- Added and removed lines: $changed_lines"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" != release/* ]]; then
+          if [[ "$EVENT_NAME" == "pull_request" && "$HEAD_REF" != release/* && ! ( "$BASE_REF" == "main" && "$HEAD_REF" == "dev" ) ]]; then
             if (( code_files > 10 || changed_lines > 500 )); then
               echo "::error::Keep feature pull requests below 10 code files and 500 changed lines, or split the change."
               exit 1
