@@ -1,0 +1,45 @@
+name: Temporary public image probe
+
+on:
+  push:
+    branches:
+      - gh-actions-test-branch
+    paths:
+      - .github/workflows/ci-public-images-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  public-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: calendso
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      mailhog:
+        image: mailhog/mailhog:v1.0.1
+        ports:
+          - 8025:8025
+          - 1025:1025
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+    steps:
+      - name: Check public services
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-connrefused --retry-delay 2 http://127.0.0.1:8025/api/v2/messages
+          bash -c 'echo > /dev/tcp/127.0.0.1/5432'
+          bash -c 'echo > /dev/tcp/127.0.0.1/6379'
