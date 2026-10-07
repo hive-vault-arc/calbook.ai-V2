@@ -3,7 +3,7 @@ on:
   workflow_call:
 
 env:
-  DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/calendso
 
 jobs:
   check-prisma-migrations:
