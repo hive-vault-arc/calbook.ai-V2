@@ -63,7 +63,8 @@ jobs:
           fi
 
           git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" > /tmp/changed-files.txt
-          git diff --numstat "$BASE_SHA" "$HEAD_SHA" > /tmp/change-size.txt
+          git diff --numstat "$BASE_SHA" "$HEAD_SHA" > /tmp/all-change-size.txt
+          awk '$3 !~ /(^|\/)(yarn.lock|package-lock.json)$/ { print }' /tmp/all-change-size.txt > /tmp/change-size.txt
 
           protected_file_found=false
           while IFS= read -r file; do
