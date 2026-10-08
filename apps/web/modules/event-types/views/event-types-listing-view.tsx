@@ -46,7 +46,7 @@ import {
 } from "@calcom/web/modules/event-types/components/CreateEventTypeDialog";
 import { DuplicateDialog } from "@calcom/web/modules/event-types/components/DuplicateDialog";
 import { InfiniteSkeletonLoader } from "@calcom/web/modules/event-types/components/SkeletonLoader";
-import { ClockIcon, SearchIcon } from "@coss/ui/icons";
+import { InfoIcon, SearchIcon, XIcon } from "@coss/ui/icons";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { TRPCClientError } from "@trpc/client";
 import Link from "next/link";
@@ -99,6 +99,8 @@ interface InfiniteEventTypeListProps {
     | undefined;
   lockedByOrg?: boolean;
   isPending?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   debouncedSearchTerm?: string;
 }
 
@@ -114,6 +116,10 @@ const InfiniteTeamsTab: FC<InfiniteTeamsTabProps> = (props: InfiniteTeamsTabProp
   const { activeEventTypeGroup } = props;
   const { debouncedSearchTerm } = useSearchContext();
   const { t } = useLocale();
+  const utils = trpc.useUtils();
+  const [timedOutQueryKey, setTimedOutQueryKey] = useState<string | null>(null);
+  const queryKey = `${activeEventTypeGroup.teamId ?? "personal"}:${activeEventTypeGroup.parentId ?? ""}:${debouncedSearchTerm}`;
+  const loadingTimedOut = timedOutQueryKey === queryKey;
 
   const query = trpc.viewer.eventTypes.getEventTypesFromGroup.useInfiniteQuery(
     {
@@ -132,6 +138,26 @@ const InfiniteTeamsTab: FC<InfiniteTeamsTabProps> = (props: InfiniteTeamsTabProp
     }
   );
 
+  useEffect(() => {
+    if (!query.isPending) {
+      if (loadingTimedOut) setTimedOutQueryKey(null);
+      return;
+    }
+
+    if (loadingTimedOut) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setTimedOutQueryKey(queryKey), 15000);
+    return (): void => window.clearTimeout(timeout);
+  }, [query.isPending, loadingTimedOut, queryKey]);
+
+  const retryQuery = async (): Promise<void> => {
+    setTimedOutQueryKey(null);
+    await utils.viewer.eventTypes.getEventTypesFromGroup.cancel();
+    await query.refetch();
+  };
+
   const buttonInView = useInViewObserver(() => {
     if (!query.isFetching && query.hasNextPage && query.status === "success") {
       query.fetchNextPage();
@@ -146,7 +172,9 @@ const InfiniteTeamsTab: FC<InfiniteTeamsTabProps> = (props: InfiniteTeamsTabProp
           group={activeEventTypeGroup}
           bookerUrl={activeEventTypeGroup.bookerUrl}
           readOnly={activeEventTypeGroup.metadata.readOnly}
-          isPending={query.isPending}
+          isPending={query.isPending && !loadingTimedOut}
+          isError={query.isError || loadingTimedOut}
+          onRetry={retryQuery}
           debouncedSearchTerm={debouncedSearchTerm}
         />
       )}
@@ -302,6 +330,8 @@ export const InfiniteEventTypeList = ({
   bookerUrl,
   lockedByOrg,
   isPending,
+  isError,
+  onRetry,
   debouncedSearchTerm,
 }: InfiniteEventTypeListProps): JSX.Element => {
   const { t } = useLocale();
@@ -318,6 +348,7 @@ export const InfiniteEventTypeList = ({
   const [privateLinkCopyIndices, setPrivateLinkCopyIndices] = useState<Record<string, number>>({});
   const [draggedEventTypeId, setDraggedEventTypeId] = useState<number | null>(null);
   const [dragOverEventTypeId, setDragOverEventTypeId] = useState<number | null>(null);
+  const [showDragTip, setShowDragTip] = useState(false);
 
   const utils = trpc.useUtils();
   const mutation = trpc.viewer.loggedInViewerRouter.eventTypeOrder.useMutation({
@@ -530,7 +561,22 @@ export const InfiniteEventTypeList = ({
     }
   }, []);
 
+  useEffect(() => {
+    setShowDragTip(!readOnly && localStorage.getItem("event-types-drag-tip-dismissed") !== "true");
+  }, [readOnly]);
+
   if (!pages?.[0]?.eventTypes?.length) {
+    if (isError) {
+      return (
+        <div role="alert" className="rounded-xl border border-subtle bg-default p-5 text-center">
+          <p className="text-sm text-subtle">{t("error_loading_event_types")}</p>
+          <Button className="mt-3" color="secondary" onClick={onRetry}>
+            {t("retry")}
+          </Button>
+        </div>
+      );
+    }
+
     if (isPending) return <InfiniteSkeletonLoader />;
 
     return group.teamId ? (
@@ -558,26 +604,27 @@ export const InfiniteEventTypeList = ({
 
   return (
     <div className="flex flex-col overflow-hidden pb-6">
-      <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-default text-brand-default shadow-sm"
-            aria-hidden="true">
-            <ClockIcon className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="font-semibold text-emphasis text-sm">{t("public_page_order")}</p>
-            <p className="mt-0.5 text-subtle text-xs">{t("public_page_order_description")}</p>
+      {showDragTip && orderedEventTypes.length > 1 && (
+        <div className="mb-3 flex justify-end">
+          <div
+            role="note"
+            className="flex max-w-xs items-center gap-2 rounded-lg border border-subtle bg-default px-3 py-2 text-xs shadow-sm">
+            <InfoIcon className="h-4 w-4 shrink-0 text-brand-default" aria-hidden="true" />
+            <p className="text-subtle">{t("event_type_drag_priority_tip")}</p>
+            <button
+              type="button"
+              aria-label={t("dismiss_drag_tip")}
+              className="shrink-0 rounded-md p-1 text-subtle hover:bg-subtle hover:text-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emphasis"
+              onClick={() => {
+                localStorage.setItem("event-types-drag-tip-dismissed", "true");
+                setShowDragTip(false);
+              }}>
+              <XIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
           </div>
         </div>
-        <span className="w-fit shrink-0 rounded-full border border-brand-subtle bg-default px-3 py-1.5 font-medium text-brand-default text-xs shadow-sm">
-          {t("order_saves_automatically")}
-        </span>
-      </div>
-      <ul
-        ref={parent}
-        className="static! relative flex w-full flex-col gap-4 before:absolute before:top-9 before:bottom-9 before:left-8 before:w-px before:bg-brand-subtle sm:before:left-10"
-        data-testid="event-types">
+      )}
+      <ul ref={parent} className="static! relative flex w-full flex-col gap-4" data-testid="event-types">
         {pages.map((page) => {
           return page?.eventTypes?.map((type) => {
             const flatIndex = orderedEventTypes.findIndex((eventType) => eventType.id === type.id);
@@ -1046,11 +1093,11 @@ const CTA = ({ profileOptions }: { profileOptions: ProfileOption[] }) => {
   if (!profileOptions.length) return null;
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
       <TextField
-        className="max-w-64"
+        className="w-full sm:max-w-64"
         addOnLeading={<SearchIcon className="h-4 w-4 text-subtle" />}
-        containerClassName="max-w-64 focus:ring-offset-0! *:mb-0"
+        containerClassName="w-full sm:max-w-64 focus:ring-offset-0! *:mb-0"
         type="search"
         value={searchTerm}
         autoComplete="false"
@@ -1059,7 +1106,10 @@ const CTA = ({ profileOptions }: { profileOptions: ProfileOption[] }) => {
         }}
         placeholder={t("search_booking_types")}
       />
-      <Button data-testid="new-event-type" href={`?dialog=new&eventPage=${profileOptions[0]?.slug ?? ""}`}>
+      <Button
+        className="w-full shrink-0 sm:w-auto"
+        data-testid="new-event-type"
+        href={`?dialog=new&eventPage=${profileOptions[0]?.slug ?? ""}`}>
         {t("create_booking_type")}
       </Button>
       <CreateEventTypeDialog profileOptions={profileOptions} />

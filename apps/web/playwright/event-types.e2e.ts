@@ -2,7 +2,6 @@ import { WEBAPP_URL } from "@calcom/lib/constants";
 import { randomString } from "@calcom/lib/random";
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-
 import { test } from "./lib/fixtures";
 import {
   bookTimeSlot,
@@ -62,6 +61,32 @@ test.describe("Event Types tests", () => {
       const $eventTypes = page.locator("[data-testid=event-types] > li a");
       const count = await $eventTypes.count();
       expect(count).toBeGreaterThanOrEqual(2);
+    });
+
+    test("keeps the toolbar in flow on compact screens", async ({ page }) => {
+      await page.setViewportSize({ width: 707, height: 668 });
+      await page.reload();
+
+      const toolbar = page.getByTestId("event-type-list-toolbar");
+      await expect(toolbar).toBeVisible();
+      await expect(toolbar).toHaveCSS("position", "static");
+      await expect(page.locator('[data-testid="event-types"] > li').first()).toBeVisible();
+    });
+
+    test("uses the bundled CalBook logo in the compact top bar", async ({ page }) => {
+      await page.setViewportSize({ width: 707, height: 668 });
+      await page.reload();
+
+      await expect(page.locator('nav img[alt="CalBook.ai"]').first()).toHaveAttribute(
+        "src",
+        "/calbook-logo.svg"
+      );
+    });
+
+    test("loads templates after a hard reload", async ({ page }) => {
+      await page.reload();
+
+      await expect(page.locator('[data-testid="event-types"] > li').first()).toBeVisible();
     });
 
     test("can add new event type", async ({ page }) => {

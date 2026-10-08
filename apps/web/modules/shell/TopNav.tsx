@@ -23,7 +23,7 @@ function TopNav() {
       style={isEmbed ? { display: "none" } : {}}
       className="sticky top-0 z-40 flex w-full items-center justify-between border-subtle border-b bg-cal-muted/50 px-4 py-1.5 backdrop-blur-lg sm:p-4 md:hidden">
       <Link href="/home">
-        <Logo />
+        <Logo src="/calbook-logo.svg" />
       </Link>
       <div className="flex items-center gap-2 self-center">
         <span className="group flex items-center rounded-full font-medium text-default text-sm transition hover:bg-cal-muted hover:text-emphasis lg:hidden">

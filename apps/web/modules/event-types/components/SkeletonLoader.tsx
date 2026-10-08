@@ -25,14 +25,7 @@ export default SkeletonLoader;
 export function InfiniteSkeletonLoader() {
   return (
     <SkeletonContainer>
-      <div className="mb-5 flex items-center gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3.5">
-        <SkeletonAvatar className="h-10 w-10 rounded-full" />
-        <div className="flex flex-col gap-1.5">
-          <SkeletonText className="h-4 w-32" />
-          <SkeletonText className="h-3 w-72 max-w-full" />
-        </div>
-      </div>
-      <ul className="relative flex flex-col gap-4 before:absolute before:top-9 before:bottom-9 before:left-8 before:w-px before:bg-brand-subtle sm:before:left-10">
+      <ul className="flex flex-col gap-4">
         <BookingTypeSkeletonCard />
         <BookingTypeSkeletonCard />
         <BookingTypeSkeletonCard />
@@ -105,14 +98,7 @@ export function EventTypesSkeletonLoader() {
     <SkeletonContainer>
       <TabsSkeletonLoader />
       <SearchSkeletonLoader />
-      <div className="mb-5 flex items-center gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3.5">
-        <SkeletonAvatar className="h-10 w-10 rounded-full" />
-        <div className="flex flex-col gap-1.5">
-          <SkeletonText className="h-4 w-32" />
-          <SkeletonText className="h-3 w-72 max-w-full" />
-        </div>
-      </div>
-      <ul className="relative flex flex-col gap-4 before:absolute before:top-9 before:bottom-9 before:left-8 before:w-px before:bg-brand-subtle sm:before:left-10">
+      <ul className="flex flex-col gap-4">
         <BookingTypeSkeletonCard />
         <BookingTypeSkeletonCard />
         <BookingTypeSkeletonCard />

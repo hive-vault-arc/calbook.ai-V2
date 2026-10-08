@@ -1,5 +1,8 @@
+import { getTeamBetaAccess } from "@calcom/features/auth/beta/beta-access";
 import type Stripe from "stripe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@calcom/features/auth/beta/beta-access", () => ({ getTeamBetaAccess: vi.fn() }));
 
 const stripeMocks = vi.hoisted(() => ({
   customersCreate: vi.fn(),
@@ -117,6 +120,7 @@ describe("PlatformBillingService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getTeamBetaAccess).mockResolvedValue(null);
     process.env.STRIPE_PRIVATE_KEY = "sk_test_example";
     mockPrisma.membership.findFirst.mockResolvedValue({ teamId: 10, user: { trialEndsAt: null } });
   });
@@ -167,6 +171,39 @@ describe("PlatformBillingService", () => {
     await expect(service.getEntitlements(10, 20)).resolves.toMatchObject({
       planId: "pro",
       features: expect.arrayContaining([expect.objectContaining({ key: "paid-bookings" })]),
+    });
+  });
+
+  it("labels beta access separately from paid subscriptions and trials", async () => {
+    mockPrisma.platformBilling.findUnique.mockResolvedValue(null);
+    vi.mocked(getTeamBetaAccess).mockResolvedValue({
+      expiresAt: new Date("2099-01-01"),
+      invitation: { cohort: "private-beta" },
+    });
+    await expect(service.getEntitlements(10, 20)).resolves.toMatchObject({ planId: "pro" });
+    await expect(service.getCurrentPlan(10, 20)).resolves.toMatchObject({
+      plan: "pro",
+      isBeta: true,
+      isTrial: false,
+      subscriptionId: null,
+      betaCohort: "private-beta",
+    });
+  });
+
+  it("preserves paid Enterprise access for an account that joined through beta", async () => {
+    mockPrisma.platformBilling.findUnique.mockResolvedValue({
+      plan: "enterprise",
+      subscriptionId: "sub_paid",
+    });
+    vi.mocked(getTeamBetaAccess).mockResolvedValue({
+      expiresAt: new Date("2099-01-01"),
+      invitation: { cohort: "private-beta" },
+    });
+    await expect(service.getEntitlements(10, 20)).resolves.toMatchObject({ planId: "enterprise" });
+    await expect(service.getCurrentPlan(10, 20)).resolves.toMatchObject({
+      plan: "enterprise",
+      isBeta: false,
+      subscriptionId: "sub_paid",
     });
   });
 

@@ -1,4 +1,5 @@
 import process from "node:process";
+import { BetaInvitationService } from "@calcom/features/auth/beta/BetaInvitationService";
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
 import { getOrgUsernameFromEmail } from "@calcom/features/auth/signup/utils/getOrgUsernameFromEmail";
 import { FeaturesRepository } from "@calcom/features/flags/features.repository";
@@ -9,6 +10,7 @@ import { teamMetadataSchema } from "@calcom/prisma/zod-utils";
 import { IS_GOOGLE_LOGIN_ENABLED } from "@server/lib/constants";
 import type { GetServerSidePropsContext } from "next";
 import { z } from "zod";
+import { BETA_WAITLIST_URL } from "../../modules/marketing/constants";
 
 const checkValidEmail = (email: string) => emailSchema.safeParse(email).success;
 
@@ -29,6 +31,7 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
   const onboardingV3Enabled = await featuresRepository.checkIfFeatureIsEnabledGlobally("onboarding-v3");
 
   const token = z.string().optional().parse(ctx.query.token);
+  const betaToken = z.string().optional().safeParse(ctx.query.betaToken);
   const redirectUrlData = z
     .string()
     .refine((value) => value.startsWith(WEBAPP_URL), {
@@ -54,6 +57,7 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
   }
 
   const props = {
+    betaToken: undefined as string | undefined,
     redirectUrl,
     isGoogleLoginEnabled: IS_GOOGLE_LOGIN_ENABLED,
 
@@ -62,7 +66,35 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
     onboardingV3Enabled,
   };
 
-  if ((process.env.NEXT_PUBLIC_DISABLE_SIGNUP === "true" && !token) || signupDisabled) {
+  if (!signupDisabled && betaToken.success && betaToken.data) {
+    const invitation = !token ? await new BetaInvitationService().inspect(betaToken.data) : null;
+    if (!invitation)
+      return {
+        redirect: {
+          permanent: false,
+          destination: "/auth/error?error=Invalid%20or%20expired%20beta%20invitation",
+        },
+      } as const;
+    return {
+      props: {
+        ...props,
+        betaToken: betaToken.data,
+        isGoogleLoginEnabled: false,
+        prepopulateFormValues: { email: invitation.email, username: "" },
+      },
+    };
+  }
+
+  if (process.env.NEXT_PUBLIC_DISABLE_SIGNUP === "true" && !token) {
+    return {
+      redirect: {
+        permanent: false,
+        destination: BETA_WAITLIST_URL,
+      },
+    } as const;
+  }
+
+  if (signupDisabled) {
     return {
       redirect: {
         permanent: false,
