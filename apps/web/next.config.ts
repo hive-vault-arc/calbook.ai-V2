@@ -110,7 +110,7 @@ if (
   console.warn(
     "\x1b[33mwarn",
     "\x1b[0m",
-    '- Disabled \'Google Calendar\' integration. Reason: GOOGLE_API_CREDENTIALS must contain a web OAuth client ID, client secret, and at least one redirect URI. You can download this JSON from your OAuth Client @ https://console.cloud.google.com/apis/credentials.'
+    "- Disabled 'Google Calendar' integration. Reason: GOOGLE_API_CREDENTIALS must contain a web OAuth client ID, client secret, and at least one redirect URI. You can download this JSON from your OAuth Client @ https://console.cloud.google.com/apis/credentials."
   );
 }
 
@@ -214,6 +214,8 @@ const nextConfig = (phase: string): NextConfig => {
       ignoreBuildErrors: process.env.VERCEL === "1",
     },
     output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
+    // Required GitHub CI checks types before merge; preview builds need not repeat it.
+    typescript: { ignoreBuildErrors: process.env.VERCEL_ENV === "preview" },
     serverExternalPackages: [
       "deasync",
       "http-cookie-agent",
