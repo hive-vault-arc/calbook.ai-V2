@@ -22,7 +22,7 @@ jobs:
   merge-reports:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_head_sha }}
       - uses: ./.github/actions/yarn-install
