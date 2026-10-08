@@ -209,10 +209,6 @@ const nextConfig = (phase: string): NextConfig => {
   }
 
   return {
-    // GitHub CI runs the authoritative type check; avoid repeating it in Vercel's 45-minute build window.
-    typescript: {
-      ignoreBuildErrors: process.env.VERCEL === "1",
-    },
     output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
     // Required GitHub CI checks types before merge; preview builds need not repeat it.
     typescript: { ignoreBuildErrors: process.env.VERCEL_ENV === "preview" },
