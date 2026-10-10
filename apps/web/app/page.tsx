@@ -6,9 +6,9 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import { LandingPage } from "~/marketing/LandingPage";
+import { LandingPageBeta } from "~/marketing/LandingPageBeta";
 
-export const generateMetadata = async (): Promise<Metadata> => {
+const generateMetadata = async (): Promise<Metadata> => {
   const title = "Interview Scheduling Software for Recruitment Teams";
   const description =
     "CalBook.ai gives recruitment teams one polished workflow for interview templates, candidate self-scheduling, calendar coordination, and follow-up.";
@@ -45,7 +45,8 @@ const Page = async (): Promise<ReactElement> => {
     redirect("/home");
   }
 
-  return <LandingPage />;
+  return <LandingPageBeta />;
 };
 
+export { generateMetadata };
 export default Page;
