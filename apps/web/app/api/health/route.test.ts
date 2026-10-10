@@ -37,6 +37,10 @@ import { GET } from "./route";
 
 type HealthResponse = {
   checks: {
+    database: {
+      status: string;
+      detail?: string;
+    };
     email: {
       status: string;
       detail: string;
@@ -111,6 +115,19 @@ describe("GET /api/health email check", () => {
     expect(body.checks.redis).toEqual(
       expect.objectContaining({ status: "error", detail: "Redis unreachable" })
     );
+  });
+
+  it("does not expose database exception details in the public response", async () => {
+    mocks.queryRaw.mockRejectedValueOnce(new Error("Connection failed for postgres://user:password@db.test"));
+
+    const response = await GET();
+    const body = (await response.json()) as HealthResponse;
+
+    expect(response.status).toBe(503);
+    expect(body.checks.database).toEqual(
+      expect.objectContaining({ status: "error", detail: "Database unreachable" })
+    );
+    expect(JSON.stringify(body)).not.toContain("password@db.test");
   });
 
   it("reports which platform billing variable is missing without exposing values", async () => {

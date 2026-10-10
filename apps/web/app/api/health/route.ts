@@ -25,11 +25,11 @@ async function checkDatabase(): Promise<SubsystemCheck> {
       ),
     ]);
     return { status: "ok", latencyMs: Date.now() - start };
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       latencyMs: Date.now() - start,
-      detail: error instanceof Error ? error.message : "Unknown database error",
+      detail: "Database unreachable",
     };
   }
 }
