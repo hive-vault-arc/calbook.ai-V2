@@ -554,6 +554,7 @@ export default function Signup({
                         data-testid="signup-submit-button"
                         className="my-2 w-full justify-center bg-violet-600 text-white hover:bg-violet-700"
                         loading={loadingSubmitState}
+                        aria-busy={loadingSubmitState}
                         disabled={
                           !!formMethods.formState.errors.username ||
                           !!formMethods.formState.errors.email ||
