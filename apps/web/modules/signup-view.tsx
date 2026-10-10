@@ -324,12 +324,10 @@ export default function Signup({
         callbackUrl: constructCallBackUrl(),
       });
     } catch (err) {
-      setTurnstileKey((k) => k + 1);
-      formMethods.setValue("cfToken", undefined);
-
       const errorMessage = err instanceof Error ? err.message : t("unexpected_error_try_again");
 
       if (errorMessage === INVALID_CLOUDFLARE_TOKEN_ERROR) {
+        formMethods.setError("apiError", { message: t("unexpected_error_try_again") });
         return;
       }
 
@@ -342,6 +340,9 @@ export default function Signup({
           error_message: errorMessage,
         });
       formMethods.setError("apiError", { message: errorMessage });
+    } finally {
+      setTurnstileKey((k) => k + 1);
+      formMethods.setValue("cfToken", undefined);
     }
   };
 
@@ -523,6 +524,7 @@ export default function Signup({
                       {CLOUDFLARE_SITE_ID ? (
                         <TurnstileCaptcha
                           key={turnstileKey}
+                          action="signup"
                           appearance="interaction-only"
                           onVerify={(token) => {
                             formMethods.setValue("cfToken", token);

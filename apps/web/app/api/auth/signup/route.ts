@@ -1,7 +1,7 @@
 import process from "node:process";
 import { FeaturesRepository } from "@calcom/features/flags/features.repository";
 import { checkRateLimitAndThrowError } from "@calcom/lib/checkRateLimitAndThrowError";
-import { IS_PREMIUM_USERNAME_ENABLED } from "@calcom/lib/constants";
+import { IS_PREMIUM_USERNAME_ENABLED, WEBAPP_URL } from "@calcom/lib/constants";
 import getIP from "@calcom/lib/getIP";
 import { HttpError } from "@calcom/lib/http-error";
 import logger from "@calcom/lib/logger";
@@ -50,8 +50,10 @@ async function handler(req: NextRequest) {
     const body = await parseRequestData(req);
     const query = Object.fromEntries(req.nextUrl.searchParams.entries());
     await checkCfTurnstileToken({
-      token: req.headers.get("cf-access-token") as string,
+      token: req.headers.get("cf-access-token") ?? undefined,
       remoteIp,
+      expectedAction: "signup",
+      expectedHostname: new URL(WEBAPP_URL).hostname,
     });
 
     if (body.betaToken) return await betaSignupHandler(body);
