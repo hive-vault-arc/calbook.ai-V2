@@ -21,7 +21,7 @@ import { Separator } from "@coss/ui/components/separator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { inferSSRProps } from "@lib/types/inferSSRProps";
 import type { getServerSideProps } from "@server/lib/auth/login/getServerSideProps";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
@@ -312,7 +312,11 @@ export default function Login({
               <Button
                 type="submit"
                 className="mt-8 w-full bg-violet-600 text-white hover:bg-violet-700"
-                disabled={formState.isSubmitting}>
+                disabled={formState.isSubmitting}
+                aria-busy={formState.isSubmitting}>
+                {formState.isSubmitting && (
+                  <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                )}
                 {twoFactorRequired ? t("submit") : t("continue")}
               </Button>
             </form>

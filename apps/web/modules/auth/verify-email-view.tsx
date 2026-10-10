@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import posthog from "posthog-js";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { navigateAfterEmailVerification } from "./lib/postAuthNavigation";
 
 const EMAIL_CLIENTS = [
@@ -46,6 +46,13 @@ function VerifyEmailPage() {
   const mutation = trpc.viewer.auth.resendVerifyEmail.useMutation();
   const flags = useFlagMap();
   const wasJustVerified = searchParams?.get("verified") === "1";
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (secondsLeft === 0) return;
+    const timeout = window.setTimeout(() => setSecondsLeft((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timeout);
+  }, [secondsLeft]);
 
   useEffect(() => {
     if (data?.isVerified) {
@@ -110,12 +117,19 @@ function VerifyEmailPage() {
                       color="minimal"
                       className="text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:text-violet-300 dark:hover:bg-violet-950/40 dark:hover:text-violet-200"
                       loading={mutation.isPending}
+                      disabled={mutation.isPending || secondsLeft > 0}
                       onClick={() => {
+                        if (mutation.isPending || secondsLeft > 0) return;
                         posthog.capture("verify_email_resend_clicked");
-                        showToast(t("send_email"), "success");
-                        mutation.mutate();
+                        mutation.mutate(undefined, {
+                          onSuccess: () => {
+                            setSecondsLeft(30);
+                            showToast(t("verification_email_sent"), "success");
+                          },
+                          onError: () => showToast(t("something_went_wrong"), "error"),
+                        });
                       }}>
-                      {t("resend_email")}
+                      {secondsLeft > 0 ? t("resend_in_seconds", { seconds: secondsLeft }) : t("resend_email")}
                     </Button>
                     <Button
                       color="minimal"
