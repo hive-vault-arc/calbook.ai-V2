@@ -19,6 +19,7 @@ const sendVerificationRequest = async ({
   url,
 }: Pick<SendVerificationRequestParams, "identifier" | "url">) => {
   await checkRateLimitAndThrowError({
+    failClosed: true,
     rateLimitingType: "forcedSlowMode",
     identifier: `emailSignIn:${piiHasher.hash(identifier.trim().toLowerCase())}`,
   });

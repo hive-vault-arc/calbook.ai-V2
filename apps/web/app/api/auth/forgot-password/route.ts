@@ -20,6 +20,7 @@ async function handler(req: NextRequest) {
   const ip = getIP(req) ?? email.data;
 
   await checkRateLimitAndThrowError({
+    failClosed: true,
     rateLimitingType: "core",
     identifier: `forgotPassword:${piiHasher.hash(ip)}`,
   });

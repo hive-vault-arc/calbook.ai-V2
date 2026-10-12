@@ -1,8 +1,8 @@
+import process from "node:process";
 import { describe, expect, it, vi } from "vitest";
-
 import { checkRateLimitAndThrowError } from "./checkRateLimitAndThrowError";
-import { rateLimiter } from "./rateLimit";
 import type { RatelimitResponse } from "./rateLimit";
+import { rateLimiter } from "./rateLimit";
 
 vi.mock("@calcom/prisma", () => {
   return {
@@ -17,6 +17,22 @@ vi.mock("./rateLimit", () => {
 });
 
 describe("checkRateLimitAndThrowError", () => {
+  it("returns a service error when strict auth protection is unavailable", async () => {
+    vi.mocked(rateLimiter).mockReturnValue(
+      () =>
+        ({
+          limit: 0,
+          remaining: 0,
+          reset: -1,
+          success: false,
+        }) as RatelimitResponse
+    );
+
+    await expect(
+      checkRateLimitAndThrowError({ identifier: "auth-test", failClosed: true })
+    ).rejects.toMatchObject({ statusCode: 503 });
+  });
+
   it("should throw an error if rate limit is exceeded", async () => {
     process.env.UNKEY_ROOT_KEY = "unkey_mock";
 
@@ -80,8 +96,6 @@ describe("checkRateLimitAndThrowError", () => {
     const identifier = "test-identifier";
     const rateLimitingType = "core";
 
-    await expect(
-      checkRateLimitAndThrowError({ rateLimitingType, identifier })
-    ).rejects.toThrow("0 seconds");
+    await expect(checkRateLimitAndThrowError({ rateLimitingType, identifier })).rejects.toThrow("0 seconds");
   });
 });
