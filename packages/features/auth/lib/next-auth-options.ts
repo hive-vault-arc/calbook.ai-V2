@@ -173,6 +173,7 @@ export async function authorizeCredentials(
   }
 
   await checkRateLimitAndThrowError({
+    failClosed: true,
     identifier: hashEmail(user.email),
   });
 

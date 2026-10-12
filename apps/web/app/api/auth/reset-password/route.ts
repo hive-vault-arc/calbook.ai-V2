@@ -1,10 +1,3 @@
-import { defaultResponderForAppDir } from "app/api/defaultResponderForAppDir";
-import { parseRequestData } from "app/api/parseRequestData";
-import { cookies } from "next/headers";
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
-import { z } from "zod";
-
 import { validPassword } from "@calcom/features/auth/lib/validPassword";
 import { hashPassword } from "@calcom/lib/auth/hashPassword";
 import { checkRateLimitAndThrowError } from "@calcom/lib/checkRateLimitAndThrowError";
@@ -12,6 +5,12 @@ import getIP from "@calcom/lib/getIP";
 import { piiHasher } from "@calcom/lib/server/PiiHasher";
 import prisma from "@calcom/prisma";
 import { IdentityProvider } from "@calcom/prisma/enums";
+import { defaultResponderForAppDir } from "app/api/defaultResponderForAppDir";
+import { parseRequestData } from "app/api/parseRequestData";
+import { cookies } from "next/headers";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 
 const passwordResetRequestSchema = z.object({
   csrfToken: z.string(),
@@ -36,14 +35,15 @@ async function handler(req: NextRequest) {
     return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
 
-  // token verified, delete the cookie / a resubmit on failure requires a new csrf token.
-  cookieStore.delete("calcom.csrf_token");
-
   const remoteIp = getIP(req);
   await checkRateLimitAndThrowError({
+    failClosed: true,
     rateLimitingType: "core",
     identifier: `api:reset-password:${piiHasher.hash(remoteIp)}`,
   });
+
+  // Only consume the token after protection is available.
+  cookieStore.delete("calcom.csrf_token");
 
   // Note: There is a low, very low chance that a password request stays valid long enough
   // to brute force 3.8126967e+40 options, but rate limiting provides additional protection.
