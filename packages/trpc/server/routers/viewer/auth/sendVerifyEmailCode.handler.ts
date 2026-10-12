@@ -25,6 +25,7 @@ export const sendVerifyEmailCode = async ({
   identifier: string;
 }) => {
   await checkRateLimitAndThrowError({
+    failClosed: true,
     rateLimitingType: "core",
     identifier: `sendVerifyEmailCode:${identifier}`,
   });

@@ -18,6 +18,7 @@ export const addSecondaryEmailHandler = async ({ ctx, input }: AddSecondaryEmail
   const { user } = ctx;
 
   await checkRateLimitAndThrowError({
+    failClosed: true,
     rateLimitingType: "core",
     identifier: `addSecondaryEmail:${user.id}`,
   });
