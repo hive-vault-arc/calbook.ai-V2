@@ -1,11 +1,11 @@
-import { Ratelimit, type LimitOptions, type RatelimitResponse } from "@unkey/ratelimit";
-
+import process from "node:process";
+import { type LimitOptions, Ratelimit, type RatelimitResponse } from "@unkey/ratelimit";
 import { isIpInBanListString } from "./getIP";
 import logger from "./logger";
 
 const log = logger.getSubLogger({ prefix: ["RateLimit"] });
 
-export { type RatelimitResponse };
+export type { RatelimitResponse };
 
 export type RateLimitHelper = {
   rateLimitingType?:
@@ -18,6 +18,7 @@ export type RateLimitHelper = {
     | "smsMonth"
     | "instantMeeting";
   identifier: string;
+  failClosed?: boolean;
   opts?: LimitOptions;
   /**
    * Using a callback instead of a regular return to provide headers even
@@ -32,13 +33,16 @@ let warned = false;
 
 export function rateLimiter() {
   const { UNKEY_ROOT_KEY } = process.env;
+  const unavailable = { success: false, limit: 0, remaining: 0, reset: -1 } as RatelimitResponse;
+  const allowed = { success: true, limit: 10, remaining: 999, reset: 0 } as RatelimitResponse;
 
   if (!UNKEY_ROOT_KEY) {
     if (!warned) {
       log.warn("Disabled because the UNKEY_ROOT_KEY environment variable was not found.");
       warned = true;
     }
-    return () => ({ success: true, limit: 10, remaining: 999, reset: 0 }) as RatelimitResponse;
+    return ({ failClosed }: RateLimitHelper) =>
+      failClosed && process.env.NODE_ENV === "production" ? unavailable : allowed;
   }
   const timeout = {
     fallback: { success: true, limit: 10, remaining: 999, reset: 0 },
@@ -122,7 +126,38 @@ export function rateLimiter() {
     }),
   };
 
-  async function rateLimit({ rateLimitingType = "core", identifier, opts }: RateLimitHelper) {
+  const strictTimeout = { fallback: unavailable, ms: 5000 };
+  const strictOnError = (err: Error) => {
+    log.error("Auth rate limiter unavailable", { error: err.message });
+    return unavailable;
+  };
+  const strictLimiter = {
+    core: new Ratelimit({
+      rootKey: UNKEY_ROOT_KEY,
+      namespace: "core",
+      limit: 10,
+      duration: "60s",
+      timeout: strictTimeout,
+      onError: strictOnError,
+    }),
+    forcedSlowMode: new Ratelimit({
+      rootKey: UNKEY_ROOT_KEY,
+      namespace: "forcedSlowMode",
+      limit: 1,
+      duration: "30s",
+      timeout: strictTimeout,
+      onError: strictOnError,
+    }),
+  };
+
+  async function rateLimit({ rateLimitingType = "core", identifier, opts, failClosed }: RateLimitHelper) {
+    if (failClosed) {
+      const type = isIpInBanListString(identifier) ? "forcedSlowMode" : rateLimitingType;
+      if (type !== "core" && type !== "forcedSlowMode") {
+        throw new Error(`Strict rate limiting is unsupported for ${type}`);
+      }
+      return await strictLimiter[type].limit(identifier, opts);
+    }
     if (isIpInBanListString(identifier)) {
       return await limiter.forcedSlowMode.limit(identifier, opts);
     }
