@@ -8,10 +8,10 @@ import {
 import { FeaturesRepository } from "@calcom/features/flags/features.repository";
 import { sentrySpan } from "@calcom/features/watchlist/lib/telemetry";
 import { checkIfEmailIsBlockedInWatchlistController } from "@calcom/features/watchlist/operations/check-if-email-in-watchlist.controller";
+import { getTranslation } from "@calcom/i18n/server";
 import { checkRateLimitAndThrowError } from "@calcom/lib/checkRateLimitAndThrowError";
 import { WEBAPP_URL } from "@calcom/lib/constants";
 import logger from "@calcom/lib/logger";
-import { getTranslation } from "@calcom/i18n/server";
 import { hashEmail } from "@calcom/lib/server/PiiHasher";
 import { prisma } from "@calcom/prisma";
 import { totp } from "otplib";
@@ -58,6 +58,7 @@ export const sendEmailVerification = async ({
   }
 
   await checkRateLimitAndThrowError({
+    failClosed: true,
     rateLimitingType: "core",
     identifier: `sendEmailVerification:${hashEmail(email)}`,
   });
@@ -155,6 +156,7 @@ export const sendChangeOfEmailVerification = async ({ user, language }: ChangeOf
   }
 
   await checkRateLimitAndThrowError({
+    failClosed: true,
     rateLimitingType: "core",
     identifier: hashEmail(user.emailFrom),
   });
