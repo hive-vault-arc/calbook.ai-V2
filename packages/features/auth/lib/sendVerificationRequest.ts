@@ -7,17 +7,16 @@ import { piiHasher } from "@calcom/lib/server/PiiHasher";
 import { serverConfig } from "@calcom/lib/serverConfig";
 import Handlebars from "handlebars";
 import type { SendVerificationRequestParams } from "next-auth/providers/email";
-import type { TransportOptions } from "nodemailer";
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport<TransportOptions>({
-  ...(serverConfig.transport as TransportOptions),
-} as TransportOptions);
+const transporter: ReturnType<typeof nodemailer.createTransport> = nodemailer.createTransport(
+  serverConfig.transport
+);
 
 const sendVerificationRequest = async ({
   identifier,
   url,
-}: Pick<SendVerificationRequestParams, "identifier" | "url">) => {
+}: Pick<SendVerificationRequestParams, "identifier" | "url">): Promise<void> => {
   await checkRateLimitAndThrowError({
     failClosed: true,
     rateLimitingType: "forcedSlowMode",
@@ -34,8 +33,7 @@ const sendVerificationRequest = async ({
     encoding: "utf8",
   });
   const emailTemplate = Handlebars.compile(emailFile);
-  // async transporter
-  transporter.sendMail({
+  await transporter.sendMail({
     from: `${process.env.EMAIL_FROM}` || APP_NAME,
     to: identifier,
     subject: `Your sign-in link for ${APP_NAME}`,
