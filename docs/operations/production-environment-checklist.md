@@ -2,6 +2,8 @@
 
 Use this checklist for staging first, then production. Set secrets only in the deployment platform's secret manager. Do not paste secret values into tickets, chat, CI logs, or this repository.
 
+Maintain the [external services and API lifecycle register](external-services-inventory.md) when providers, API clients, deployment targets, or environment variables change. The separate [pre-launch performance audit](prelaunch-performance-audit.md) tracks API-call cleanup, re-render investigation, and inherited-code removal; it is not part of auth hardening.
+
 ## Core application
 
 | Setting | Requirement |
