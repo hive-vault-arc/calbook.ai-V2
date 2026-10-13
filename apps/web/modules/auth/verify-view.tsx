@@ -15,18 +15,23 @@ import { useEffect, useRef, useState } from "react";
 import z from "zod";
 
 async function sendVerificationLogin(email: string, username: string, t: (key: string) => string) {
-  await signIn("email", {
-    email: email.toLowerCase(),
-    username: username.toLowerCase(),
-    redirect: false,
-    callbackUrl: WEBAPP_URL,
-  })
-    .then(() => {
-      showToast(t("verification_email_sent"), "success");
-    })
-    .catch((err) => {
-      showToast(err, "error");
+  try {
+    const result = await signIn("email", {
+      email: email.toLowerCase(),
+      username: username.toLowerCase(),
+      redirect: false,
+      callbackUrl: WEBAPP_URL,
     });
+    if (result?.error) {
+      showToast(t("something_went_wrong"), "error");
+      return false;
+    }
+    showToast(t("verification_email_sent"), "success");
+    return true;
+  } catch {
+    showToast(t("something_went_wrong"), "error");
+    return false;
+  }
 }
 
 function useSendFirstVerificationLogin({
@@ -119,6 +124,7 @@ export default function Verify({ EMAIL_FROM }: { EMAIL_FROM?: string }) {
   const { email, username, paymentStatus } = querySchema.parse(routerQuery);
   const { t } = useLocale();
   const [secondsLeft, setSecondsLeft] = useState(30);
+  const [isResending, setIsResending] = useState(false);
 
   // Derive payment failed status from payment status
   const hasPaymentFailed = paymentStatus !== undefined && paymentStatus !== "paid";
@@ -199,26 +205,34 @@ export default function Verify({ EMAIL_FROM }: { EMAIL_FROM?: string }) {
         </div>
         <div className="flex items-center gap-2">
           <p className="text-subtle text-base font-normal ">{t("dont_see_email")}</p>
-          <button
+          <Button
+            color="minimal"
             className={classNames(
               "font-light",
               secondsLeft > 0 ? "text-muted" : "underline underline-offset-2 hover:font-normal"
             )}
-            disabled={secondsLeft > 0}
+            loading={isResending}
+            disabled={secondsLeft > 0 || isResending}
             onClick={async (e) => {
-              if (!email || !username) {
+              if (!email || !username || isResending) {
                 return;
               }
               e.preventDefault();
-              setSecondsLeft(30);
-              // Update query params with t:timestamp, shallow: true doesn't re-render the page
-              const _searchParams = new URLSearchParams(searchParams?.toString());
-              _searchParams.set("t", `${Date.now()}`);
-              router.replace(`${pathname}?${_searchParams.toString()}`);
-              return await sendVerificationLogin(email, username, t);
+              setIsResending(true);
+              try {
+                const sent = await sendVerificationLogin(email, username, t);
+                if (sent) {
+                  setSecondsLeft(30);
+                  const _searchParams = new URLSearchParams(searchParams?.toString());
+                  _searchParams.set("t", `${Date.now()}`);
+                  router.replace(`${pathname}?${_searchParams.toString()}`);
+                }
+              } finally {
+                setIsResending(false);
+              }
             }}>
             {secondsLeft > 0 ? t("resend_in_seconds", { seconds: secondsLeft }) : t("resend")}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

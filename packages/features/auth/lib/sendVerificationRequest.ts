@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { checkRateLimitAndThrowError } from "@calcom/lib/checkRateLimitAndThrowError";
+import { APP_NAME, WEBAPP_URL } from "@calcom/lib/constants";
+import { piiHasher } from "@calcom/lib/server/PiiHasher";
+import { serverConfig } from "@calcom/lib/serverConfig";
 import Handlebars from "handlebars";
 import type { SendVerificationRequestParams } from "next-auth/providers/email";
 import type { TransportOptions } from "nodemailer";
 import nodemailer from "nodemailer";
-import path from "node:path";
-
-import { APP_NAME, WEBAPP_URL } from "@calcom/lib/constants";
-import { serverConfig } from "@calcom/lib/serverConfig";
 
 const transporter = nodemailer.createTransport<TransportOptions>({
   ...(serverConfig.transport as TransportOptions),
@@ -16,6 +18,11 @@ const sendVerificationRequest = async ({
   identifier,
   url,
 }: Pick<SendVerificationRequestParams, "identifier" | "url">) => {
+  await checkRateLimitAndThrowError({
+    rateLimitingType: "forcedSlowMode",
+    identifier: `emailSignIn:${piiHasher.hash(identifier.trim().toLowerCase())}`,
+  });
+
   const emailsDir = path.resolve(process.cwd(), "..", "..", "packages/emails", "templates");
   const originalUrl = new URL(url);
   const webappUrl = new URL(process.env.NEXTAUTH_URL || WEBAPP_URL);
