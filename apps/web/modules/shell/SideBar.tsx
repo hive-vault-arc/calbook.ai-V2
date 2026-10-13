@@ -1,4 +1,4 @@
-import { ENABLE_PROFILE_SWITCHER, IS_VISUAL_REGRESSION_TESTING, WEBAPP_URL } from "@calcom/lib/constants";
+import { ENABLE_PROFILE_SWITCHER, IS_VISUAL_REGRESSION_TESTING } from "@calcom/lib/constants";
 import { getPlaceholderAvatar } from "@calcom/lib/defaultAvatarImage";
 import { useIsStandalone } from "@calcom/lib/hooks/useIsStandalone";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
@@ -16,6 +16,7 @@ import type { User as UserAuth } from "next-auth";
 import { useSession } from "next-auth/react";
 import { KBarTrigger } from "./Kbar";
 import { Navigation } from "./navigation/Navigation";
+import { getPublicPageUrl } from "./getPublicPageUrl";
 import { useBottomNavItems } from "./useBottomNavItems";
 import { ProfileDropdown } from "./user-dropdown/ProfileDropdown";
 import { UserDropdown } from "./user-dropdown/UserDropdown";
@@ -44,7 +45,7 @@ export function SideBarContainer({ bannersHeight }: SideBarContainerProps) {
 export function SideBar({ bannersHeight, user }: SideBarProps) {
   const { t, isLocaleReady } = useLocale();
 
-  const publicPageUrl = `${WEBAPP_URL}/${user?.orgAwareUsername}`;
+  const publicPageUrl = getPublicPageUrl(user?.orgAwareUsername, user?.username);
 
   const bottomNavItems = useBottomNavItems({
     publicPageUrl,
