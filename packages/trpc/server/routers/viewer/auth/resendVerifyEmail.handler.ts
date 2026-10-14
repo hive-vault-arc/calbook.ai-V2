@@ -21,6 +21,7 @@ export const resendVerifyEmail = async ({ input, ctx }: ResendEmailOptions) => {
   let emailToVerify = ctx.user.email;
 
   await checkRateLimitAndThrowError({
+    failClosed: true,
     rateLimitingType: "forcedSlowMode",
     identifier: `resendVerifyEmail:${ctx.user.id}`,
   });

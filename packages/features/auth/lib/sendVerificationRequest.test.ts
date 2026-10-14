@@ -36,6 +36,7 @@ describe("sendVerificationRequest", () => {
 
     expect(mocks.hash).toHaveBeenCalledWith("user@example.com");
     expect(mocks.checkRateLimitAndThrowError).toHaveBeenCalledWith({
+      failClosed: true,
       rateLimitingType: "forcedSlowMode",
       identifier: "emailSignIn:hashed-email",
     });

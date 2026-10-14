@@ -44,6 +44,7 @@ async function handler(req: NextRequest) {
     // Rate limit: 10 signups per 60 seconds per IP
     await checkRateLimitAndThrowError({
       rateLimitingType: "core",
+      failClosed: true,
       identifier: `api:signup:${piiHasher.hash(remoteIp)}`,
     });
 
