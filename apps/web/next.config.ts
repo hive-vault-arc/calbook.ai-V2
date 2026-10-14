@@ -210,8 +210,10 @@ const nextConfig = (phase: string): NextConfig => {
 
   return {
     output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
-    // Required GitHub CI checks types before merge; preview builds need not repeat it.
-    typescript: { ignoreBuildErrors: process.env.VERCEL_ENV === "preview" },
+    // Required GitHub CI checks types before merge; Vercel builds need not repeat it.
+    typescript: {
+      ignoreBuildErrors: process.env.VERCEL_ENV === "preview" || process.env.VERCEL_ENV === "production",
+    },
     serverExternalPackages: [
       "deasync",
       "http-cookie-agent",
