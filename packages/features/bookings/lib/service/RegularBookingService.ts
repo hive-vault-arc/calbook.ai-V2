@@ -23,6 +23,7 @@ import type {
 } from "@calcom/features/bookings/lib/dto/types";
 import EventManager, { placeholderCreatedEvent } from "@calcom/features/bookings/lib/EventManager";
 import { getAssignmentReasonCategory } from "@calcom/features/bookings/lib/getAssignmentReasonCategory";
+import { getDefaultVideoLocation } from "@calcom/features/bookings/lib/getDefaultVideoLocation";
 import type { CheckBookingAndDurationLimitsService } from "@calcom/features/bookings/lib/handleNewBooking/checkBookingAndDurationLimits";
 import { handlePayment } from "@calcom/features/bookings/lib/handlePayment";
 import { handleWebhookTrigger } from "@calcom/features/bookings/lib/handleWebhookTrigger";
@@ -1256,7 +1257,7 @@ async function handler(
         organizerOrFirstDynamicGroupMemberDefaultLocationUrl = defaultApp?.appLink;
       }
     } else {
-      locationBodyString = "integrations:daily";
+      locationBodyString = await getDefaultVideoLocation();
     }
   }
 
