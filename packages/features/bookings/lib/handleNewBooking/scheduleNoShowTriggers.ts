@@ -4,6 +4,7 @@ import tasker from "@calcom/features/tasker";
 import getWebhooks from "@calcom/features/webhooks/lib/getWebhooks";
 import { withReporting } from "@calcom/lib/sentryWrapper";
 import { WebhookTriggerEvents } from "@calcom/prisma/enums";
+import { getDefaultVideoLocation } from "../getDefaultVideoLocation";
 
 type ScheduleNoShowTriggersArgs = {
   booking: {
@@ -33,9 +34,12 @@ const _scheduleNoShowTriggers = async (args: ScheduleNoShowTriggersArgs) => {
     isDryRun = false,
   } = args;
 
-  const isCalVideoLocation = booking.location === DailyLocationType || booking.location?.trim() === "";
+  if (isDryRun) return;
+  const isCalVideoLocation =
+    booking.location === DailyLocationType ||
+    (booking.location?.trim() === "" && (await getDefaultVideoLocation()) === DailyLocationType);
 
-  if (isDryRun || !isCalVideoLocation) return;
+  if (!isCalVideoLocation) return;
 
   // Add task for automatic no show in cal video
   const noShowPromises: Promise<any>[] = [];
