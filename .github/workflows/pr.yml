@@ -173,7 +173,7 @@ jobs:
       run-e2e: ${{ steps.check-if-pr-has-label.outputs.run-e2e == 'true' }}
       db-cache-hit: ${{ steps.cache-db-check.outputs.cache-hit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: .github
       - uses: ./.github/actions/cache-checkout
