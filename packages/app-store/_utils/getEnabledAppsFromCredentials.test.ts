@@ -18,6 +18,7 @@ describe("configured global video availability", () => {
           id: 0,
           type: "daily_video",
           key: {},
+          encryptedKey: null,
           userId: 0,
           user: { email: "" },
           teamId: null,
