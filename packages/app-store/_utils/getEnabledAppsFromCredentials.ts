@@ -2,7 +2,7 @@ import type { CredentialDataWithTeamName } from "@calcom/app-store/utils";
 import { isDelegationCredential } from "@calcom/lib/delegationCredential";
 import { prisma } from "@calcom/prisma";
 import type { Prisma } from "@calcom/prisma/client";
-
+import { appKeysSchema as dailyKeysSchema } from "../dailyvideo/zod";
 import getApps from "../utils";
 
 type EnabledApp = ReturnType<typeof getApps>[number] & { enabled: boolean };
@@ -71,7 +71,17 @@ const getEnabledAppsFromCredentials = async (
   enabledApps = [...enabledApps, ...delegationCredentialSupportedEnabledApps];
 
   const apps = getApps(credentials, filterOnCredentials);
+  const dailyApp = apps.some((app) => app.slug === "daily-video")
+    ? await prisma.app.findUnique({
+        where: { slug: "daily-video" },
+        select: { enabled: true, keys: true },
+      })
+    : null;
+  const dailyKeys = dailyKeysSchema.safeParse(dailyApp?.keys);
+  const dailyAvailable = dailyApp?.enabled && dailyKeys.success && !!dailyKeys.data.api_key.trim();
   const filteredApps = apps.reduce((reducedArray, app) => {
+    // Global metadata alone cannot make an unconfigured video provider usable.
+    if (app.slug === "daily-video" && !dailyAvailable) return reducedArray;
     const appDbQuery = enabledApps.find((metadata) => metadata.slug === app.slug);
     if (appDbQuery?.enabled || app.isGlobal) {
       reducedArray.push({ ...app, enabled: true });
