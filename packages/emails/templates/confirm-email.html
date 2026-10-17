@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
   <head>
     <!-- <head> -->
-    <title>${headerContent}</title>
+    <title>Sign in to {{app_name}}</title>
     <!--[if !mso]><!-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!--<![endif]-->
@@ -410,7 +410,7 @@
     <![endif]-->
   </head>
   <body>
-    <span class="preheader">This link will expire in 10 min.</span>
+    <span class="preheader">Your {{app_name}} sign-in link expires in {{expiry_minutes}} minutes.</span>
     <table class="email-wrapper" width="100%" cellpadding="0" cellspacing="0" role="presentation">
       <tr>
         <td align="center">
@@ -418,7 +418,7 @@
             <!-- <tr>
               <td class="email-masthead">
                 <a href="{{base_url}}" class="f-fallback email-masthead_name">
-                  Cal.diy
+                  {{app_name}}
                 </a>
               </td>
             </tr> -->
@@ -580,8 +580,8 @@
                     <td class="content-cell">
                       <div class="f-fallback">
                         <p>
-                          Click the button below to log in to Cal.diy<br />
-                          This link will expire in 10 minutes.
+                          Sign in to {{app_name}} to continue to your workspace.<br />
+                          This secure link expires in {{expiry_minutes}} minutes and can only be used once.
                         </p>
                         <!-- Action -->
                         <table
@@ -604,7 +604,7 @@
                                 <tr>
                                   <td>
                                     <a href="{{signin_url}}" class="f-fallback button" target="_blank"
-                                      >Log into Cal.diy</a
+                                      >Sign in to {{app_name}}</a
                                     >
                                   </td>
                                 </tr>
@@ -612,8 +612,9 @@
                             </td>
                           </tr>
                         </table>
-                        <p>Confirming this request will securely log you in using {{email}}.</p>
-                        <p>Enjoy your new scheduling solution by,<br />The Cal.diy Team</p>
+                        <p>This sign-in link was requested for {{email}}.</p>
+                        <p>If you did not request this email, you can safely ignore it.</p>
+                        <p>The {{app_name}} team</p>
                         <!-- Sub copy -->
                         <table class="body-sub" role="presentation">
                           <tr>
@@ -643,7 +644,7 @@
                   role="presentation">
                   <tr>
                     <td class="content-cell" align="center">
-                      <p class="f-fallback sub align-center">&copy; 2025 Cal.diy. All rights reserved.</p>
+                      <p class="f-fallback sub align-center">&copy; {{year}} {{app_name}}. All rights reserved.</p>
                     </td>
                   </tr>
                 </table>

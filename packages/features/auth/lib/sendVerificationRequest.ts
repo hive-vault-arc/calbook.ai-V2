@@ -10,6 +10,7 @@ import { serverConfig } from "@calcom/lib/serverConfig";
 import Handlebars from "handlebars";
 import type { SendVerificationRequestParams } from "next-auth/providers/email";
 import nodemailer from "nodemailer";
+import { EMAIL_SIGN_IN_MAX_AGE_SECONDS } from "./emailSignInProvider";
 
 const transporter: ReturnType<typeof nodemailer.createTransport> = nodemailer.createTransport(
   serverConfig.transport
@@ -38,7 +39,14 @@ const sendVerificationRequest = async ({
       encoding: "utf8",
     });
     const emailTemplate = Handlebars.compile(emailFile);
-    const html = emailTemplate({ base_url: WEBAPP_URL, signin_url: url, email: identifier });
+    const html = emailTemplate({
+      base_url: WEBAPP_URL,
+      signin_url: url,
+      email: identifier,
+      app_name: APP_NAME,
+      expiry_minutes: EMAIL_SIGN_IN_MAX_AGE_SECONDS / 60,
+      year: new Date().getUTCFullYear(),
+    });
     stage = "transport";
     await transporter.sendMail({
       from: `${process.env.EMAIL_FROM}` || APP_NAME,
