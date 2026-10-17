@@ -2485,7 +2485,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@calcom/feature-auth@workspace:packages/features/auth":
+"@calcom/feature-auth@workspace:*, @calcom/feature-auth@workspace:packages/features/auth":
   version: 0.0.0-use.local
   resolution: "@calcom/feature-auth@workspace:packages/features/auth"
   dependencies:
@@ -3304,6 +3304,7 @@ __metadata:
     "@calcom/embed-core": "workspace:*"
     "@calcom/embed-react": "workspace:*"
     "@calcom/embed-snippet": "workspace:*"
+    "@calcom/feature-auth": "workspace:*"
     "@calcom/features": "workspace:*"
     "@calcom/lib": "workspace:*"
     "@calcom/platform-enums": "workspace:*"
