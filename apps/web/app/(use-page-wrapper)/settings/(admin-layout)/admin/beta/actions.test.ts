@@ -66,6 +66,48 @@ it("requires a fresh admin check before sending or revoking", async () => {
   await expect(revokeBetaInvitation(form())).rejects.toThrow("Forbidden");
   expect(mocks.send).not.toHaveBeenCalled();
   expect(mocks.revoke).not.toHaveBeenCalled();
+  expect(mocks.issue).not.toHaveBeenCalled();
+  expect(mocks.update).not.toHaveBeenCalled();
+});
+
+it.each([
+  null,
+  {},
+  { user: {} },
+])("rejects missing session identity before any side effects (%j)", async (session) => {
+  mocks.session.mockResolvedValue(session);
+  await expect(inviteBetaApplicant(form())).rejects.toThrow("redirect:/auth/login");
+  const revokeForm = new FormData();
+  revokeForm.set("id", "existing-invitation");
+  await expect(revokeBetaInvitation(revokeForm)).rejects.toThrow("redirect:/auth/login");
+  expect(mocks.admin).not.toHaveBeenCalled();
+  expect(mocks.rateLimit).not.toHaveBeenCalled();
+  expect(mocks.issue).not.toHaveBeenCalled();
+  expect(mocks.send).not.toHaveBeenCalled();
+  expect(mocks.revoke).not.toHaveBeenCalled();
+  expect(mocks.update).not.toHaveBeenCalled();
+});
+
+it("checks the session user instead of an administrator supplied in the form", async () => {
+  mocks.session.mockResolvedValue({ user: { id: 42 } });
+  mocks.admin.mockRejectedValue(new Error("Forbidden"));
+  const input = form();
+  input.set("adminId", "1");
+  input.set("role", "ADMIN");
+  await expect(inviteBetaApplicant(input)).rejects.toThrow("Forbidden");
+  expect(mocks.admin).toHaveBeenCalledExactlyOnceWith(42);
+  expect(mocks.issue).not.toHaveBeenCalled();
+  expect(mocks.send).not.toHaveBeenCalled();
+});
+
+it("rechecks admin authorization on every request", async () => {
+  await expect(inviteBetaApplicant(form())).rejects.toThrow("?result=sent");
+  mocks.admin.mockRejectedValueOnce(new Error("Forbidden"));
+  const revokeForm = new FormData();
+  revokeForm.set("id", "existing-invitation");
+  await expect(revokeBetaInvitation(revokeForm)).rejects.toThrow("Forbidden");
+  expect(mocks.admin).toHaveBeenCalledTimes(2);
+  expect(mocks.revoke).not.toHaveBeenCalled();
 });
 
 it("rate limits admin invitations before issuing tokens", async () => {
