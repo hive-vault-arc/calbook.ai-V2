@@ -14,6 +14,7 @@ import { useSession } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { getThemeProviderProps } from "./getThemeProviderProps";
+import { useHydrationReady } from "./hooks/useHydrationReady";
 
 // Workaround for https://github.com/vercel/next.js/issues/8592
 export type AppProps = Omit<
@@ -50,6 +51,7 @@ type CalcomThemeProps = Readonly<{
 }>;
 
 const CalcomThemeProvider = (props: CalcomThemeProps) => {
+  const hydrationReady = useHydrationReady();
   // Use namespace of embed to ensure same namespaced embed are displayed with same theme. This allows different embeds on the same website to be themed differently
   // One such example is our Embeds Demo and Testing page at http://localhost:3100
   // Having `getEmbedNamespace` defined on window before react initializes the app, ensures that embedNamespace is available on the first mount and can be used as part of storageKey
@@ -69,7 +71,7 @@ const CalcomThemeProvider = (props: CalcomThemeProps) => {
     <ThemeProvider key={key} {...themeProviderProps}>
       {/* Embed Mode can be detected reliably only on client side here as there can be static generated pages as well which can't determine if it's embed mode at backend */}
       {/* color-scheme makes background:transparent not work in iframe which is required by embed. */}
-      {typeof window !== "undefined" && !isEmbedMode && (
+      {hydrationReady && !isEmbedMode && (
         //eslint-disable-next-line react/no-unknown-property
         <style jsx global>
           {`
