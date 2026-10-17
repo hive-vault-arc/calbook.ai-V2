@@ -14,6 +14,7 @@ import {
   orgUserTypeEmbedRoutePath,
   orgUserTypeRoutePath,
 } from "./pagesAndRewritePaths";
+import { getRuntimeAssetTracing } from "./runtimeAssetTracing";
 import { TRIGGER_VERSION } from "./trigger.version"; // adjust path as needed
 
 dotenvConfig({ path: "../../.env" });
@@ -209,6 +210,7 @@ const nextConfig = (phase: string): NextConfig => {
   }
 
   return {
+    ...getRuntimeAssetTracing(__dirname),
     output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
     // Required GitHub CI checks types before merge; preview builds need not repeat it.
     typescript: { ignoreBuildErrors: process.env.VERCEL_ENV === "preview" },
