@@ -39,6 +39,7 @@
     "@calcom/embed-core": "workspace:*",
     "@calcom/embed-react": "workspace:*",
     "@calcom/embed-snippet": "workspace:*",
+    "@calcom/feature-auth": "workspace:*",
     "@calcom/features": "workspace:*",
     "@calcom/lib": "workspace:*",
     "@calcom/platform-enums": "workspace:*",
