@@ -99,6 +99,27 @@ describe("sendVerificationRequest", () => {
     expect(mocks.logError.mock.calls).toEqual([["Sign-in email failed", { stage: "transport" }]]);
   });
 
+  it("renders the real template with CalBook branding and the configured ten-minute expiry", async () => {
+    const fs = await vi.importActual<typeof import("node:fs")>("node:fs");
+    mocks.readFile.mockReturnValue(
+      fs.readFileSync(path.join(testRoot, "packages/emails/templates/confirm-email.html"), "utf8")
+    );
+    await sendVerificationRequest({
+      identifier: "user@example.com",
+      url: "https://calbook.test/api/auth/callback/email?token=offline-test",
+    });
+    const message: { html: string } = mocks.sendMail.mock.calls[0][0];
+    expect(message.html).toContain("Sign in to CalBook.ai");
+    expect(message.html).toContain("expires in 10 minutes");
+    expect(message.html).toContain("can only be used once");
+    expect(message.html).toContain("you can safely ignore it");
+    expect(message.html).toContain(String(new Date().getUTCFullYear()));
+    const rendered = new DOMParser().parseFromString(message.html, "text/html");
+    const signInLink = rendered.querySelector('a[href*="/callback/email"]');
+    expect(new URL(signInLink?.getAttribute("href") ?? "").searchParams.get("token")).toBe("offline-test");
+    expect(message.html).not.toMatch(/Cal\.diy|Cal\.com|\$\{headerContent\}|{{/);
+  });
+
   it("reports template failures without logging file paths or sending mail", async () => {
     mocks.readFile.mockImplementation(() => {
       throw new Error("ENOENT /private/template/path");
