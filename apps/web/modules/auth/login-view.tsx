@@ -102,6 +102,7 @@ export default function Login({
   csrfToken,
   isGoogleLoginEnabled,
   isOutlookLoginEnabled,
+  isSignupDisabled,
   totpEmail,
 }: PageProps) {
   const searchParams = useCompatSearchParams();
@@ -168,8 +169,7 @@ export default function Login({
   };
 
   const showSocialLogin = isGoogleLoginEnabled || isOutlookLoginEnabled;
-  const showSignupLink =
-    process.env.NEXT_PUBLIC_DISABLE_SIGNUP !== "true" && searchParams?.get("register") !== "false";
+  const showSignupLink = !isSignupDisabled && searchParams?.get("register") !== "false";
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#faf9ff] px-4 py-10 dark:bg-[#110d20]">
