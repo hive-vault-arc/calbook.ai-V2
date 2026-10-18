@@ -1,6 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import path from "node:path";
+import process from "node:process";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
+const testRoot: string = process.cwd();
+
+const mocks: {
+  checkRateLimitAndThrowError: ReturnType<typeof vi.fn>;
+  hash: ReturnType<typeof vi.fn>;
+  sendMail: ReturnType<typeof vi.fn>;
+} = vi.hoisted(() => ({
   checkRateLimitAndThrowError: vi.fn(),
   hash: vi.fn(() => "hashed-email"),
   sendMail: vi.fn(),
@@ -20,9 +28,12 @@ import sendVerificationRequest from "./sendVerificationRequest";
 
 describe("sendVerificationRequest", () => {
   beforeEach(() => {
+    process.chdir(path.join(testRoot, "apps", "web"));
     vi.clearAllMocks();
     mocks.checkRateLimitAndThrowError.mockResolvedValue(undefined);
   });
+
+  afterAll(() => process.chdir(testRoot));
 
   it("throttles email sign-in links with a normalized, hashed email identifier", async () => {
     mocks.checkRateLimitAndThrowError.mockRejectedValue(new Error("Rate limit exceeded"));
@@ -41,5 +52,30 @@ describe("sendVerificationRequest", () => {
       identifier: "emailSignIn:hashed-email",
     });
     expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("waits for the verification email to be delivered", async () => {
+    await sendVerificationRequest({
+      identifier: "user@example.com",
+      url: "https://calbook.test/api/auth/callback/email?token=test",
+    });
+
+    expect(mocks.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "user@example.com",
+        subject: "Your sign-in link for CalBook.ai",
+      })
+    );
+  });
+
+  it("propagates email delivery failures", async () => {
+    mocks.sendMail.mockRejectedValue(new Error("SMTP unavailable"));
+
+    await expect(
+      sendVerificationRequest({
+        identifier: "user@example.com",
+        url: "https://calbook.test/api/auth/callback/email?token=test",
+      })
+    ).rejects.toThrow("SMTP unavailable");
   });
 });
