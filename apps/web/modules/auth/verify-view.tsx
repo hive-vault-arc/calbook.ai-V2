@@ -1,58 +1,16 @@
 "use client";
 
-import { WEBAPP_URL } from "@calcom/lib/constants";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useRouterQuery } from "@calcom/lib/hooks/useRouterQuery";
 import classNames from "@calcom/ui/classNames";
 import { Button } from "@calcom/ui/components/button";
-import { showToast } from "@calcom/ui/components/toast";
 import { MailOpenIcon, TriangleAlertIcon } from "@coss/ui/icons";
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import z from "zod";
-
-async function sendVerificationLogin(email: string, username: string, t: (key: string) => string) {
-  try {
-    const result = await signIn("email", {
-      email: email.toLowerCase(),
-      username: username.toLowerCase(),
-      redirect: false,
-      callbackUrl: WEBAPP_URL,
-    });
-    if (result?.error) {
-      showToast(t("something_went_wrong"), "error");
-      return false;
-    }
-    showToast(t("verification_email_sent"), "success");
-    return true;
-  } catch {
-    showToast(t("something_went_wrong"), "error");
-    return false;
-  }
-}
-
-function useSendFirstVerificationLogin({
-  email,
-  username,
-}: {
-  email: string | undefined;
-  username: string | undefined;
-}) {
-  const sent = useRef(false);
-  const { t } = useLocale();
-  useEffect(() => {
-    if (!email || !username || sent.current) {
-      return;
-    }
-    (async () => {
-      await sendVerificationLogin(email, username, t);
-      sent.current = true;
-    })();
-  }, [email, username, t]);
-}
+import { getEmailCooldown, useSignInEmail } from "./lib/useSignInEmail";
 
 const querySchema = z.object({
   email: z.string().optional(),
@@ -123,48 +81,58 @@ export default function Verify({ EMAIL_FROM }: { EMAIL_FROM?: string }) {
   const routerQuery = useRouterQuery();
   const { email, username, paymentStatus } = querySchema.parse(routerQuery);
   const { t } = useLocale();
-  const [secondsLeft, setSecondsLeft] = useState(30);
-  const [isResending, setIsResending] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(0);
 
   // Derive payment failed status from payment status
   const hasPaymentFailed = paymentStatus !== undefined && paymentStatus !== "paid";
   const isPremiumUsername = !!paymentStatus; // If paymentStatus exists, it's from premium username flow
 
-  // Only send verification login if we DON'T have the email yet (for resend button)
-  // The email is already sent server-side in paymentCallback
-  useSendFirstVerificationLogin({
-    email: !isPremiumUsername ? email : undefined,
-    username: !isPremiumUsername ? username : undefined,
+  const { status, sentAt, send } = useSignInEmail({
+    email,
+    username,
+    autoSend: !isPremiumUsername,
   });
-  // @note: check for t=timestamp and apply disabled state and secondsLeft accordingly
-  // to avoid refresh to skip waiting 30 seconds to re-send email
+  const lastSentAt = searchParams?.get("t") ?? null;
   useEffect(() => {
-    const lastSent = new Date(parseInt(`${t}`));
-    // @note: This double round() looks ugly but it's the only way I came up to get the time difference in seconds
-    const difference = Math.round(Math.round(new Date().getTime() - lastSent.getTime()) / 1000);
-    if (difference < 30) {
-      // If less than 30 seconds, set the seconds left to 30 - difference
-      setSecondsLeft(30 - difference);
-    } else {
-      // else set the seconds left to 0 and disabled false
-      setSecondsLeft(0);
-    }
-  }, [t]);
-  // @note: here we make sure each second is decremented if disabled up to 0.
+    setSecondsLeft(getEmailCooldown(lastSentAt));
+  }, [lastSentAt]);
+  useEffect(() => {
+    if (!sentAt) return;
+    setSecondsLeft(getEmailCooldown(String(sentAt)));
+    const params = new URLSearchParams(window.location.search);
+    params.set("t", String(sentAt));
+    router.replace(`${pathname}?${params.toString()}`);
+  }, [sentAt, pathname, router]);
   useEffect(() => {
     if (secondsLeft > 0) {
       const interval = setInterval(() => {
         if (secondsLeft > 0) {
-          setSecondsLeft(secondsLeft - 1);
+          setSecondsLeft((remaining) => Math.max(0, remaining - 1));
         }
       }, 1000);
       return () => clearInterval(interval);
     }
   }, [secondsLeft]);
 
-  if (!email) {
+  if (!email || (!username && !isPremiumUsername)) {
     return <div>{t("invalid_link")}</div>;
   }
+
+  let heading = t("sending");
+  let message = t("sending");
+  if (status === "error") {
+    heading = t("email_not_sent");
+    message = t("try_again");
+  }
+  if (status === "sent") {
+    heading = t("check_your_inbox");
+    message = t("email_sent");
+  }
+  if (isPremiumUsername) {
+    heading = t("payment_successful");
+    message = t("email_sent_with_activation_link", { email });
+  }
+  if (hasPaymentFailed) heading = t("your_payment_failed");
 
   return (
     <div className="text-default bg-cal-muted/90 backdrop-blur-md backdrop-grayscale backdrop-filter">
@@ -177,24 +145,20 @@ export default function Verify({ EMAIL_FROM }: { EMAIL_FROM?: string }) {
           ) : (
             <MailOpenIconWrapper />
           )}
-          <h3 className="font-cal text-emphasis my-6 text-2xl font-normal leading-none">
-            {hasPaymentFailed
-              ? t("your_payment_failed")
-              : isPremiumUsername
-                ? t("payment_successful")
-                : t("check_your_inbox")}
-          </h3>
+          <h3 className="font-cal text-emphasis my-6 text-2xl font-normal leading-none">{heading}</h3>
           {hasPaymentFailed && <p className="my-6">{t("account_created_premium_not_reserved")}</p>}
-          <p className="text-muted dark:text-subtle text-base font-normal">
-            {t("email_sent_with_activation_link", { email })}{" "}
-            {hasPaymentFailed && t("activate_account_to_purchase_username")}
+          <p
+            role={status === "error" ? "alert" : "status"}
+            aria-live="polite"
+            className="text-muted dark:text-subtle text-base font-normal">
+            {message} {hasPaymentFailed && t("activate_account_to_purchase_username")}
           </p>
           <div className="mt-7">
             <Button
               color="secondary"
               href={
                 EMAIL_FROM
-                  ? encodeURIComponent(`https://mail.google.com/mail/u/0/#search/from:${EMAIL_FROM}`)
+                  ? `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(`from:${EMAIL_FROM}`)}`
                   : "https://mail.google.com/mail/u/0/"
               }
               target="_blank"
@@ -211,25 +175,11 @@ export default function Verify({ EMAIL_FROM }: { EMAIL_FROM?: string }) {
               "font-light",
               secondsLeft > 0 ? "text-muted" : "underline underline-offset-2 hover:font-normal"
             )}
-            loading={isResending}
-            disabled={secondsLeft > 0 || isResending}
+            loading={status === "sending"}
+            disabled={!username || secondsLeft > 0 || status === "sending"}
             onClick={async (e) => {
-              if (!email || !username || isResending) {
-                return;
-              }
               e.preventDefault();
-              setIsResending(true);
-              try {
-                const sent = await sendVerificationLogin(email, username, t);
-                if (sent) {
-                  setSecondsLeft(30);
-                  const _searchParams = new URLSearchParams(searchParams?.toString());
-                  _searchParams.set("t", `${Date.now()}`);
-                  router.replace(`${pathname}?${_searchParams.toString()}`);
-                }
-              } finally {
-                setIsResending(false);
-              }
+              await send();
             }}>
             {secondsLeft > 0 ? t("resend_in_seconds", { seconds: secondsLeft }) : t("resend")}
           </Button>
