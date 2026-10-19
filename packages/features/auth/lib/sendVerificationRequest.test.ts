@@ -8,12 +8,25 @@ const mocks: {
   checkRateLimitAndThrowError: ReturnType<typeof vi.fn>;
   hash: ReturnType<typeof vi.fn>;
   sendMail: ReturnType<typeof vi.fn>;
+  readFile: ReturnType<typeof vi.fn>;
+  logError: ReturnType<typeof vi.fn>;
 } = vi.hoisted(() => ({
   checkRateLimitAndThrowError: vi.fn(),
   hash: vi.fn(() => "hashed-email"),
   sendMail: vi.fn(),
+  readFile: vi.fn(),
+  logError: vi.fn(),
 }));
 
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    default: { ...actual, readFileSync: mocks.readFile },
+    readFileSync: mocks.readFile,
+  };
+});
+vi.mock("@calcom/lib/logger", () => ({ default: { error: mocks.logError } }));
 vi.mock("@calcom/lib/constants", () => ({ APP_NAME: "CalBook.ai", WEBAPP_URL: "https://calbook.test" }));
 vi.mock("@calcom/lib/checkRateLimitAndThrowError", () => ({
   checkRateLimitAndThrowError: mocks.checkRateLimitAndThrowError,
@@ -30,6 +43,8 @@ describe("sendVerificationRequest", () => {
   beforeEach(() => {
     process.chdir(path.join(testRoot, "apps", "web"));
     vi.clearAllMocks();
+    mocks.sendMail.mockReset();
+    mocks.readFile.mockReset().mockReturnValue('<a href="{{signin_url}}">Sign in</a>');
     mocks.checkRateLimitAndThrowError.mockResolvedValue(undefined);
   });
 
@@ -43,7 +58,7 @@ describe("sendVerificationRequest", () => {
         identifier: " User@Example.com ",
         url: "https://calbook.test/api/auth/callback/email?token=test",
       })
-    ).rejects.toThrow("Rate limit exceeded");
+    ).rejects.toThrow("Unable to send sign-in email (rate_limit).");
 
     expect(mocks.hash).toHaveBeenCalledWith("user@example.com");
     expect(mocks.checkRateLimitAndThrowError).toHaveBeenCalledWith({
@@ -52,6 +67,7 @@ describe("sendVerificationRequest", () => {
       identifier: "emailSignIn:hashed-email",
     });
     expect(mocks.sendMail).not.toHaveBeenCalled();
+    expect(mocks.logError).toHaveBeenCalledWith("Sign-in email failed", { stage: "rate_limit" });
   });
 
   it("waits for the verification email to be delivered", async () => {
@@ -66,16 +82,34 @@ describe("sendVerificationRequest", () => {
         subject: "Your sign-in link for CalBook.ai",
       })
     );
+    expect(mocks.logError).not.toHaveBeenCalled();
   });
 
   it("propagates email delivery failures", async () => {
-    mocks.sendMail.mockRejectedValue(new Error("SMTP unavailable"));
+    mocks.sendMail.mockRejectedValue(
+      new Error("SMTP unavailable: secret-password user@example.com token=test")
+    );
 
     await expect(
       sendVerificationRequest({
         identifier: "user@example.com",
         url: "https://calbook.test/api/auth/callback/email?token=test",
       })
-    ).rejects.toThrow("SMTP unavailable");
+    ).rejects.toThrow("Unable to send sign-in email (transport).");
+    expect(mocks.logError.mock.calls).toEqual([["Sign-in email failed", { stage: "transport" }]]);
+  });
+
+  it("reports template failures without logging file paths or sending mail", async () => {
+    mocks.readFile.mockImplementation(() => {
+      throw new Error("ENOENT /private/template/path");
+    });
+    await expect(
+      sendVerificationRequest({
+        identifier: "user@example.com",
+        url: "https://calbook.test/api/auth/callback/email?token=secret",
+      })
+    ).rejects.toThrow("Unable to send sign-in email (template).");
+    expect(mocks.logError.mock.calls).toEqual([["Sign-in email failed", { stage: "template" }]]);
+    expect(mocks.sendMail).not.toHaveBeenCalled();
   });
 });
