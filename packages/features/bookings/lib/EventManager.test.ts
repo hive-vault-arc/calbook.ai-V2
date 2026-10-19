@@ -1,5 +1,5 @@
 import { prisma } from "@calcom/prisma/__mocks__/prisma";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@calcom/features/watchlist/lib/utils/normalization", () => ({
   normalizeEmail: vi.fn(),
@@ -28,8 +28,64 @@ import process from "node:process";
 import { CredentialRepository } from "@calcom/features/credentials/repositories/CredentialRepository";
 import { symmetricDecrypt } from "@calcom/lib/crypto";
 import type { DestinationCalendar } from "@calcom/prisma/client";
+import type { CalendarEvent } from "@calcom/types/Calendar";
 import type { CredentialForCalendarService } from "@calcom/types/Credential";
+import { createInstance } from "i18next";
 import EventManager from "./EventManager";
+import { getDefaultVideoLocation } from "./getDefaultVideoLocation";
+
+vi.mock("./getDefaultVideoLocation", () => ({ getDefaultVideoLocation: vi.fn() }));
+
+describe("EventManager unconfigured video fallback", () => {
+  const translations = createInstance();
+  beforeAll(async () => {
+    await translations.init({ lng: "en", resources: {}, fallbackLng: false });
+  });
+
+  function buildEvent(location: string): CalendarEvent {
+    return {
+      type: "30min",
+      title: "Test meeting",
+      startTime: "2026-10-16T10:00:00Z",
+      endTime: "2026-10-16T10:30:00Z",
+      organizer: {
+        name: "Host",
+        email: "host@example.com",
+        timeZone: "UTC",
+        language: { locale: "en", translate: translations.getFixedT("en") },
+      },
+      attendees: [],
+      location,
+    };
+  }
+
+  it("completes a location-free event without creating a video meeting", async () => {
+    vi.mocked(getDefaultVideoLocation).mockResolvedValue("");
+    const event = buildEvent("");
+    const manager = new EventManager({ credentials: [], destinationCalendar: null });
+    const result = await manager.create(event, { skipCalendarEvent: true });
+    expect(event.location).toBe("");
+    expect(result).toEqual({ results: [], referencesToCreate: [] });
+  });
+
+  it("does not replace a manually supplied meeting link", async () => {
+    vi.mocked(getDefaultVideoLocation).mockClear();
+    const event = buildEvent("https://meet.example.com/team");
+    const manager = new EventManager({ credentials: [], destinationCalendar: null });
+    await manager.create(event, { skipCalendarEvent: true });
+    expect(event.location).toBe("https://meet.example.com/team");
+    expect(getDefaultVideoLocation).not.toHaveBeenCalled();
+  });
+
+  it("rejects missing Google Calendar rather than promising an unavailable fallback", async () => {
+    vi.mocked(getDefaultVideoLocation).mockResolvedValue("");
+    const event = buildEvent("integrations:google:meet");
+    const manager = new EventManager({ credentials: [], destinationCalendar: null });
+    await expect(manager.create(event, { skipCalendarEvent: true })).rejects.toThrow(
+      "using_meet_requires_calendar"
+    );
+  });
+});
 
 vi.mock("@calcom/prisma", () => ({
   prisma,
