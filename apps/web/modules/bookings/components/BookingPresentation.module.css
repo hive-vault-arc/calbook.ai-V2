@@ -1,0 +1,24 @@
+.page {
+  min-height: 100dvh;
+  background: #f8f6fc;
+  background: light-dark(#f8f6fc, #171222);
+}
+
+.page .card {
+  border: 1px solid #e7def5;
+  border-color: light-dark(#e7def5, #3a2b50);
+  border-radius: 24px;
+  background: light-dark(#ffffff, #221a30);
+  box-shadow: 0 16px 48px -28px #4c1d9540;
+}
+
+.page .confirmation {
+  width: 100%;
+  max-width: 640px;
+}
+
+@media (max-width: 640px) {
+  .page .card {
+    border-radius: 18px;
+  }
+}

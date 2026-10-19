@@ -59,7 +59,10 @@ import { useSession } from "next-auth/react";
 import { Fragment, useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import { z } from "zod";
+import { BookingBrandHeader } from "../components/BookingBrandHeader";
+import bookingStyles from "../components/BookingPresentation.module.css";
 import { usePaymentStatus } from "../hooks/usePaymentStatus";
+import { getBookingDisplayTimezone } from "../lib/getBookingDisplayTimezone";
 import type { PageProps } from "./bookings-single-view.getServerSideProps";
 
 const stringToBoolean = z
@@ -128,7 +131,12 @@ export default function Success(props: PageProps) {
   const attendeeTimeZone = bookingInfo?.attendees.find((attendee) => attendee.email === email)?.timeZone;
 
   const isFeedbackMode = !!(noShow || rating);
-  const tz = props.tz ? props.tz : isSuccessBookingPage && attendeeTimeZone ? attendeeTimeZone : timeZone();
+  const tz = getBookingDisplayTimezone({
+    isSuccessBookingPage,
+    attendeeTimezone: attendeeTimeZone,
+    viewerTimezone: props.tz,
+    fallbackTimezone: timeZone(),
+  });
 
   const location = bookingInfo.location as ReturnType<typeof getEventLocationValue>;
   let rescheduleLocation: string | undefined;
@@ -453,7 +461,8 @@ export default function Success(props: PageProps) {
   })();
 
   return (
-    <div className={isEmbed ? "" : "h-screen"} data-testid="success-page">
+    <div className={isEmbed ? "" : bookingStyles.page} data-testid="success-page">
+      {!isEmbed && !props.hideBranding && <BookingBrandHeader />}
       {!isEmbed && !isFeedbackMode && (
         <EventReservationSchema
           reservationId={bookingInfo.uid}
@@ -490,18 +499,18 @@ export default function Success(props: PageProps) {
             <div
               className={classNames(
                 "main my-4 flex flex-col transition-opacity sm:my-0 ",
+                !isEmbed && bookingStyles.confirmation,
                 isEmbed ? "" : " inset-0"
-              )}
-              aria-hidden="true">
+              )}>
               <div
                 className={classNames(
                   "inline-block transform overflow-hidden rounded-lg border sm:my-8 sm:max-w-xl",
+                  !isEmbed && bookingStyles.card,
                   !isBackgroundTransparent &&
                     " bg-default dark:bg-cal-muted border-booker border-booker-width",
                   "px-8 pb-4 pt-5 text-left align-bottom transition-all sm:w-full sm:py-8 sm:align-middle"
                 )}
-                role="dialog"
-                aria-modal="true"
+                role="region"
                 aria-labelledby="modal-headline">
                 {!isFeedbackMode && (
                   <>
@@ -1333,7 +1342,9 @@ function RecurringBookings({
         hour12: !is24h,
         timeZone: tz,
       })}{" "}
-      <span className="text-bookinglight">({formatToLocalizedTimezone(date, language, tz)})</span>
+      <span className="text-bookinglight">
+        ({tz} · {formatToLocalizedTimezone(date, language, tz)})
+      </span>
     </div>
   );
 }
