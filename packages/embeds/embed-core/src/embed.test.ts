@@ -1,10 +1,9 @@
 import "../test/__mocks__/windowMatchMedia";
 
-import { describe, it, expect, beforeEach, vi, beforeAll } from "vitest";
-
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  EMBED_MODAL_IFRAME_SLOT_STALE_TIME,
   EMBED_MODAL_IFRAME_FORCE_RELOAD_THRESHOLD_MS,
+  EMBED_MODAL_IFRAME_SLOT_STALE_TIME,
   EMBED_MODAL_PRERENDER_PREVENT_THRESHOLD_MS,
 } from "./constants";
 
@@ -137,6 +136,8 @@ describe("Cal", () => {
   }
 
   beforeAll(async () => {
+    // The module starts a color-scheme poller at import time; keep it inside the test clock.
+    vi.useFakeTimers();
     vi.stubEnv("EMBED_PUBLIC_WEBAPP_URL", "https://app.cal.com");
     // Mock window.Cal
     const mockWindowCal = {
@@ -161,7 +162,14 @@ describe("Cal", () => {
   });
 
   afterEach(() => {
+    vi.clearAllTimers();
     vi.clearAllMocks();
+  });
+
+  afterAll(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   describe("calInstance.createIframe", () => {
@@ -464,7 +472,6 @@ describe("Cal", () => {
       });
 
       it("should allow repeat prerender after threshold time has passed", async () => {
-        vi.useFakeTimers();
         const modalArg = {
           ...baseModalArgs,
           calLink: "router?form=123&email=john@example.com",
@@ -487,8 +494,6 @@ describe("Cal", () => {
         });
 
         expect(status2).toBe("created");
-
-        vi.useRealTimers();
       });
 
       it("Prerender with non-headless router link and then CTA click with headless router is not allowed", async () => {
@@ -708,7 +713,7 @@ describe("Cal", () => {
     /**
      * These tests verify that __reloadInitiated is sent correctly via doInIframe,
      * which determines whether bookerViewed or bookerReloaded fires in the iframe.
-     * 
+     *
      * - If __reloadInitiated is sent → iframe sets reloadInitiated=true → bookerReloaded fires
      * - If __reloadInitiated is NOT sent → iframe has reloadInitiated=false → bookerViewed fires
      */
@@ -776,9 +781,7 @@ describe("Cal", () => {
       });
 
       // Should call connect, NOT __reloadInitiated
-      expect(calInstance.doInIframe).toHaveBeenCalledWith(
-        expect.objectContaining({ method: "connect" })
-      );
+      expect(calInstance.doInIframe).toHaveBeenCalledWith(expect.objectContaining({ method: "connect" }));
       expect(calInstance.doInIframe).not.toHaveBeenCalledWith(
         expect.objectContaining({ method: "__reloadInitiated" })
       );
@@ -787,7 +790,7 @@ describe("Cal", () => {
     it("should clear stale __reloadInitiated from queue when loadInIframe is called again", () => {
       // This tests the queue clearing behavior that prevents stale __reloadInitiated
       // from causing bookerReloaded to fire incorrectly
-      
+
       // 1. Create iframe
       const iframe = calInstance.createIframe({
         calLink: "john-doe/meeting",
