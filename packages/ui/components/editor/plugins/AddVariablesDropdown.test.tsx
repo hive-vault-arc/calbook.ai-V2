@@ -1,6 +1,5 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { vi, describe, it, expect } from "vitest";
-
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AddVariablesDropdown } from "./AddVariablesDropdown";
 
 vi.mock("@calcom/lib/hooks/useLocale", () => ({
@@ -22,6 +21,17 @@ vi.mock("@calcom/lib/hooks/useMediaQuery", () => ({
 }));
 
 describe("AddVariablesDropdown", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
+  });
+
+  afterEach(() => {
+    // Unmount before discarding pending animation frames so callbacks cannot outlive jsdom.
+    cleanup();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
   const mockAddVariable = vi.fn();
   const variables = ["var1", "var2", "var3"];
 
