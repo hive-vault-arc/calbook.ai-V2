@@ -1,5 +1,13 @@
 # Booking video readiness
 
+## Current release note — 2026-10-20
+
+The separate legacy reschedule issue is explicitly deferred until after beta
+launch. Track its scope, workaround, pending acceptance, and draft PR #64 in
+[the beta known-issues register](beta-known-issues.md#bug-001--orphaned-cal-video-location-survives-legacy-reschedule).
+That deferral does not mark connected-provider testing as passed or authorize
+merging the unvalidated follow-up.
+
 ## Production test finding — 2026-10-15
 
 The approved October 16 production test booking was accepted at 10:00–10:30 UTC.
