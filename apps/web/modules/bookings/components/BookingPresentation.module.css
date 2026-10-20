@@ -4,6 +4,10 @@
   background: light-dark(#f8f6fc, #171222);
 }
 
+.page.confirmationPage {
+  background: #ffffff;
+}
+
 .page .card {
   border: 1px solid #e7def5;
   border-color: light-dark(#e7def5, #3a2b50);
