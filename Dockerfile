@@ -1,4 +1,5 @@
-FROM --platform=$BUILDPLATFORM node:20 AS builder
+ARG NODE_VERSION=24.21.0
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION} AS builder
 
 WORKDIR /calcom
 
@@ -40,6 +41,8 @@ COPY apps/web ./apps/web
 COPY apps/api/v2 ./apps/api/v2
 COPY packages ./packages
 
+RUN node apps/web/scripts/verify-timezone-data.mjs
+
 RUN yarn config set httpTimeout 1200000
 RUN npx turbo prune @calcom/web @calcom/trpc --docker
 RUN yarn install
@@ -50,7 +53,7 @@ RUN yarn --cwd apps/web workspace @calcom/web run copy-app-store-static
 RUN yarn --cwd apps/web workspace @calcom/web run build
 RUN rm -rf node_modules/.cache .yarn/cache apps/web/.next/cache
 
-FROM node:20 AS builder-two
+FROM node:${NODE_VERSION} AS builder-two
 
 WORKDIR /calcom
 ARG NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
@@ -74,13 +77,14 @@ ENV NEXT_PUBLIC_WEBAPP_URL=$NEXT_PUBLIC_WEBAPP_URL \
 
 RUN scripts/replace-placeholder.sh http://NEXT_PUBLIC_WEBAPP_URL_PLACEHOLDER ${NEXT_PUBLIC_WEBAPP_URL}
 
-FROM node:20 AS runner
+FROM node:${NODE_VERSION} AS runner
 
 WORKDIR /calcom
 
 RUN apt-get update && apt-get install -y --no-install-recommends netcat-openbsd wget && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder-two /calcom ./
+RUN node apps/web/scripts/verify-timezone-data.mjs
 ARG NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
 ENV NEXT_PUBLIC_WEBAPP_URL=$NEXT_PUBLIC_WEBAPP_URL \
   BUILT_NEXT_PUBLIC_WEBAPP_URL=$NEXT_PUBLIC_WEBAPP_URL
