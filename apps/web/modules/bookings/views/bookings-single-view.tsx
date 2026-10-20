@@ -461,8 +461,10 @@ export default function Success(props: PageProps) {
   })();
 
   return (
-    <div className={isEmbed ? "" : bookingStyles.page} data-testid="success-page">
-      {!isEmbed && !props.hideBranding && <BookingBrandHeader />}
+    <div
+      className={isEmbed ? "" : classNames(bookingStyles.page, bookingStyles.confirmationPage)}
+      data-testid="success-page">
+      {!isEmbed && !props.hideBranding && <BookingBrandHeader onLightBackground />}
       {!isEmbed && !isFeedbackMode && (
         <EventReservationSchema
           reservationId={bookingInfo.uid}
@@ -481,7 +483,7 @@ export default function Success(props: PageProps) {
           <Link
             href={allRemainingBookings ? "/bookings/recurring" : "/bookings/upcoming"}
             data-testid="back-to-bookings"
-            className="hover:bg-subtle text-subtle hover:text-default mt-2 inline-flex px-1 py-2 text-sm transition dark:hover:bg-transparent">
+            className="mt-2 inline-flex px-1 py-2 text-sm text-[#5e536d] transition hover:bg-violet-50 hover:text-violet-800">
             <ChevronLeftIcon className="h-5 w-5 rtl:rotate-180" /> {t("back_to_bookings")}
           </Link>
         </div>
