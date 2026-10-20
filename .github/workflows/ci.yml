@@ -115,7 +115,10 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/yarn-install
         with:
-          node_version: v20.x
+          node_version: "24.21.0"
+
+      - name: Verify runtime timezone data
+        run: node --test apps/web/scripts/verify-timezone-data.node-check.mjs
 
       - name: Verify immutable dependency graph
         run: yarn install --immutable
@@ -142,7 +145,10 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/yarn-install
         with:
-          node_version: v20.x
+          node_version: "24.21.0"
+
+      - name: Verify runtime timezone data
+        run: node --test apps/web/scripts/verify-timezone-data.node-check.mjs
 
       - name: Generate Prisma client
         run: yarn prisma generate

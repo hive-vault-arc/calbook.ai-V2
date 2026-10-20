@@ -14,7 +14,7 @@ description: "Run yarn install with node_modules linker and cache enabled"
 inputs:
   node_version:
     required: false
-    default: v20.x
+    default: "24.21.0"
   skip-install-if-cache-hit:
     description: "Skip yarn install if node_modules cache is hit. Use this for jobs that only need to check that cache exists."
     required: false
@@ -24,6 +24,7 @@ runs:
   using: "composite"
   steps:
     - name: Use Node ${{ inputs.node_version }}
+      id: node-runtime
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node_version }}
@@ -52,7 +53,7 @@ runs:
         path: |
           **/node_modules/
           !**/.next/node_modules/
-        key: ${{ runner.os }}-yarn-nm-cache-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-node-${{ steps.node-runtime.outputs.node-version }}-yarn-nm-cache-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
         lookup-only: true
 
     - name: Check yarn install state cache (lookup-only)
@@ -61,7 +62,7 @@ runs:
       id: yarn-install-state-cache-check
       with:
         path: .yarn/ci-cache/
-        key: ${{ runner.os }}-yarn-install-state-cache-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-node-${{ steps.node-runtime.outputs.node-version }}-yarn-install-state-cache-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
         lookup-only: true
 
     # Compute whether all caches hit (only in skip mode)
@@ -98,7 +99,7 @@ runs:
         path: |
           **/node_modules/
           !**/.next/node_modules/
-        key: ${{ runner.os }}-yarn-nm-cache-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-node-${{ steps.node-runtime.outputs.node-version }}-yarn-nm-cache-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
 
     # Invalidated on yarn.lock changes
     - name: Restore yarn install state
@@ -107,7 +108,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: .yarn/ci-cache/
-        key: ${{ runner.os }}-yarn-install-state-cache-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-node-${{ steps.node-runtime.outputs.node-version }}-yarn-install-state-cache-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
 
     - name: Install dependencies
       if: ${{ inputs.skip-install-if-cache-hit != 'true' || steps.all-caches-check.outputs.all-hit != 'true' }}

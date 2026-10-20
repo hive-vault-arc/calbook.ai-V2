@@ -18,8 +18,8 @@
     "sentry:release": "NODE_OPTIONS='--max-old-space-size=6144' node scripts/create-sentry-release.js",
     "copy-static": "turbo run copy-app-store-static",
     "copy-app-store-static": "node scripts/copy-app-store-static.js",
-    "build": "next build && yarn sentry:release",
-    "start": "next start",
+    "build": "node scripts/verify-timezone-data.mjs && next build && yarn sentry:release",
+    "start": "node scripts/verify-timezone-data.mjs && next start",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "lint:report": "biome lint --reporter json . > ../../lint-results/web.json",
@@ -28,6 +28,7 @@
     "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe/webhook"
   },
   "engines": {
+    "node": "24.x",
     "yarn": "3.4.1"
   },
   "dependencies": {
