@@ -119,6 +119,7 @@ import type { IBookingService } from "../interfaces/IBookingService";
 import type { BookingEventHandlerService } from "../onBookingEvents/BookingEventHandlerService";
 import type { BookingRescheduledPayload } from "../onBookingEvents/types";
 import { isWithinMinimumRescheduleNotice } from "../reschedule/isWithinMinimumRescheduleNotice";
+import { resolveLegacyRescheduleLocation } from "../resolveLegacyRescheduleLocation";
 
 const translator = short();
 
@@ -1232,6 +1233,16 @@ async function handler(
 
   const isManagedEventType = !!eventType.parentId;
 
+  const resolvedRescheduleLocation = resolveLegacyRescheduleLocation({
+    location: locationBodyString,
+    originalBooking: originalRescheduledBooking,
+    hasExplicitLocation:
+      eventType.locations.length > 0 || !!organizerOrFirstDynamicGroupMemberDefaultLocationUrl,
+    organizerMetadata: organizerUser.metadata,
+  });
+  const preserveOriginalLocation = resolvedRescheduleLocation === locationBodyString;
+  locationBodyString = resolvedRescheduleLocation;
+
   // If location passed is empty , use default location of event
   // If location of event is not set , use host default
   if (locationBodyString.trim().length === 0) {
@@ -1783,6 +1794,7 @@ async function handler(
 
       booking = await createBooking({
         uid,
+        preserveOriginalLocation,
         rescheduledBy: reqBody.rescheduledBy,
         reqBody: {
           user: reqBody.user,

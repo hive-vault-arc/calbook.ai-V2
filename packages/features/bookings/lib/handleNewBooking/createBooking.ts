@@ -43,17 +43,19 @@ type CreateBookingParams = {
   };
   evt: CalendarEvent;
   originalRescheduledBooking: OriginalRescheduledBooking;
+  preserveOriginalLocation?: boolean;
   creationSource?: CreationSource;
   tracking?: Tracking;
 };
 
 function updateEventDetails(
   evt: CalendarEvent,
-  originalRescheduledBooking: OriginalRescheduledBooking | null
+  originalRescheduledBooking: OriginalRescheduledBooking | null,
+  preserveOriginalLocation: boolean
 ) {
   if (originalRescheduledBooking) {
     evt.description = originalRescheduledBooking?.description || evt.description;
-    evt.location = evt.location || originalRescheduledBooking?.location;
+    if (preserveOriginalLocation) evt.location = evt.location || originalRescheduledBooking?.location;
   }
 }
 
@@ -65,11 +67,12 @@ const _createBooking = async ({
   input,
   evt,
   originalRescheduledBooking,
+  preserveOriginalLocation = true,
   rescheduledBy,
   creationSource,
   tracking,
 }: CreateBookingParams & { rescheduledBy: string | undefined }) => {
-  updateEventDetails(evt, originalRescheduledBooking);
+  updateEventDetails(evt, originalRescheduledBooking, preserveOriginalLocation);
 
   const bookingAndAssociatedData = buildNewBookingData({
     uid,

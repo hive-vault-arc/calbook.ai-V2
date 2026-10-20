@@ -42,3 +42,25 @@ unconfigured Cal Video must not be presented as a connected/default integration.
 The existing production test booking is not automatically changed or resent by
 this code fix. The earlier production test's attendee delivery is unverified. Obtain approval
 before creating another production booking or sending replacement notifications.
+
+## Legacy reschedule follow-up — 2026-10-20
+
+The production lifecycle test exposed a second path: an old booking's implicit
+Daily marker survived rescheduling, and the save helper restored it even after
+location resolution intentionally returned an empty value.
+
+The dev-targeted follow-up re-resolves only orphaned implicit Daily markers
+through the existing guarded organizer default. It preserves explicit event
+locations, host conferencing preferences, video/conferencing references, and
+stored meeting URLs. Unrecognized metadata is left unchanged. Ordinary
+calendar references without a meeting URL are retained.
+
+The save helper keeps its existing inheritance behavior by default; only this
+narrow repair can preserve an intentionally empty location. No migration,
+credential change, or historical-booking rewrite is performed. Provider
+availability uses the existing lookup rather than an extra query.
+
+The mocked full-flow regression reproduced the original failure before the fix.
+It checks the replacement booking, retained canceled history, absence of video
+API calls, and both test emails. Hosted validation and connected-provider tests
+remain required before production promotion; no real invitations were sent.
