@@ -17,7 +17,7 @@ jobs:
       - uses: ./.github/actions/cache-checkout
       - uses: ./.github/actions/yarn-install
       - name: Cache atoms production build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: cache-atoms-build
         env:
           cache-name: atoms-build

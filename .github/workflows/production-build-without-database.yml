@@ -54,7 +54,7 @@ jobs:
         with:
           branch_key: ${{ github.head_ref || github.ref_name }}
       - name: Check if production build cache exists
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: cache-check
         with:
           path: |
