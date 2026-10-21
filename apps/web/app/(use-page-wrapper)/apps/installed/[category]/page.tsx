@@ -1,8 +1,8 @@
-import googleCalendarMetadata from "@calcom/app-store/googlecalendar/_metadata";
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
 import { AppCategories } from "@calcom/prisma/enums";
 import { appsRouter } from "@calcom/trpc/server/routers/viewer/apps/_router";
 import { calendarsRouter } from "@calcom/trpc/server/routers/viewer/calendars/_router";
+import { isGoogleCalendarAvailable } from "@components/apps/lib/isGoogleCalendarAvailable";
 import { buildLegacyRequest } from "@lib/buildLegacyCtx";
 import { createRouterCaller } from "app/_trpc/context";
 import type { PageProps } from "app/_types";
@@ -43,19 +43,20 @@ const InstalledAppsWrapper = async ({ params }: PageProps) => {
     createRouterCaller(appsRouter),
   ]);
 
-  const [connectedCalendars, installedCalendars] = await Promise.all([
+  const [connectedCalendars, installedCalendars, googleCalendarConfigured] = await Promise.all([
     calendarsCaller.connectedCalendars(),
     appsCaller.integrations({
       variant: "calendar",
       onlyInstalled: true,
     }),
+    isGoogleCalendarAvailable(),
   ]);
 
   return (
     <InstalledApps
       connectedCalendars={connectedCalendars}
       installedCalendars={installedCalendars}
-      googleCalendarConfigured={Boolean(googleCalendarMetadata.installed)}
+      googleCalendarConfigured={googleCalendarConfigured}
       category={parsedParams.data.category}
     />
   );
