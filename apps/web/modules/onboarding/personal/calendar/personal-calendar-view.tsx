@@ -1,15 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import { Button } from "@calcom/ui/components/button";
-
+import { useRouter } from "next/navigation";
+import { useRef } from "react";
 import { OnboardingCard } from "../../components/OnboardingCard";
 import { OnboardingLayout } from "../../components/OnboardingLayout";
 import { OnboardingCalendarBrowserView } from "../../components/onboarding-calendar-browser-view";
+import { useOverflowFade } from "../../hooks/useOverflowFade";
 import { useSubmitPersonalOnboarding } from "../../hooks/useSubmitPersonalOnboarding";
 import { InstallableAppCard } from "../_components/InstallableAppCard";
 import { useAppInstallation } from "../_components/useAppInstallation";
@@ -24,7 +23,6 @@ export const PersonalCalendarView = ({ userEmail }: PersonalCalendarViewProps) =
   const { installingAppSlug, setInstallingAppSlug, createInstallHandlers } = useAppInstallation();
   const { submitPersonalOnboarding, isSubmitting } = useSubmitPersonalOnboarding();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [showFadeGradient, setShowFadeGradient] = useState(false);
 
   const queryIntegrations = trpc.viewer.apps.integrations.useQuery({
     variant: "calendar",
@@ -33,55 +31,7 @@ export const PersonalCalendarView = ({ userEmail }: PersonalCalendarViewProps) =
     sortByInstalledFirst: true,
   });
 
-  const checkOverflow = () => {
-    const element = scrollContainerRef.current;
-    if (!element) return;
-
-    const hasOverflow = element.scrollHeight > element.clientHeight;
-    const isAtBottom = Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop) < 1;
-
-    setShowFadeGradient(hasOverflow && !isAtBottom);
-  };
-
-  const handleScroll = () => {
-    checkOverflow();
-  };
-
-  // Check for overflow when data loads, container size changes, or window resizes
-  useEffect(() => {
-    const element = scrollContainerRef.current;
-    if (!element) return;
-
-    // Use requestAnimationFrame to ensure DOM and container queries are fully calculated
-    const checkWithRAF = () => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          checkOverflow();
-        });
-      });
-    };
-
-    // Check immediately with double RAF for container query calculations
-    checkWithRAF();
-
-    // Also check after a delay to catch any late layout calculations
-    const timeoutId = setTimeout(checkOverflow, 100);
-
-    // Observe container size changes (handles container query recalculations)
-    const resizeObserver = new ResizeObserver(() => {
-      checkWithRAF();
-    });
-    resizeObserver.observe(element);
-
-    // Also listen to window resize as a fallback
-    window.addEventListener("resize", checkWithRAF);
-
-    return () => {
-      clearTimeout(timeoutId);
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", checkWithRAF);
-    };
-  }, [queryIntegrations.data?.items]);
+  const showFadeGradient = useOverflowFade(scrollContainerRef, queryIntegrations.data?.items);
 
   const handleContinue = () => {
     submitPersonalOnboarding();
@@ -131,7 +81,6 @@ export const PersonalCalendarView = ({ userEmail }: PersonalCalendarViewProps) =
         <div className="relative">
           <div
             ref={scrollContainerRef}
-            onScroll={handleScroll}
             className="scroll-bar grid max-h-[95cqh] grid-cols-1 gap-3 overflow-y-scroll sm:grid-cols-2">
             {queryIntegrations.data?.items?.map((app) => (
               <InstallableAppCard
