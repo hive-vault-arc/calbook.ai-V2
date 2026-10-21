@@ -1,7 +1,7 @@
-import googleCalendarMetadata from "@calcom/app-store/googlecalendar/_metadata";
 import { appsRouter } from "@calcom/trpc/server/routers/viewer/apps/_router";
 import { calendarsRouter } from "@calcom/trpc/server/routers/viewer/calendars/_router";
 import { CalendarListContainer } from "@components/apps/CalendarListContainer";
+import { isGoogleCalendarAvailable } from "@components/apps/lib/isGoogleCalendarAvailable";
 import { createRouterCaller } from "app/_trpc/context";
 import { _generateMetadata } from "app/_utils";
 
@@ -20,18 +20,19 @@ const Page = async () => {
     createRouterCaller(appsRouter),
   ]);
 
-  const [connectedCalendars, installedCalendars] = await Promise.all([
+  const [connectedCalendars, installedCalendars, googleCalendarConfigured] = await Promise.all([
     calendarsCaller.connectedCalendars(),
     appsCaller.integrations({
       variant: "calendar",
       onlyInstalled: true,
     }),
+    isGoogleCalendarAvailable(),
   ]);
   return (
     <CalendarListContainer
       connectedCalendars={connectedCalendars}
       installedCalendars={installedCalendars}
-      googleCalendarConfigured={Boolean(googleCalendarMetadata.installed)}
+      googleCalendarConfigured={googleCalendarConfigured}
     />
   );
 };

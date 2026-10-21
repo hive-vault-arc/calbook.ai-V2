@@ -31,6 +31,16 @@ service and shared location helper substituted Daily unconditionally.
 
 ## Release checks still required
 
+Hosted dev passed the no-provider smoke test on revision `eb30d5a`: the October
+16 booking at 10:00–10:15 Africa/Casablanca confirmed without a Cal Video link,
+the host email arrived, and the attendee email showed the correct time. On
+October 16 the operator confirmed receipt in the Outlook test inbox as well.
+
+Google Calendar remains disabled in isolated dev at the operator's request.
+Connected-provider testing is therefore still outstanding. UI readiness must
+check the instance enabled state, not only OAuth environment configuration;
+unconfigured Cal Video must not be presented as a connected/default integration.
+
 1. Review the dev-targeted fix and require GitHub static analysis to pass.
 2. Verify hosted dev booking without a conferencing app: confirmation and both
    invitation emails must not advertise Cal Video or a missing meeting URL.
@@ -38,5 +48,5 @@ service and shared location helper substituted Daily unconditionally.
 4. Promote only after dev testing; repeat the approved production smoke test.
 
 The existing production test booking is not automatically changed or resent by
-this code fix. Attendee inbox delivery has not yet been confirmed. Obtain approval
+this code fix. The earlier production test's attendee delivery is unverified. Obtain approval
 before creating another production booking or sending replacement notifications.
