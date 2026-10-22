@@ -30,6 +30,7 @@ import { Suspense, useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Shell as PlatformShell } from "../../../../../packages/platform/atoms/src/components/ui/shell";
 import { DeleteDialog } from "./dialogs/DeleteDialog";
+import theme from "./EventSetupTheme.module.css";
 
 type Props = {
   children: React.ReactNode;
@@ -79,7 +80,11 @@ function EventTypeSingleLayout({
 
   const isManagedEventType = false;
   const isChildrenManagedEventType = false;
-  const shouldLockDisableProps = (_field: string) => ({ disabled: false, LockedIcon: false as const, isLocked: false });
+  const shouldLockDisableProps = (_field: string) => ({
+    disabled: false,
+    LockedIcon: false as const,
+    isLocked: false,
+  });
   const shouldLockIndicator = (_field: string) => false;
   const EventTypeTabs = tabsNavigation;
   const permalink = `${bookerUrl}/${
@@ -273,7 +278,7 @@ function EventTypeSingleLayout({
           <div className="border-default border-l-2" />
           <Button
             ref={saveButtonRef}
-            className="ml-4 lg:ml-0"
+            className={classNames("ml-4 lg:ml-0", !isPlatform && theme.primary)}
             type="submit"
             loading={isUpdateMutationLoading}
             disabled={!formMethods.formState.isDirty}
@@ -289,8 +294,13 @@ function EventTypeSingleLayout({
             <LoaderIcon className="h-5 w-5 animate-spin" />
           </div>
         }>
-        <div className="flex flex-col xl:flex-row xl:space-x-6">
-          <div className="hidden xl:block">
+        <div
+          className={classNames(
+            "flex flex-col xl:flex-row xl:space-x-6",
+            !isPlatform && theme.surface,
+            !isPlatform && theme.setup
+          )}>
+          <div className={classNames("hidden xl:block", !isPlatform && theme.navigation)}>
             <VerticalTabs
               className="primary-navigation w-64"
               tabs={EventTypeTabs}
@@ -300,14 +310,15 @@ function EventTypeSingleLayout({
               itemClassname="items-start"
             />
           </div>
-          <div className="p-2 md:mx-0 md:p-0 xl:hidden">
+          <div className={classNames("p-2 md:mx-0 md:p-0 xl:hidden", !isPlatform && theme.navigation)}>
             <HorizontalTabs tabs={EventTypeTabs} linkShallow />
           </div>
           <div className="w-full ltr:mr-2 rtl:ml-2">
             <div
               className={classNames(
                 "mt-4 rounded-md border-subtle bg-default sm:mx-0 xl:mt-0",
-                disableBorder ? "border-0" : "p-2 md:border md:p-6"
+                disableBorder ? "border-0" : "p-2 md:border md:p-6",
+                !isPlatform && theme.card
               )}>
               {children}
             </div>

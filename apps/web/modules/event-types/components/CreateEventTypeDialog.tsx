@@ -14,6 +14,7 @@ import { isValidPhoneNumber } from "libphonenumber-js/max";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useCreateEventType } from "~/event-types/hooks/useCreateEventType";
+import theme from "./EventSetupTheme.module.css";
 
 const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL ?? "";
 
@@ -111,6 +112,7 @@ export function CreateEventTypeDialog({ profileOptions }: { profileOptions: Prof
       name="new"
       clearQueryParamsOnClose={["eventPage", "type", "description", "title", "length", "slug", "locations"]}>
       <DialogContent
+        className={`${theme.surface} ${theme.creation}`}
         type="creation"
         enableOverflow
         title={teamId ? t("add_new_team_event_type") : t("add_new_event_type")}
