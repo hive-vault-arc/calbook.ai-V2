@@ -53,8 +53,6 @@ function BookingScene(): ReactElement {
       aria-label="Illustration of a candidate selecting an interview time and receiving an invitation">
       <div className={styles.sceneGlow} />
       <div className={styles.sceneOrbit} />
-      <span className={`${styles.orbitLabel} ${styles.orbitLabelLeft}`}>01 / CREATE</span>
-      <span className={`${styles.orbitLabel} ${styles.orbitLabelRight}`}>03 / CONFIRM</span>
       <div className={styles.scenePanel}>
         <div className={styles.panelTop}>
           <span className={styles.panelDots}>
@@ -70,9 +68,10 @@ function BookingScene(): ReactElement {
             <span className={styles.miniMark}>
               <Image src="/calbook-icon.svg" alt="" width={22} height={22} />
             </span>
-            <span className={styles.panelKicker}>INTERVIEW WITH YOUR TEAM</span>
+            <span className={styles.panelKicker}>YOUR INTERVIEW</span>
             <strong>Portfolio conversation</strong>
-            <span>45 minutes · Video meeting</span>
+            <span className={styles.panelMeta}>45 minutes · Video meeting</span>
+            <span className={styles.panelAvailability}>Available this week</span>
           </div>
           <div className={styles.calendar}>
             <div className={styles.calendarHeader}>
@@ -117,7 +116,7 @@ function BookingScene(): ReactElement {
 
 const steps = [
   {
-    label: "01 / SET THE FORMAT",
+    label: "Set the format",
     title: "ONE FORMAT. READY FOR EVERY CANDIDATE.",
     copy: "Build an interview template once, then keep a clear booking link ready for every person you meet.",
     points: [
@@ -155,7 +154,7 @@ const steps = [
     ),
   },
   {
-    label: "02 / LET THEM BOOK",
+    label: "Let them book",
     title: "A TIME THAT WORKS. NO EMAIL CHAIN.",
     copy: "Send a link or put the scheduler on your site. Candidates choose from the times your connected calendar makes available.",
     points: ["Share a link or embed it", "Show available times", "Let candidates book for themselves"],
@@ -196,7 +195,7 @@ const steps = [
     ),
   },
   {
-    label: "03 / SHOW UP READY",
+    label: "Show up ready",
     title: "THE DETAILS LAND WITH EVERYONE.",
     copy: "Once a time is booked, the confirmation brings the meeting details together for the host and candidate.",
     points: [
@@ -321,10 +320,13 @@ export function LandingPageBeta(): ReactElement {
           <p>Three clear steps from your team’s interview format to a meeting on everyone’s calendar.</p>
         </div>
         <div className={styles.steps}>
-          {steps.map((step) => (
+          {steps.map((step, index) => (
             <article className={styles.step} key={step.label} data-calbook-reveal>
               <div className={styles.stepCopy}>
-                <span className={styles.stepLabel}>{step.label}</span>
+                <div className={styles.stepEyebrow}>
+                  <span className={styles.stepNumber}>0{index + 1}</span>
+                  <span className={styles.stepLabel}>{step.label}</span>
+                </div>
                 <h3 className="font-cal">{step.title}</h3>
                 <p>{step.copy}</p>
                 <ul className={styles.stepPoints}>
@@ -447,10 +449,6 @@ export function LandingPageBeta(): ReactElement {
               </div>
             </div>
           ))}
-          <label className={styles.integrationPause}>
-            <input type="checkbox" />
-            <span>{englishTranslations.landing_integrations_pause}</span>
-          </label>
         </div>
       </section>
 
@@ -477,8 +475,12 @@ export function LandingPageBeta(): ReactElement {
 
       <section className={styles.faqSection} id="faq">
         <div className={styles.faqIntro} data-calbook-reveal>
-          <p className={styles.eyebrow}>GOOD TO KNOW</p>
-          <h2 className="font-cal">QUESTIONS, ANSWERED.</h2>
+          <p className={styles.eyebrow}>FAQ</p>
+          <h2 className="font-cal">
+            QUESTIONS,
+            <br />
+            <span>ANSWERED.</span>
+          </h2>
           <p>A few practical answers about beta access and the booking experience.</p>
         </div>
         <div className={styles.faqList} data-calbook-reveal>
@@ -501,18 +503,23 @@ export function LandingPageBeta(): ReactElement {
             <p>Better interview scheduling for recruitment teams and the people they meet.</p>
           </div>
           <div className={styles.footerLinks}>
+            <span className={styles.footerHeading}>Explore</span>
             <a href="#how-it-works">How it works</a>
+            <a href="#integrations">Integrations</a>
             <a href="#beta">Beta access</a>
-            <a href="/auth/login">Sign in</a>
           </div>
           <div className={styles.footerLinks}>
-            <a href="/terms">Terms</a>
-            <a href="/privacy">Privacy</a>
+            <span className={styles.footerHeading}>CalBook.ai</span>
             <a href="#faq">FAQ</a>
+            <a href="/auth/login">Sign in</a>
           </div>
         </div>
         <div className={styles.footerBottom}>
           <span>© {new Date().getFullYear()} CalBook.ai</span>
+          <div className={styles.footerLegal}>
+            <a href="/terms">Terms</a>
+            <a href="/privacy">Privacy</a>
+          </div>
           <span>Made for better first conversations.</span>
         </div>
       </footer>
