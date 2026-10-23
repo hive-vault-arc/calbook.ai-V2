@@ -27,10 +27,7 @@ const faqs = [
     "Do candidates need a CalBook account?",
     "No. Candidates open the link you share, choose an available time, and receive their booking details by email.",
   ],
-  [
-    "Which meeting tools can we use?",
-    "Connect your own calendar and supported meeting provider, including Google Meet, Microsoft Teams, or Zoom.",
-  ],
+  ["Which meeting tools can we use?", englishTranslations.landing_integrations_faq_answer],
 ] as const;
 
 function Brand(): ReactElement {
@@ -156,7 +153,7 @@ const steps = [
   {
     label: "Let them book",
     title: "A TIME THAT WORKS. NO EMAIL CHAIN.",
-    copy: "Send a link or put the scheduler on your site. Candidates choose from the times your connected calendar makes available.",
+    copy: "Send a link or put the scheduler on your site. Candidates choose from the times you make available.",
     points: ["Share a link or embed it", "Show available times", "Let candidates book for themselves"],
     visual: (
       <div className={styles.stepVisual} aria-hidden="true">
@@ -217,7 +214,7 @@ const steps = [
           </span>
           <span>
             <b>Portfolio conversation</b>
-            <small>1:30 PM · Google Meet</small>
+            <small>1:30 PM · {englishTranslations.landing_booking_preview_meeting_type}</small>
           </span>
         </div>
         <div className={styles.confirmationFooter}>
@@ -419,13 +416,11 @@ export function LandingPageBeta(): ReactElement {
             <br />
             <span>{englishTranslations.landing_integrations_heading_accent}</span>
           </h2>
-          <p>
-            Connect your calendar and supported video meeting tools. Candidates get one simple booking
-            experience.
-          </p>
+          <p className={styles.integrationStatus}>{englishTranslations.landing_integrations_status}</p>
+          <p>{englishTranslations.landing_integrations_description}</p>
         </div>
         <div className={styles.integrationWall}>
-          <span className="sr-only">Google Calendar, Google Meet, Microsoft Teams, Zoom</span>
+          <span className="sr-only">{englishTranslations.landing_integrations_accessible_list}</span>
           {[0, 1, 2].map((row) => (
             <div className={styles.integrationLane} key={row} aria-hidden="true">
               <div className={styles.integrationTrack}>

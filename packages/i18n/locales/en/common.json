@@ -5040,8 +5040,13 @@
   "error_updating_user": "There was an error updating this user.",
   "please_reschedule": "Please reschedule.",
   "landing_integrations_label": "Integrations",
-  "landing_integrations_heading": "WORKS WITH",
+  "landing_integrations_heading": "BUILDING FOR",
   "landing_integrations_heading_accent": "YOUR STACK.",
+  "landing_integrations_status": "Planned integrations",
+  "landing_integrations_description": "Google Calendar, Google Meet, Microsoft Teams, and Zoom are on our beta roadmap. We will enable each connection only after it is configured and tested for your team.",
+  "landing_integrations_accessible_list": "Planned integrations: Google Calendar, Google Meet, Microsoft Teams, and Zoom",
+  "landing_integrations_faq_answer": "Google Calendar, Google Meet, Microsoft Teams, and Zoom are on our beta roadmap. We will confirm which connections are available for your account before you use them.",
+  "landing_booking_preview_meeting_type": "Video meeting",
   "landing_integrations_pause": "Pause animation",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Add your new strings above here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }
