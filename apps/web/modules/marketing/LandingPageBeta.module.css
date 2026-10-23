@@ -2028,6 +2028,19 @@
 .integrations h2 span {
   color: #6630d1;
 }
+.integrationStatus {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 7px 12px;
+  border: 1px solid #c9b7ec;
+  border-radius: 999px;
+  color: #5429a8;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .integrations > div:first-child > p:last-child {
   max-width: 570px;
   color: var(--muted);
