@@ -103,7 +103,11 @@ export const EventSetupTab = (
 
   const isManagedEventType = false;
   const isChildrenManagedEventType = false;
-  const shouldLockDisableProps = (_field: string) => ({ disabled: false, LockedIcon: false as const, isLocked: false });
+  const shouldLockDisableProps = (_field: string) => ({
+    disabled: false,
+    LockedIcon: false as const,
+    isLocked: false,
+  });
   const shouldLockIndicator = (_field: string) => false;
 
   const lengthLockedProps = shouldLockDisableProps("length");
@@ -178,14 +182,16 @@ export const EventSetupTab = (
             className={classNames("pl-0", customClassNames?.titleSection?.urlInput?.input)}
             addOnLeading={
               isPlatform ? undefined : (
-                <span className="flex items-center h-full min-w-0 max-w-24 overflow-hidden text-ellipsis whitespace-nowrap md:max-w-56 text-sm leading-[1.5] relative top-[1px]">
-                  {urlPrefix}/
-                  {!isManagedEventType
-                    ? team
-                      ? (hasOrgBranding ? "" : "team/") + team.slug
-                      : formMethods.getValues("users")[0].username
-                    : t("username_placeholder")}
-                  /
+                <span className="relative top-[1px] flex h-full min-w-0 max-w-24 items-center overflow-hidden whitespace-nowrap text-sm leading-[1.5] md:max-w-56">
+                  <span className="min-w-0 truncate">{urlPrefix}/</span>
+                  <span className="shrink-0">
+                    {!isManagedEventType
+                      ? team
+                        ? (hasOrgBranding ? "" : "team/") + team.slug
+                        : formMethods.getValues("users")[0].username
+                      : t("username_placeholder")}
+                    /
+                  </span>
                 </span>
               )
             }

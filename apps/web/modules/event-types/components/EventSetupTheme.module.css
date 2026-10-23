@@ -1,0 +1,63 @@
+.surface {
+  color-scheme: light;
+  --cal-bg: #ffffff;
+  --cal-bg-subtle: #faf9ff;
+  --cal-bg-muted: #f5f3ff;
+  --cal-bg-emphasis: #ede9fe;
+  --cal-bg-inverted: #17132a;
+  --cal-border: #ddd6e9;
+  --cal-border-subtle: #ede9fe;
+  --cal-border-emphasis: #c4b5fd;
+  --cal-text: #292238;
+  --cal-text-emphasis: #17132a;
+  --cal-text-subtle: #645b73;
+  --cal-text-muted: #766c84;
+  --cal-text-inverted: #ffffff;
+  --cal-brand: #7c3aed;
+  --cal-brand-emphasis: #6d28d9;
+  --cal-brand-text: #ffffff;
+  color: var(--cal-text);
+}
+
+.setup {
+  min-width: 0;
+  padding: clamp(12px, 2vw, 24px);
+  border: 1px solid #ede9fe;
+  border-radius: 28px;
+  background: #faf9ff;
+}
+
+.navigation {
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.card {
+  min-width: 0;
+  border-radius: 24px;
+  border-color: #ede9fe;
+  background: #ffffff;
+  box-shadow: 0 24px 70px -34px rgb(91 33 182 / 20%);
+}
+
+.creation {
+  border: 1px solid #ede9fe;
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px -34px rgb(91 33 182 / 35%);
+}
+
+.primary {
+  background: #7c3aed;
+  color: #ffffff;
+}
+
+.primary:hover:not(:disabled) {
+  background: #6d28d9;
+}
+
+.surface :where(input, textarea, button, a):focus-visible,
+.primary:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 3px;
+}
