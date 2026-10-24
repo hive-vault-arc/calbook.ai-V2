@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { WEBAPP_URL } from "@calcom/lib/constants";
+import { describe, expect, it } from "vitest";
 import { getPublicPageUrl } from "./getPublicPageUrl";
 
 describe("getPublicPageUrl", () => {
