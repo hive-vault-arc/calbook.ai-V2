@@ -1,0 +1,240 @@
+.page {
+  --ink: #191626;
+  --muted: #696576;
+  --violet: #7040db;
+  --violet-dark: #5a2cc1;
+  --lilac: #f1ecfc;
+  --line: #e9e5f0;
+  background: #fff;
+  color: var(--ink);
+  overflow-x: clip;
+}
+.page a:focus-visible,
+.page summary:focus-visible {
+  outline: 3px solid #a37df2;
+  outline-offset: 4px;
+}
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid rgba(32, 25, 49, 0.08);
+  background: rgba(255, 255, 255, 0.91);
+  backdrop-filter: blur(18px);
+}
+.headerInner {
+  max-width: 1400px;
+  margin: auto;
+  min-height: 76px;
+  padding: 0 4.2%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 20px;
+  white-space: nowrap;
+  letter-spacing: -0.035em;
+}
+.brandDot {
+  color: var(--violet);
+}
+.nav,
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 29px;
+}
+.nav a,
+.signIn {
+  font-size: 13px;
+  font-weight: 650;
+  color: #4b4559;
+  transition: color 0.2s;
+}
+.nav a:hover,
+.signIn:hover {
+  color: var(--violet);
+}
+.headerActions {
+  gap: 22px;
+}
+.headerCta,
+.primaryCta,
+.lightCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 19px;
+  min-height: 48px;
+  padding: 0 24px;
+  background: var(--violet);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(91, 44, 193, 0.16);
+  transition:
+    transform 0.25s,
+    background 0.25s,
+    box-shadow 0.25s;
+}
+.headerCta:hover,
+.primaryCta:hover {
+  transform: translateY(-3px);
+  background: var(--violet-dark);
+  box-shadow: 0 15px 29px rgba(91, 44, 193, 0.24);
+}
+.headerCta .ctaIcon {
+  font-size: 17px;
+  font-weight: 400;
+}
+.hero {
+  position: relative;
+  max-width: 1400px;
+  margin: auto;
+  padding: 48px 4.2% 72px;
+}
+.heroCopy {
+  position: relative;
+  z-index: 2;
+  max-width: 1000px;
+  margin: auto;
+  text-align: center;
+  animation: rise 0.7s both;
+}
+.eyebrow {
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.17em;
+  font-weight: 800;
+  color: var(--violet);
+}
+.hero .eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+.eyebrowDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--violet);
+  box-shadow: 0 0 0 5px var(--lilac);
+}
+.hero h1 {
+  margin: 18px 0 18px;
+  font-size: clamp(65px, 7.8vw, 112px);
+  line-height: 0.92;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+.hero h1 span {
+  color: var(--violet);
+}
+.heroDescription {
+  max-width: 590px;
+  margin: auto;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.heroActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin-top: 23px;
+}
+.primaryCta {
+  min-height: 55px;
+  padding: 0 27px;
+  font-size: 15px;
+}
+.textCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--ink);
+  transition: color 0.2s;
+}
+.textCta:hover {
+  color: var(--violet);
+}
+.textCta .ctaIcon {
+  font-size: 19px;
+  color: var(--violet);
+}
+.betaNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  margin-top: 13px;
+  font-size: 12px;
+  color: #817b8e;
+}
+.betaNote span {
+  width: 3px;
+  height: 3px;
+  background: #aaa3b5;
+  border-radius: 50%;
+}
+.heroStage {
+  position: relative;
+  min-height: 550px;
+  margin-top: 35px;
+  padding: 30px 42px 34px;
+  border: 1px solid #e9defe;
+  border-radius: 34px;
+  background: #f1eafd;
+  overflow: hidden;
+  animation: stageEnter 1s 0.1s both;
+}
+.heroStage:before {
+  content: "";
+  position: absolute;
+  width: 1030px;
+  height: 1030px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -47%);
+  border: 1px solid rgba(117, 70, 213, 0.13);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 95px rgba(255, 255, 255, 0.09),
+    0 0 0 190px rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+.heroStageTop,
+.heroStageBottom {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  color: #795dab;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.heroStageBottom {
+  justify-content: center;
+  margin-top: 4px;
+  font-size: 9px;
+}
+.stageLine {
+  width: clamp(20px, 7vw, 100px);
+  height: 1px;
+  background: #b99be9;
+}
