@@ -6,7 +6,7 @@ import posthog from "posthog-js";
 import type { NavigationItemType } from "./navigation/NavigationItem";
 
 type BottomNavItemsProps = {
-  publicPageUrl: string;
+  publicPageUrl: string | null;
 };
 
 export function useBottomNavItems({ publicPageUrl }: BottomNavItemsProps): NavigationItemType[] {
@@ -14,22 +14,26 @@ export function useBottomNavItems({ publicPageUrl }: BottomNavItemsProps): Navig
   const utils = trpc.useUtils();
 
   return [
-    {
-      name: "view_public_page",
-      href: publicPageUrl,
-      icon: "external-link",
-      target: "__blank",
-    },
-    {
-      name: "copy_public_page_link",
-      href: "",
-      onClick: (e: { preventDefault: () => void }) => {
-        e.preventDefault();
-        navigator.clipboard.writeText(publicPageUrl);
-        showToast(t("link_copied"), "success");
-      },
-      icon: "copy",
-    },
+    ...(publicPageUrl
+      ? [
+          {
+            name: "view_public_page",
+            href: publicPageUrl,
+            icon: "external-link",
+            target: "__blank",
+          },
+          {
+            name: "copy_public_page_link",
+            href: "",
+            onClick: (e: { preventDefault: () => void }) => {
+              e.preventDefault();
+              navigator.clipboard.writeText(publicPageUrl);
+              showToast(t("link_copied"), "success");
+            },
+            icon: "copy",
+          },
+        ]
+      : []),
     IS_DUB_REFERRALS_ENABLED
       ? {
           name: "referral_text",
