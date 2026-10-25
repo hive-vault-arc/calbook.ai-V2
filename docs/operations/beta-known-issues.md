@@ -1,6 +1,6 @@
 # Beta known issues and follow-ups
 
-Last reviewed: 2026-10-20. This register records evidence and release decisions;
+Last reviewed: 2026-10-21. This register records evidence and release decisions;
 it does not authorize merges, notifications, booking changes, or secret rotation.
 
 ## BUG-001 — Orphaned Cal Video location survives legacy reschedule
@@ -42,12 +42,15 @@ it does not authorize merges, notifications, booking changes, or secret rotation
 ## FIX-002 — Duplicated attendee cancellation-email event name
 
 - Status: fixed on dev by [PR #63](https://github.com/hive-vault-arc/calbook.ai-V2/pull/63),
-  revision `2dccb479`; production promotion still pending review and approval.
+  revision `2dccb479`, and promoted by approved
+  [PR #68](https://github.com/hive-vault-arc/calbook.ai-V2/pull/68), production
+  revision `dd76c5eb`; its deployment was confirmed successful.
 - Symptom: formatting an already-expanded booking title repeats participant names.
 - Scope of fix: use the raw event type when constructing attendee cancellation titles.
-- Closure: validate the production-based promotion with focused email tests and
-  required CI; separately approve deployment. Do not equate SMTP/Sent evidence
-  with confirmed attendee Inbox delivery.
+- Validation: 59 related tests, targeted TypeScript, and required CI passed. The
+  security audit passed after retrying a TLS transport failure, without weakening
+  the check. No live cancellation email was sent for this promotion. Do not equate
+  mocked tests or SMTP/Sent evidence with confirmed attendee Inbox delivery.
 
 ## Recently released
 
@@ -57,17 +60,28 @@ it does not authorize merges, notifications, booking changes, or secret rotation
   outer background while preserving the purple dark-mode card; production revision
   `b48572a6`, deployment confirmed.
 
-## Separate pre-launch work (not covered by the bug deferral)
+## Ordered pre-launch work (not covered by the bug deferral)
 
-- Rotate exposed secrets before launch; plan migration of encrypted data instead
-  of blindly replacing encryption keys. Verify production admin protection.
-- Validate supported connected integrations or keep unconfigured/untested options
+The operator requested this order on 2026-10-21. Deferral is scheduling, not a
+completed security check or approval to launch with exposed credentials.
+
+1. Validate supported connected integrations or keep unconfigured/untested options
   unavailable and marketing claims accurate. Google Calendar dev remains disabled
   by operator choice; connected-provider acceptance is not recorded as passed.
-- Keep the service/usage/upgrade inventory and runtime performance review separate:
+  Selective promotion of readiness reporting is draft PR #69, not yet deployed.
+2. Verify production admin protection and email delivery/observability. Admin 2FA
+  remains unverified; enrollment and recovery codes are user-controlled.
+3. Keep the service/usage/upgrade inventory and runtime performance review separate:
   unused calls, unnecessary re-renders, and inherited dead code need measured review.
-- Vercel build-time optimization is the last optimization task; preserve required
+4. Vercel build-time optimization is the last optimization task; preserve required
   security and type-safety gates. No paid plan upgrade is authorized here.
+5. Rotate exposed secrets as the final pre-launch security task, then redeploy and
+   verify affected authentication, email and provider flows before the launch decision.
+   Plan migration of encrypted data instead of blindly replacing encryption keys.
+   Do not paste replacement secrets into chat, documentation, Git or logs.
+
+## Operational follow-up
+
 - Dev deployment retention caused a 410 on 2026-10-20. The deleted latest dev
   deployment was restored and its signed-in dashboard loaded. Review retention
   separately; restoration does not prove all login or booking flows passed.
